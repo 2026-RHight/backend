@@ -1,0 +1,8 @@
+rootProject.name = 'rhight-backend'
+include 'core'
+include 'api'
+include 'approval'
+include 'attendance'
+include 'hr'
+include 'payroll'
+include 'performance'

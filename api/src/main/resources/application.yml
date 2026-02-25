@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: rhight-backend
+
+  #  local? ????
+  profiles:
+    active: local
+
+  # Spring Modulith ?? ??
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 10

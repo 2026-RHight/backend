@@ -1,0 +1,33 @@
+# 1. 기본 설정: 모든 텍스트 파일은 Git이 자동으로 판단하되, 저장소에는 LF로 저장함
+* text=auto
+
+# 2. 소스 코드 및 설정 파일: 명시적으로 LF(Unix 스타일) 강제
+# 맥/윈도우 어디서 작성하든 저장소에는 LF로 들어가고, 꺼낼 때도 LF로 유지하게 함
+*.java text eol=lf
+*.gradle text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.sql text eol=lf
+*.md text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# 3. 실행 스크립트: 
+# gradlew는 유닉스 계열(맥/리눅스)에서 실행되어야 하므로 반드시 LF
+gradlew text eol=lf
+# .bat은 윈도우 전용이므로 반드시 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 4. 바이너리 파일: 줄바꿈 처리를 하지 않음
+*.jar binary
+*.war binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

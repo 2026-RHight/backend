@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${PROD_DB_URL}
+    username: ${PROD_DB_USER}
+    password: ${PROD_DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # 운영은 실수를 막기 위해 무조건 validate
+    show-sql: false
+
+s3:
+  endpoint: ${PROD_S3_ENDPOINT}
+  access-key: ${PROD_S3_KEY}
+  secret-key: ${PROD_S3_SECRET}
