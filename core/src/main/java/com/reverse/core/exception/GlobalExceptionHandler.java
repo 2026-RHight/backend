@@ -1,6 +1,7 @@
 package com.reverse.core.exception;
 
-import com.reverse.rhight.global.response.ApiResponse;
+
+import com.reverse.core.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

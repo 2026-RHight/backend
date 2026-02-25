@@ -1,6 +1,6 @@
 package com.reverse.core.response;
 
-import com.reverse.rhight.global.exception.ErrorResponse;
+import com.reverse.core.exception.ErrorResponse;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
