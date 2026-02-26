@@ -66,6 +66,7 @@ public class JwtTokenProvider {
                 .subject(String.valueOf(employeeId))
                 .claim("employeeNum", employeeNum)
                 .claim("roles", roles)
+                .claim("tokenType", "ACCESS")
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -91,10 +92,15 @@ public class JwtTokenProvider {
                 .subject(String.valueOf(employeeId))
                 .claim("employeeNum", employeeNum)
                 .claim("roles", roles)
+                .claim("tokenType", "REFRESH")
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public String getTokenType(String token){
+        return parseClaims(token).get("tokenType",String.class);
     }
 
     /**

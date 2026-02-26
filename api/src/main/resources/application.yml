@@ -16,3 +16,9 @@ mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+security:
+  cors:
+    allowed-origins:
+      http://localhost:8080
+      http://api.beyond21.iptime.org

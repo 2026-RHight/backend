@@ -28,7 +28,7 @@ public class CustomUserDetailService implements UserDetailsService {
                         .orElseThrow(
                                 () ->
                                         new UsernameNotFoundException(
-                                                "사원을 찾을 수 없습니다: \" + employeeNum"));
+                                                "사원을 찾을 수 없습니다: " + employeeNum));
 
         List<String> roles = employeeAuthProvider.findRolesByEmployeeId(employee.employeeId());
 

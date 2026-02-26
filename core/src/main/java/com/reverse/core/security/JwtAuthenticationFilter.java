@@ -1,5 +1,7 @@
 package com.reverse.core.security;
 
+import com.reverse.core.exception.UnauthorizedException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +14,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -28,29 +31,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null && jwtTokenProvider.isValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
+                jwtTokenProvider.validateToken(token);
+                
+                Long employeeId = jwtTokenProvider.getEmployeeId(token);
+                String employeeNum = jwtTokenProvider.getEmployeeNum(token);
+                List<String> roles = jwtTokenProvider.getRoles(token);
+                if (roles == null) {
+                    roles = Collections.emptyList();
+                }
 
-            Long employeeId = jwtTokenProvider.getEmployeeId(token);
-            String employNum = jwtTokenProvider.getEmployeeNum(token);
-            List<String> roles = jwtTokenProvider.getRoles(token);
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                        .map(SimpleGrantedAuthority::new)
+                        .toList();
 
-            List<SimpleGrantedAuthority> authorities = roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_"+role))
-                    .toList();
+                CustomUser customUser = new CustomUser(
+                        employeeId, employeeNum, authorities, null
+                );
 
-            CustomUser customUser = new CustomUser(
-                    employeeId, employNum, authorities, null
-            );
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                customUser,
+                                null,
+                                authorities
+                        );
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            customUser,
-                            null,
-                            authorities
-                    );
-
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (UnauthorizedException | JwtException e) {
+                // 인증 실패는 컨텍스트를 비우고 다음 필터로 넘겨 401 처리 흐름을 따른다.
+                SecurityContextHolder.clearContext();
+            }
         }
 
         filterChain.doFilter(request, response);
