@@ -24,6 +24,7 @@ ext {
 
 dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.springframework:spring-web'
     compileOnly 'org.springdoc:springdoc-openapi-starter-common:2.8.0'
     compileOnly 'org.projectlombok:lombok'
@@ -31,6 +32,15 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+    // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+// JWT (jjwt 0.12.x)
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 }
 
 dependencyManagement {
