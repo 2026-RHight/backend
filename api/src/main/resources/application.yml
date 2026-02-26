@@ -17,6 +17,12 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+security:
+  cors:
+    allowed-origins:
+      http://localhost:8080
+      http://api.beyond21.iptime.org
+      
 springdoc:
   api-docs:
     path: /v3/api-docs
