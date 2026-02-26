@@ -22,3 +22,11 @@ security:
     allowed-origins:
       http://localhost:8080
       http://api.beyond21.iptime.org
+      
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
