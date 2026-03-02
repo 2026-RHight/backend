@@ -15,16 +15,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorizedException(UnauthorizedException ex) {
-        log.error("UnauthorizedException 발생:  Message: {}", ex.getMessage());
+        log.error("UnauthorizedException 발생: code={}, message={}", ex.getCode(), ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(ex));
+        ErrorResponse error = ErrorResponse.builder()
+                .code(ex.getCode())
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(error));
     }
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiResponse<Void>> handleForbiddenException(ForbiddenException ex) {
-        log.error("ForbiddenException 발생:  Message: {}", ex.getMessage());
+        log.error("ForbiddenException 발생:  code={}, message: {}", ex.getCode(), ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(ex));
+        ErrorResponse error = ErrorResponse.builder()
+                .code(ex.getCode())
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
 
     // JSON 파싱/바인딩 실패
