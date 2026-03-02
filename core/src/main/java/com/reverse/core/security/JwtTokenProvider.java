@@ -99,6 +99,37 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public String createPasswordChangeTicket(Long employeeId, String employeeNum){
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + 5 * 60 * 1000);
+        return Jwts.builder()
+                .subject(String.valueOf(employeeId))
+                .claim("employeeNum",employeeNum)
+                .claim("purpose","PASSWORD_CHANGE")
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public void validatePasswordChangeTicket(String token) {
+        try {
+            Claims c = parseClaims(token);
+            if (!"PASSWORD_CHANGE".equals(c.get("purpose"))) {
+                throw new UnauthorizedException("INVALID_TICKET", "유효하지 않은 변경 티켓입니다.");
+            }
+        } catch (ExpiredJwtException e) {
+            throw new UnauthorizedException("INVALID_TICKET", "만료된 변경 티켓입니다.");
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new UnauthorizedException("INVALID_TICKET", "유효하지 않은 변경 티켓입니다.");
+        }
+    }
+
+    public Long getEmployeeIdFromPasswordChangeTicket(String token) {
+        validatePasswordChangeTicket(token);
+        return Long.valueOf(parseClaims(token).getSubject());
+    }
+
     public String getTokenType(String token){
         return parseClaims(token).get("tokenType",String.class);
     }
