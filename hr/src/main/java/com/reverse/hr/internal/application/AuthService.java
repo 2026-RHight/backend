@@ -28,12 +28,6 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class AuthService {
 
-    @PostConstruct
-    public void printTestHash() {
-        System.out.println("TEST_HASH = " + passwordEncoder.encode("Spring!123"));
-    }
-
-
     private final AuthMapper authMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
