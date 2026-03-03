@@ -190,7 +190,6 @@ WHERE NOT EXISTS (
 
 -- ---------------------------------------------------------------------------
 -- Employees
--- password hash = Spring!123
 -- ---------------------------------------------------------------------------
 INSERT INTO employee (
     employee_num,
@@ -220,10 +219,10 @@ SELECT
     '서울 강남구 테헤란로 1',
     '1990-01-02',
     '국민은행',
-    TO_BASE64('110123456780'),
-    SHA2(CONCAT('110123456780', 'l6WrJOYmY0JuxbStYlTwIpdSr57i0uAOyUvHaNdQKB0='), 256),
-    TO_BASE64('9001021234567'),
-    SHA2(CONCAT('9001021234567', 'l6WrJOYmY0JuxbStYlTwIpdSr57i0uAOyUvHaNdQKB0='), 256),
+    'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
     false,
     'WORK',
     1
@@ -260,10 +259,10 @@ SELECT
     '서울 서초구 서초대로 2',
     '1992-07-11',
     '국민은행',
-    TO_BASE64('110123456789'),
-    SHA2(CONCAT('110123456789', 'l6WrJOYmY0JuxbStYlTwIpdSr57i0uAOyUvHaNdQKB0='), 256),
-    TO_BASE64('9207111234567'),
-    SHA2(CONCAT('9207111234567', 'l6WrJOYmY0JuxbStYlTwIpdSr57i0uAOyUvHaNdQKB0='), 256),
+    'QZCbN7Ym2lcf431cuPeowELldIaGTLfh48V8eEAuCF9YVuysk88ijQ==',
+    'd5b3d6656064e2eb9c49b1ffc6c60fc031cda8e8c87ea290ec2478591654f223',
+    'g4HK9BtfQBLVwnBjOQnC9e1rmRxgUaclDJCJzjc9vBwKVsG0O388JB0=',
+    '0cba2dac201b09cb86d5c957907426681a45300220ab5240a22e84d248004978',
     false,
     'WORK',
     2

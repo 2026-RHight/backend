@@ -16,7 +16,7 @@ public interface AuthMapper {
 
     Optional<LoginUserRow> findUserByEmployeeId(@Param("employeeId") Long employeeId);
 
-    Optional<LoginProfileRow> findLoginProfileByEmployeeId(Long employeeId);
+    Optional<LoginProfileRow> findLoginProfileByEmployeeId(@Param("employeeId") Long employeeId);
 
     List<String> findRoleCodesByEmployeeId(@Param("employeeId") Long employeeId);
 

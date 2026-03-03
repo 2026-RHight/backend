@@ -20,6 +20,8 @@ mybatis:
 security:
   hash:
     pepper: ${SECURITY_HASH_PEPPER}
+  enc:
+    key-base64: ${SECURITY_ENC_KEY_BASE64}
   cors:
     allowed-origins:
       http://localhost:8080
