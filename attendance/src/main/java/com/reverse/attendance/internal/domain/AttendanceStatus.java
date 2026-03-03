@@ -1,0 +1,18 @@
+package com.reverse.attendance.internal.domain;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public enum AttendanceStatus {
+
+    NOMAL("정상"),
+    TARDY("지각"),
+    EARLY_LEAVE("조퇴"),
+    ABSENT("결근"),
+    VACATION("휴가");
+
+    private final String description;
+
+}
