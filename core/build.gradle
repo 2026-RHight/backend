@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'java-library'
     id 'org.springframework.boot' version '3.5.11'
     id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -30,7 +31,8 @@ dependencies {
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.5'
     compileOnly 'org.springframework:spring-web'
-    compileOnly 'org.springdoc:springdoc-openapi-starter-common:2.8.14'
+    api 'org.springdoc:springdoc-openapi-starter-common:2.8.14'
+    api 'software.amazon.awssdk:s3:2.42.4'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -40,7 +42,7 @@ dependencies {
 
 
     // Spring Security
-    implementation 'org.springframework.boot:spring-boot-starter-security'
+    api 'org.springframework.boot:spring-boot-starter-security'
 
 // JWT (jjwt 0.12.x)
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
