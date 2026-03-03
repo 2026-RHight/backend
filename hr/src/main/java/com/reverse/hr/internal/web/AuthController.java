@@ -48,6 +48,10 @@ public class AuthController {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             throw new UnauthorizedException("INVALID_TICKET", "비밀번호 변경 티켓이 필요합니다.");
         }
-        return authorization.substring(7);
+        String ticket = authorization.substring(7).trim();
+        if (ticket.isEmpty()) {
+            throw new UnauthorizedException("INVALID_TICKET", "비밀번호 변경 티켓이 필요합니다.");
+        }
+        return ticket;
     }
 }

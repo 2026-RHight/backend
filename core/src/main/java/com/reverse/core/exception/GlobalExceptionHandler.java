@@ -66,7 +66,10 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> {
                     if (error instanceof FieldError fieldError) {
-                        return fieldError.getDefaultMessage();
+                        String defaultMessage = fieldError.getDefaultMessage();
+                        return (defaultMessage == null || defaultMessage.isBlank())
+                                ? "요청 값이 올바르지 않습니다."
+                                : defaultMessage;
                     }
                     return "요청 값이 올바르지 않습니다.";
                 })

@@ -1,14 +1,14 @@
 package com.reverse.hr.internal.domain;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "password_history")
 public class PasswordHistory {
@@ -26,10 +26,8 @@ public class PasswordHistory {
     @Column(name = "change_at", nullable = false)
     private LocalDateTime changeAt;
 
-    @PrePersist
-    protected void ensureChangeAt() {
-        if (this.changeAt == null) {
-            this.changeAt = LocalDateTime.now();
-        }
+    public PasswordHistory(Long employeeId, String passwordHash) {
+        this.employeeId = employeeId;
+        this.passwordHash = passwordHash;
     }
 }
