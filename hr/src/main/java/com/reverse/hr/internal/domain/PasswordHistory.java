@@ -26,8 +26,4 @@ public class PasswordHistory {
     @Column(name = "change_at", nullable = false)
     private LocalDateTime changeAt;
 
-    public PasswordHistory(Long employeeId, String passwordHash) {
-        this.employeeId = employeeId;
-        this.passwordHash = passwordHash;
-    }
 }
