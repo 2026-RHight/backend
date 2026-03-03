@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Comment;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "reference_line")
 @Comment("참조선 테이블")
@@ -34,5 +36,9 @@ public class ReferenceLine {
     @Column(name = "reference_rank", nullable = false)
     @Comment("참조자 직급")
     private String referenceRank;
+
+    @Column(name = "read_dt")
+    @Comment("조회 날짜")
+    private LocalDateTime readDate;
 
 }

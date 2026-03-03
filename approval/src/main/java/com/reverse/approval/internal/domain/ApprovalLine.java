@@ -44,12 +44,21 @@ public class ApprovalLine {
     @Comment("전자결재 아이디")
     private Long approvalId;
 
-    @Column(name = "approver_id")
+    @Column(name = "approver_id", nullable = false)
     @Comment("결재자 아이디")
     private Long approverId;
 
-    @Column(name = "approver_name", length = 50)
+    @Column(name = "approver_name", length = 50, nullable = false)
     @Comment("결재자 이름")
     private String approverName;
+
+    @Column(name = "approver_rank", nullable = false)
+    @Comment("결재자 직급")
+    private String approverRank;
+
+    @Column(name = "read_dt")
+    @Comment("조회 날짜")
+    private LocalDateTime readDate;
+
 
 }

@@ -62,5 +62,9 @@ public abstract class ElectronicApproval {
     @Comment("승인일")
     private LocalDateTime approveDate;
 
+    @Column(name = "read_dt")
+    @Comment("조회 날짜")
+    private LocalDateTime readDate;
+
 }
 

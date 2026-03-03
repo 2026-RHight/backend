@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.Comment;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "recipient_line")
 @Comment("수신선 테이블")
@@ -32,4 +34,8 @@ public class ReceipientLine {
     @Column(name = "receiver_rank", nullable = false)
     @Comment("수신자 직급")
     private String receiverRank;
+
+    @Column(name = "read_dt")
+    @Comment("조회 날짜")
+    private LocalDateTime readDate;
 }
