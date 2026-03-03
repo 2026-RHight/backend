@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum AttendanceStatus {
 
-    NOMAL("정상"),
+    NORMAL("정상"),
     TARDY("지각"),
     EARLY_LEAVE("조퇴"),
     ABSENT("결근"),
