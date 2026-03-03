@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.AuthMapper">
+
+    <select id="findUserByEmployeeNum"
+            parameterType="String"
+            resultType="com.reverse.hr.internal.persistence.row.LoginUserRow">
+        SELECT employee_id       AS employeeId,
+               employee_num      AS employeeNum,
+               employee_password AS password,
+               initial_state     AS initialState
+        FROM employee
+        WHERE employee_num = #{employeeNum}
+    </select>
+
+    <select id="findUserByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.LoginUserRow">
+        SELECT employee_id   AS employeeId,
+               employee_num  AS employeeNum,
+               employee_password  AS password,
+               initial_state AS initialState
+        FROM employee
+        WHERE employee_id = #{employeeId}
+    </select>
+
+
+    <select id="findRoleCodesByEmployeeId"
+            parameterType="Long"
+            resultType="String">
+        SELECT r.role_code
+        FROM employee_role er
+                 JOIN role r ON r.role_id = er.role_id
+        WHERE er.employee_id = #{employeeId}
+    </select>
+
+    <select id="findInitializeUserByEmployeeNum"
+            parameterType="String"
+            resultType="com.reverse.hr.internal.persistence.row.InitializeUserRow">
+        SELECT employee_id          AS employeeId,
+               employee_num         AS employeeNum,
+               resident_number_hash AS residentNumberHash
+        FROM employee
+        WHERE employee_num = #{employeeNum}
+    </select>
+
+    <update id="updatePasswordAndInitialState">
+        UPDATE employee
+        SET employee_password = #{password},
+            initial_state = #{initialState}
+        WHERE employee_id = #{employeeId}
+    </update>
+
+    <insert id="insertPasswordHistory">
+        INSERT INTO password_history (
+            employee_id, password_hash, change_at
+        ) VALUES (
+            #{employeeId}, #{passwordHash}, NOW()
+        )
+    </insert>
+
+
+</mapper>

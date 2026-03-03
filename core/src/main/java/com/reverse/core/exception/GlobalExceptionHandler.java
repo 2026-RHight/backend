@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -15,16 +17,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorizedException(UnauthorizedException ex) {
-        log.error("UnauthorizedException 발생:  Message: {}", ex.getMessage());
+        log.error("UnauthorizedException 발생: code={}, message={}", ex.getCode(), ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(ex));
+        ErrorResponse error = ErrorResponse.builder()
+                .code(ex.getCode())
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(error));
     }
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiResponse<Void>> handleForbiddenException(ForbiddenException ex) {
-        log.error("ForbiddenException 발생:  Message: {}", ex.getMessage());
+        log.error("ForbiddenException 발생:  code={}, message: {}", ex.getCode(), ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(ex));
+        ErrorResponse error = ErrorResponse.builder()
+                .code(ex.getCode())
+                .message(ex.getMessage())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
 
     // JSON 파싱/바인딩 실패
@@ -44,5 +56,30 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail(error));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult()
+                .getAllErrors()
+                .stream()
+                .findFirst()
+                .map(error -> {
+                    if (error instanceof FieldError fieldError) {
+                        String defaultMessage = fieldError.getDefaultMessage();
+                        return (defaultMessage == null || defaultMessage.isBlank())
+                                ? "요청 값이 올바르지 않습니다."
+                                : defaultMessage;
+                    }
+                    return "요청 값이 올바르지 않습니다.";
+                })
+                .orElse("요청 값이 올바르지 않습니다.");
+
+        ErrorResponse error = ErrorResponse.builder()
+                .code("INVALID_REQUEST")
+                .message(message)
+                .build();
+
+        return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
 }

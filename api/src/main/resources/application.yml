@@ -13,11 +13,13 @@ spring:
         core-size: 5
         max-size: 10
 mybatis:
-  mapper-locations: classpath:mapper/**/*.xml
+  mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
 
 security:
+  hash:
+    pepper: ${SECURITY_HASH_PEPPER}
   cors:
     allowed-origins:
       http://localhost:8080

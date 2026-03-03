@@ -20,7 +20,7 @@ public class HrServiceImpl implements EmployeeAuthProvider, HrFacade {
 
     @Override
     public Optional<EmployeeAuthInfoDTO> findByEmployeeNum(String employeeNum) {
-        return employeeMapper.findByEmployeeNum(employeeNum);
+        return employeeMapper.findUserByEmployeeNum(employeeNum);
     }
 
     @Override
