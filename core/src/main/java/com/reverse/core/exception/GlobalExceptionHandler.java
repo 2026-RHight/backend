@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -54,5 +56,27 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail(error));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult()
+                .getAllErrors()
+                .stream()
+                .findFirst()
+                .map(error -> {
+                    if (error instanceof FieldError fieldError) {
+                        return fieldError.getDefaultMessage();
+                    }
+                    return "요청 값이 올바르지 않습니다.";
+                })
+                .orElse("요청 값이 올바르지 않습니다.");
+
+        ErrorResponse error = ErrorResponse.builder()
+                .code("INVALID_REQUEST")
+                .message(message)
+                .build();
+
+        return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
 }

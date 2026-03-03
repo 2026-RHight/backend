@@ -4,7 +4,7 @@
 
 <mapper namespace="com.reverse.hr.internal.persistence.EmployeeMapper">
 
-    <select id="findUserByEmployeeId"
+    <select id="findUserByEmployeeNum"
             parameterType="String"
             resultType="com.reverse.core.security.EmployeeAuthInfoDTO">
         SELECT employee_id   AS employeeId,

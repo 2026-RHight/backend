@@ -12,7 +12,7 @@ public class ErrorResponse {
     private final String code;
 
     @Builder
-    public ErrorResponse(String code, String message, String resetToken) {
+    public ErrorResponse(String code, String message) {
         this.timestamp = LocalDateTime.now();
         this.message = message;
         this.code = code;
@@ -35,7 +35,7 @@ public class ErrorResponse {
 
         return ErrorResponse.builder()
                 .code("INTERNAL_ERROR")
-                .message(exception.getMessage())
+                .message("서버 내부 오류가 발생했습니다.")
                 .build();
     }
 }

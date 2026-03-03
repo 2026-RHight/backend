@@ -1,25 +1,19 @@
 package com.reverse.hr.internal.application;
 
 import com.reverse.core.exception.UnauthorizedException;
-import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.JwtTokenProvider;
 import com.reverse.hr.internal.application.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.application.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.application.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
-import com.reverse.hr.internal.application.dto.response.TokenResponseDTO;
-import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
-import jakarta.annotation.PostConstruct;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -32,6 +26,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ResidentHashService residentHashService;
+
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
+    private static final String UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    private static final String LOWER = "abcdefghjkmnpqrstuvwxyz";
+    private static final String DIGIT = "23456789";
+    private static final String SPECIAL = "!@#$%^&*()-_=+[]{}?";
+    private static final String ALL = UPPER + LOWER + DIGIT + SPECIAL;
 
     @Transactional
     public LoginResponseDTO login(LoginRequestDTO request) {
@@ -82,6 +84,22 @@ public class AuthService {
         // 5) 비밀번호를 사번으로 초기화(평문 저장 금지)
         String encodedInitPassword = passwordEncoder.encode(user.employeeNum());
 
+        // TODO(클로이): 이메일 전송 로직 추가 후 사번 초기화 삭제
+//        // 5) 임시 비밀번호 생성 후 이메일 전송 방식 추후
+//        String tempPassword = generateTempPassword(); // 12~16자, 영문+숫자+특수
+//        String encoded = passwordEncoder.encode(tempPassword);
+
+//        int updated = authMapper.updatePasswordAndInitialState(
+//                user.employeeId(),
+//                passwordEncoder,
+//                true
+//        );
+//
+//        int inserted = authMapper.insertPasswordHistory(
+//                user.employeeId(),
+//                passwordEncoder
+//        );
+
         int updated = authMapper.updatePasswordAndInitialState(
                 user.employeeId(),
                 encodedInitPassword,
@@ -101,7 +119,6 @@ public class AuthService {
 
     @Transactional
     public LoginResponseDTO changeInitialPassword(String ticket, ChangePasswordRequestDTO request){
-        jwtTokenProvider.validatePasswordChangeTicket(ticket);
         Long employeeId = jwtTokenProvider.getEmployeeIdFromPasswordChangeTicket(ticket);
 
         LoginUserRow user = authMapper.findUserByEmployeeId(employeeId)
@@ -153,4 +170,31 @@ public class AuthService {
 
         return new LoginResponseDTO(false,accessToken,null);
     }
+
+
+    private String generateTempPassword() {
+        int length = 12; // 8~15 정책 충족
+        char[] password = new char[length];
+
+        // 최소 1개씩 보장
+        password[0] = UPPER.charAt(SECURE_RANDOM.nextInt(UPPER.length()));
+        password[1] = LOWER.charAt(SECURE_RANDOM.nextInt(LOWER.length()));
+        password[2] = DIGIT.charAt(SECURE_RANDOM.nextInt(DIGIT.length()));
+        password[3] = SPECIAL.charAt(SECURE_RANDOM.nextInt(SPECIAL.length()));
+
+        for (int i = 4; i < length; i++) {
+            password[i] = ALL.charAt(SECURE_RANDOM.nextInt(ALL.length()));
+        }
+
+        // Fisher-Yates shuffle
+        for (int i = password.length - 1; i > 0; i--) {
+            int j = SECURE_RANDOM.nextInt(i + 1);
+            char tmp = password[i];
+            password[i] = password[j];
+            password[j] = tmp;
+        }
+
+        return new String(password);
+    }
+
 }

@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(uniqueConstraints = @UniqueConstraint(name = "UK_USER_EMPLOYEE_NUM", columnNames = {"employeeNum"}))
+@Table(uniqueConstraints = @UniqueConstraint(name = "UK_USER_EMPLOYEE_NUM", columnNames = {"employee_num"}))
 public class Employee {
 
     @Id
@@ -28,10 +28,10 @@ public class Employee {
     private String employeePassword;
 
     @Column(nullable = false)
-    private Long phone;
+    private String phone;
 
     @Column(nullable = false)
-    private Long ext;
+    private String ext;
 
     @Column(nullable = false)
     private String email;
@@ -68,7 +68,8 @@ public class Employee {
     @Column(nullable = false)
     private EmployeeState employState;
 
-    @Column(nullable = false) // fk 인사파일 테이블
+    //TODO(클로이): fk 인사파일 테이블 조인
+    @Column(nullable = false)
     private Long profileId;
 
     @ManyToMany(fetch = FetchType.LAZY)

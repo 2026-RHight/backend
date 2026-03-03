@@ -19,7 +19,7 @@ mybatis:
 
 security:
   hash:
-    pepper: ${SECURITY_HASH_PEPPER:local-dev-pepper-change-me}
+    pepper: ${SECURITY_HASH_PEPPER}
   cors:
     allowed-origins:
       http://localhost:8080

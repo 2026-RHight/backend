@@ -14,7 +14,13 @@ public class ResidentHashService {
     private String pepper;
 
     public String hash(String residentNum) {
+        if (residentNum == null || residentNum.isBlank()) {
+            throw new IllegalArgumentException("주민등록번호를 입력해주세요.");
+        }
         String normalized = residentNum.replaceAll("[^0-9]", "");
+        if( normalized.isEmpty() ) {
+            throw new IllegalArgumentException("주민등록번호를 입력해주세요");
+        }
         String input = normalized + pepper;
 
         try {

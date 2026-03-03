@@ -25,4 +25,11 @@ public class PasswordHistory {
 
     @Column(name = "change_at", nullable = false)
     private LocalDateTime changeAt;
+
+    @PrePersist
+    protected void ensureChangeAt() {
+        if (this.changeAt == null) {
+            this.changeAt = LocalDateTime.now();
+        }
+    }
 }

@@ -5,4 +5,12 @@ public record LoginResponseDTO(
         String accessToken,
         String passwordChangeTicket
 ) {
+    public LoginResponseDTO {
+        if (requiresPasswordChange && (passwordChangeTicket == null || accessToken != null)){
+            throw new IllegalArgumentException("비밀번호 변경 필요 시 ticket만 내려야 합니다.");
+        }
+        if (!requiresPasswordChange && (accessToken == null || passwordChangeTicket != null)) {
+            throw new IllegalArgumentException("일반 로그인 성공 시 accessToken만 내려야 합니다.");
+        }
+    }
 }

@@ -11,6 +11,7 @@ import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
 import com.reverse.hr.internal.application.dto.response.TokenResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,7 @@ public class AuthController {
 
     @PatchMapping("/password")
     public ApiResponse<LoginResponseDTO> changeInitialPassword(
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @Valid @RequestBody ChangePasswordRequestDTO request)
     {
         String ticket = extractBearerToken(authorization);

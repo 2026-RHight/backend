@@ -14,6 +14,6 @@ public class ForbiddenException extends RuntimeException {
 
     public ForbiddenException(String code, String message) {
         super(message);
-        this.code = code;
+        this.code = (code == null || code.isBlank()) ? "FORBIDDEN" : code;
     }
 }
