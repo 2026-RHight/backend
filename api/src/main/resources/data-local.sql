@@ -256,7 +256,7 @@ SELECT
     '01000000002',
     '1002',
     'user2@example.test',
-    '서울시 테스트구 테스트로 2''',
+    '서울시 테스트구 테스트로 2',
     '1992-01-01',
     '국민은행',
     'QZCbN7Ym2lcf431cuPeowELldIaGTLfh48V8eEAuCF9YVuysk88ijQ==',
