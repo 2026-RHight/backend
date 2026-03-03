@@ -1,7 +1,8 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.dto.ClockInRequest;
-import com.reverse.attendance.dto.ClockOutRequest;
+import com.reverse.attendance.dto.request.AttendanceModifyRequest;
+import com.reverse.attendance.dto.request.ClockInRequest;
+import com.reverse.attendance.dto.request.ClockOutRequest;
 import com.reverse.attendance.internal.domain.Attendance;
 import com.reverse.attendance.internal.domain.AttendanceStatus;
 import com.reverse.attendance.internal.persistence.AttendanceMapper;
@@ -27,7 +28,6 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        // 1. 중복 출근 검증
         Optional<Attendance> existingRecord = attendanceMapper.findByEmployeeIdAndWorkDate(request.getEmployeeId(), today);
         if (existingRecord.isPresent()) {
             throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
@@ -83,5 +83,30 @@ public class AttendanceService {
                 .build();
 
         attendanceMapper.updateCheckOut(updatedAttendance);
+    }
+
+    @Transactional
+    public void modifyAttendanceByAdmin(AttendanceModifyRequest request) {
+
+        if (request.getModifyReason() == null || request.getModifyReason().trim().isEmpty()) {
+            throw new IllegalArgumentException("근태 기록 수정 시 사유를 반드시 입력해야 합니다.");
+        }
+
+        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(request.getTargetEmployeeId(), request.getWorkDate())
+                .orElseThrow(() -> new IllegalStateException("해당 날짜의 근태 기록이 존재하지 않습니다."));
+
+        Attendance updatedAttendance = Attendance.builder()
+                .attendanceId(attendance.getAttendanceId())
+                .employeeId(attendance.getEmployeeId())
+                .workDate(attendance.getWorkDate())
+                .checkInTime(request.getNewCheckInTime() != null ? request.getNewCheckInTime() : attendance.getCheckInTime())
+                .checkOutTime(request.getNewCheckOutTime() != null ? request.getNewCheckOutTime() : attendance.getCheckOutTime())
+                .status(request.getNewStatus() != null ? request.getNewStatus() : attendance.getStatus())
+                .tardyReason(attendance.getTardyReason())
+                .modifyReason(request.getModifyReason()) // 새로운 사유로 업데이트
+                .build();
+
+        // 4. DB 업데이트
+        attendanceMapper.updateAttendanceByAdmin(updatedAttendance);
     }
 }

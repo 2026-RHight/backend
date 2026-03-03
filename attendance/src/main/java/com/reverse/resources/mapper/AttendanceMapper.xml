@@ -33,4 +33,13 @@
         WHERE attendance_id = #{attendanceId}
     </update>
 
+    <update id="updateAttendanceByAdmin">
+        UPDATE attendance_record
+        SET check_in_time = #{checkInTime},
+            check_out_time = #{checkOutTime},
+            status = #{status},
+            modify_reason = #{modifyReason}
+        WHERE attendance_id = #{attendanceId}
+    </update>
+
 </mapper>

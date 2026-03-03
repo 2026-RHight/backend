@@ -1,4 +1,4 @@
-package com.reverse.attendance.dto;
+package com.reverse.attendance.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

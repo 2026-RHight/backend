@@ -19,4 +19,6 @@ public interface AttendanceMapper {
 
     void updateCheckOut(Attendance attendance);
 
+    void updateAttendanceByAdmin(Attendance attendance);
+
 }
