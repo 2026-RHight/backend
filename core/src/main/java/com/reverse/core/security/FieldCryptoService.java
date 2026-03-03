@@ -51,6 +51,9 @@ public class FieldCryptoService {
     public String decrypt(String enc) {
         try {
             byte[] all = Base64.getDecoder().decode(enc);
+            if (all.length <= IV_LEN) {
+                throw new IllegalArgumentException("encrypt data is too short");
+            }
             ByteBuffer bb = ByteBuffer.wrap(all);
             byte[] iv = new byte[IV_LEN];
             bb.get(iv);
@@ -60,6 +63,8 @@ public class FieldCryptoService {
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
             return new String(c.doFinal(cipher), StandardCharsets.UTF_8);
+        }catch (IllegalStateException e){
+            throw e;
         } catch (Exception e) {
             throw new IllegalStateException("decrypt failed", e);
         }
