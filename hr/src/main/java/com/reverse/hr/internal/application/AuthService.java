@@ -6,9 +6,11 @@ import com.reverse.hr.internal.application.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.application.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.application.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
+import com.reverse.hr.internal.application.dto.response.LoginUserProfileDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;
+import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,13 +51,26 @@ public class AuthService {
 
         if (Boolean.TRUE.equals(user.initialState())){
             String ticket = jwtTokenProvider.createPasswordChangeTicket(user.employeeId(),user.employeeNum());
-            return new LoginResponseDTO(true,null,ticket);
+            return new LoginResponseDTO(true,null,ticket,null);
         }
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
 
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
-        return new LoginResponseDTO(false,accessToken,null);
+        LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
+                .orElseThrow(() -> new IllegalArgumentException("로그인 프로필 정보를 찾을 수 없습니다."));
+
+        LoginUserProfileDTO profile = new LoginUserProfileDTO(
+                profileRow.employeeId(),
+                profileRow.employeeNum(),
+                profileRow.employeeName(),
+                profileRow.orgName(),
+                profileRow.positionName(),
+                profileRow.rankName(),
+                profileRow.jobName()
+        );
+
+        return new LoginResponseDTO(false,accessToken,null, profile);
     }
 
     @Transactional
@@ -168,7 +183,20 @@ public class AuthService {
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
-        return new LoginResponseDTO(false,accessToken,null);
+        LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
+                .orElseThrow(() -> new IllegalArgumentException("로그인 프로필 정보를 찾을 수 없습니다."));
+
+        LoginUserProfileDTO profile = new LoginUserProfileDTO(
+                profileRow.employeeId(),
+                profileRow.employeeNum(),
+                profileRow.employeeName(),
+                profileRow.orgName(),
+                profileRow.positionName(),
+                profileRow.rankName(),
+                profileRow.jobName()
+        );
+
+        return new LoginResponseDTO(false,accessToken,null, profile);
     }
 
 
