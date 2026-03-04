@@ -2,9 +2,11 @@ package com.reverse.approval.internal.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 
 import java.time.LocalDate;
 
+@Getter
 public class RTWRequest {
 
     @NotNull(message = "복직 날짜가 없을 수는 없습니다.")
