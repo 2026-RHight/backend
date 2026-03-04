@@ -24,7 +24,7 @@ public class NumberingService {
             try {
                 sequenceMapper.insertInitialSequence(prefix, year)
             } catch (DuplicateKeyException e){
-                sequenceMapper.updateSequenceNumber(year, prefix);
+                sequenceMapper.updateSequenceNumber(prefix, year);
             }
         }
 
