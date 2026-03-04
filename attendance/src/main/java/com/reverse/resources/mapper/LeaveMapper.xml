@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.LeaveMapper">
+
+    <select id="findTotalAnnualLeaveByEmployeeId" resultType="java.lang.Double">
+        SELECT total_annual_leave
+        FROM leave_balance
+        WHERE employee_id = #{employeeId}
+    </select>
+
+    <select id="sumUsedDaysByStatus" resultType="java.lang.Double">
+        SELECT IFNULL(SUM(used_days), 0)
+        FROM leave_request
+        WHERE employee_id = #{employeeId} AND leave_status = #{status}
+    </select>
+
+    <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
+        INSERT INTO leave_request (
+            employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
+        ) VALUES (
+                     #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
+                 )
+    </insert>
+
+    <select id="findLeaveRequestsByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+        SELECT
+            leave_request_id as leaveRequestId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            leave_type as leaveType,
+            leave_status as leaveStatus,
+            used_days as usedDays,
+            reason as reason,
+            reject_reason as rejectReason
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+        ORDER BY start_date DESC
+    </select>
+
+    <select id="findLeaveRequestById" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+        SELECT
+            leave_request_id as leaveRequestId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            leave_type as leaveType,
+            leave_status as leaveStatus,
+            used_days as usedDays,
+            reason as reason,
+            reject_reason as rejectReason
+        FROM leave_request
+        WHERE leave_request_id = #{leaveRequestId}
+    </select>
+
+    <update id="updateLeaveStatus">
+        UPDATE leave_request
+        SET leave_status = #{leaveStatus},
+            reject_reason = #{rejectReason}
+        WHERE leave_request_id = #{leaveRequestId}
+    </update>
+
+    <select id="findAllLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+        SELECT
+        leave_request_id as leaveRequestId,
+        employee_id as employeeId,
+        start_date as startDate,
+        end_date as endDate,
+        leave_type as leaveType,
+        leave_status as leaveStatus,
+        used_days as usedDays,
+        reason as reason,
+        reject_reason as rejectReason
+        FROM leave_request
+        <where>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                leave_status = #{leaveStatus}
+            </if>
+        </where>
+        ORDER BY start_date DESC
+    </select>
+
+</mapper>

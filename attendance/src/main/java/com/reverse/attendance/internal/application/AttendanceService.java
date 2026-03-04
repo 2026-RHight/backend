@@ -3,8 +3,10 @@ package com.reverse.attendance.internal.application;
 import com.reverse.attendance.dto.request.AttendanceModifyRequest;
 import com.reverse.attendance.dto.request.ClockInRequest;
 import com.reverse.attendance.dto.request.ClockOutRequest;
+import com.reverse.attendance.dto.response.AttendanceRecordResponse;
+import com.reverse.attendance.dto.response.AttendanceSummaryResponse;
 import com.reverse.attendance.internal.domain.Attendance;
-import com.reverse.attendance.internal.domain.AttendanceStatus;
+import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import com.reverse.attendance.internal.persistence.AttendanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -103,10 +107,37 @@ public class AttendanceService {
                 .checkOutTime(request.getNewCheckOutTime() != null ? request.getNewCheckOutTime() : attendance.getCheckOutTime())
                 .status(request.getNewStatus() != null ? request.getNewStatus() : attendance.getStatus())
                 .tardyReason(attendance.getTardyReason())
-                .modifyReason(request.getModifyReason()) // 새로운 사유로 업데이트
+                .modifyReason(request.getModifyReason())
                 .build();
 
-        // 4. DB 업데이트
         attendanceMapper.updateAttendanceByAdmin(updatedAttendance);
     }
+
+    // 월별 통계 대쉬보드
+    @Transactional(readOnly = true)
+    public AttendanceSummaryResponse getMonthlySummary(Long employeeId, int year, int month) {
+        String yearMonth = String.format("%04d-%02d", year, month);
+        return attendanceMapper.countMonthlySummary(employeeId, yearMonth);
+    }
+
+    // 월별 리스트 조회
+    @Transactional(readOnly = true)
+    public List<AttendanceRecordResponse> getMonthlyRecords(Long employeeId, int year, int month, String status) {
+        String yearMonth = String.format("%04d-%02d", year, month);
+
+        List<Attendance> records = attendanceMapper.findMonthlyRecords(employeeId, yearMonth, status);
+
+        return records.stream()
+                .map(record -> AttendanceRecordResponse.builder()
+                        .attendanceId(record.getAttendanceId())
+                        .workDate(record.getWorkDate())
+                        .checkInTime(record.getCheckInTime())
+                        .checkOutTime(record.getCheckOutTime())
+                        .status(record.getStatus())
+                        .statusDescription(record.getStatus().getDescription()) // "정상", "지각" 등 한글 텍스트
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+
 }

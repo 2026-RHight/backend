@@ -1,4 +1,4 @@
-package com.reverse.attendance.internal.domain;
+package com.reverse.attendance.internal.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

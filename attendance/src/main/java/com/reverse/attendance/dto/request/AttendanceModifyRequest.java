@@ -1,6 +1,6 @@
 package com.reverse.attendance.dto.request;
 
-import com.reverse.attendance.internal.domain.AttendanceStatus;
+import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
