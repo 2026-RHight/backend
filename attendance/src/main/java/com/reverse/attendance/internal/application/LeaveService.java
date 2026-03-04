@@ -1,6 +1,5 @@
 package com.reverse.attendance.internal.application;
 
-
 import com.reverse.attendance.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.dto.response.LeaveBalanceResponse;
@@ -10,7 +9,6 @@ import com.reverse.attendance.internal.persistence.LeaveMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 

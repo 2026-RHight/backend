@@ -31,11 +31,13 @@ logging:
   level:
     org.hibernate.orm.jdbc.bind: trace
 
-s3:
-  endpoint: http://localhost:9000
-  access-key: avcTUqjJqwNPVy0F5ZQT
-  secret-key: 6WsJAnE0BOCLnuH3eqZRHgy6atv7wOHOLpAttCdE
-
+cloud:
+  s3:
+    endpoint: http://beyond21.iptime.org:2103
+    region: ap-northeast-2
+    credentials:
+      access-key: EDNM7qnYf0dWhZV61amA
+      secret-key: 6rkUWvOeRhBxpCf1tZMS8ALiXPb9F7VKmlaoHQIn
 jwt:
   secret: "c0VOKXLQX/2HmTKN0fkmqy1mf0EuTCUVrqzcDjIMnqIuBtufqFEfi9Ihnl+2OfxoPrn78+wM25yn2dwKsUy/LA=="
   expiration: 1800000
