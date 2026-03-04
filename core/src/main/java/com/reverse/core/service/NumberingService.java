@@ -22,7 +22,7 @@ public class NumberingService {
 
         if (affectedRows == 0) {
             try {
-                sequenceMapper.insertInitialSequence(prefix, year)
+                sequenceMapper.insertInitialSequence(prefix, year);
             } catch (DuplicateKeyException e){
                 sequenceMapper.updateSequenceNumber(prefix, year);
             }
