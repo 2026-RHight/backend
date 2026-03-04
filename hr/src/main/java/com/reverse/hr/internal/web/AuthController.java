@@ -2,17 +2,13 @@ package com.reverse.hr.internal.web;
 
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.response.ApiResponse;
-import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.AuthService;
 import com.reverse.hr.internal.application.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.application.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.application.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
-import com.reverse.hr.internal.application.dto.response.TokenResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

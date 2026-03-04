@@ -6,9 +6,11 @@ import com.reverse.hr.internal.application.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.application.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.application.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
+import com.reverse.hr.internal.application.dto.response.LoginUserProfileDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;
+import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,6 +37,12 @@ public class AuthService {
     private static final String SPECIAL = "!@#$%^&*()-_=+[]{}?";
     private static final String ALL = UPPER + LOWER + DIGIT + SPECIAL;
 
+    /**
+     * 사번/비밀번호를 검증하고 로그인 응답(토큰 또는 비밀번호 변경 티켓)을 반환한다.
+     *
+     * @param request 로그인 요청 정보
+     * @return 로그인 결과
+     */
     @Transactional
     public LoginResponseDTO login(LoginRequestDTO request) {
 
@@ -49,15 +57,33 @@ public class AuthService {
 
         if (Boolean.TRUE.equals(user.initialState())){
             String ticket = jwtTokenProvider.createPasswordChangeTicket(user.employeeId(),user.employeeNum());
-            return new LoginResponseDTO(true,null,ticket);
+            return new LoginResponseDTO(true,null,ticket,null);
         }
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
 
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
-        return new LoginResponseDTO(false,accessToken,null);
+        LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
+                .orElseThrow(() -> new IllegalStateException("로그인 프로필 정보를 찾을 수 없습니다."));
+
+        LoginUserProfileDTO profile = new LoginUserProfileDTO(
+                profileRow.employeeId(),
+                profileRow.employeeNum(),
+                profileRow.employeeName(),
+                profileRow.orgName(),
+                profileRow.positionName(),
+                profileRow.rankName(),
+                profileRow.jobName()
+        );
+
+        return new LoginResponseDTO(false,accessToken,null, profile);
     }
 
+    /**
+     * 사번과 주민번호 해시 검증 후 비밀번호를 초기 상태로 재설정한다.
+     *
+     * @param dto 비밀번호 초기화 요청 정보
+     */
     @Transactional
     public void initializePassword(InitializeRequestDTO dto) {
         // 1) 사번으로 사용자 조회 (초기화용 row: employeeId, employeeNum, residentNumberHash 필요)
@@ -117,6 +143,13 @@ public class AuthService {
 
     }
 
+    /**
+     * 비밀번호 변경 티켓을 검증하고 초기 비밀번호를 새 비밀번호로 변경한다.
+     *
+     * @param ticket 비밀번호 변경 티켓
+     * @param request 비밀번호 변경 요청
+     * @return 변경 완료 후 로그인 응답
+     */
     @Transactional
     public LoginResponseDTO changeInitialPassword(String ticket, ChangePasswordRequestDTO request){
         Long employeeId = jwtTokenProvider.getEmployeeIdFromPasswordChangeTicket(ticket);
@@ -168,10 +201,27 @@ public class AuthService {
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
-        return new LoginResponseDTO(false,accessToken,null);
+        LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
+                .orElseThrow(() -> new IllegalStateException("로그인 프로필 정보를 찾을 수 없습니다."));
+
+        LoginUserProfileDTO profile = new LoginUserProfileDTO(
+                profileRow.employeeId(),
+                profileRow.employeeNum(),
+                profileRow.employeeName(),
+                profileRow.orgName(),
+                profileRow.positionName(),
+                profileRow.rankName(),
+                profileRow.jobName()
+        );
+
+        return new LoginResponseDTO(false,accessToken,null, profile);
     }
 
-
+    /**
+     * 임시 비밀번호를 생성한다.
+     *
+     * @return 생성된 임시 비밀번호
+     */
     private String generateTempPassword() {
         int length = 12; // 8~15 정책 충족
         char[] password = new char[length];
