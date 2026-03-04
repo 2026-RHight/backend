@@ -15,4 +15,9 @@
         WHERE prefix = #{prefix} AND year = #{year}
     </select>
 
+    <insert id="insertInitialSequence">
+        INSERT INTO sequence_doc (prefix, year, last_doc)
+        VALUES (#{prefix}, #{year}, 1)
+    </insert>
+
 </mapper>

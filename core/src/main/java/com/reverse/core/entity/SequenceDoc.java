@@ -6,10 +6,16 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.Comment;
 
 @Entity
-@Table(name = "sequence_doc")
+@Table(name = "sequence_doc",
+        uniqueConstraints = @UniqueConstraint(
+              name = "uk_sequence_doc_prefix_year",
+               columnNames = {"prefix", "year"}
+            )
+)
 @Comment("채번 테이블")
 public class SequenceDoc {
 
