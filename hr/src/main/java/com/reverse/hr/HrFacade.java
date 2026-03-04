@@ -1,7 +1,7 @@
 package com.reverse.hr;
 
-import com.reverse.hr.internal.EmployeeProfileFacadeResponse;
+import com.reverse.hr.dto.EmployeeProfileDTO;
 
 public interface HrFacade {
-    EmployeeProfileFacadeResponse getEmployeeProfile(Long employeeId);
+    EmployeeProfileDTO getEmployeeProfile(Long employeeId);
 }

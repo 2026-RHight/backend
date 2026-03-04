@@ -1,6 +1,6 @@
-package com.reverse.hr.internal;
+package com.reverse.hr.dto;
 
-public record EmployeeProfileFacadeResponse(
+public record EmployeeProfileDTO(
         Long employeeId,
         String employeeName,
         String email,

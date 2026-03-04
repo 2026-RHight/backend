@@ -10,9 +10,9 @@ public record BasicInfoRow(
         String extensionNum,
         LocalDate birthDate,
         String address,
-        String residentNumberMasked,
+        String residentNumberEnc,
         String bankName,
-        String accountNumberMasked,
+        String accountNumberEnc,
         String profileFileUrl
 ) {
 }

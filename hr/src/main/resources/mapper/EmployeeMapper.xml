@@ -23,23 +23,4 @@
         WHERE er.employee_id = #{employeeId}
     </select>
 
-    <select id="findEmployeeProfileById"
-            parameterType="Long"
-            resultType="com.reverse.hr.internal.persistence.row.EmployeeProfileFacadeRow">
-        SELECT e.employee_id    AS employeeId,
-               e.employee_name  AS employeeName,
-               e.email          AS email,
-               o.org_name       AS orgName,
-               r.rank_name      AS rankName,
-               p.position_name  AS positionName,
-               j.job_name       AS jobName
-        FROM employee e
-                 LEFT JOIN employee_hr_info hr ON hr.employee_id = e.employee_id
-                 LEFT JOIN organization o ON o.org_id = hr.org_id
-                 LEFT JOIN `rank` r ON r.rank_id = hr.rank_id
-                 LEFT JOIN `position` p ON p.position_id = hr.position_id
-                 LEFT JOIN job j ON j.job_id = hr.job_id
-        WHERE e.employee_id = #{employeeId}
-    </select>
-
 </mapper>

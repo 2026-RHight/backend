@@ -3,7 +3,7 @@ package com.reverse.hr.internal.application;
 import com.reverse.core.security.EmployeeAuthInfoDTO;
 import com.reverse.core.security.EmployeeAuthProvider;
 import com.reverse.hr.HrFacade;
-import com.reverse.hr.internal.EmployeeProfileFacadeResponse;
+import com.reverse.hr.dto.EmployeeProfileDTO;
 import com.reverse.hr.internal.persistence.EmployeeFacadeMapper;
 import com.reverse.hr.internal.persistence.EmployeeMapper;
 import com.reverse.hr.internal.persistence.row.EmployeeProfileFacadeRow;
@@ -32,11 +32,11 @@ public class HrServiceImpl implements EmployeeAuthProvider, HrFacade {
     }
 
     @Override
-    public EmployeeProfileFacadeResponse getEmployeeProfile(Long employeeId) {
+    public EmployeeProfileDTO getEmployeeProfile(Long employeeId) {
         EmployeeProfileFacadeRow row = employeeFacadeMapper.findEmployeeProfileById(employeeId)
                 .orElseThrow(() -> new IllegalArgumentException("사원을 찾을 수 없습니다. employeeId=" + employeeId));
 
-        return new EmployeeProfileFacadeResponse(
+        return new EmployeeProfileDTO(
                 row.employeeId(),
                 row.employeeName(),
                 row.email(),

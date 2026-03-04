@@ -1,5 +1,6 @@
 package com.reverse.hr.internal.application;
 
+import com.reverse.core.security.FieldCryptoService;
 import com.reverse.hr.internal.application.dto.response.MyPageResponseDTO;
 import com.reverse.hr.internal.persistence.MyPageMapper;
 import com.reverse.hr.internal.persistence.row.BasicInfoRow;
@@ -21,11 +22,19 @@ import java.util.List;
 public class MyPageService {
 
     private final MyPageMapper myPageMapper;
+    private final FieldCryptoService fieldCryptoService;
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     public MyPageResponseDTO getMyPage(Long employeeId){
         BasicInfoRow basicInfoRow = myPageMapper.findBasicInfoByEmployeeId(employeeId)
                 .orElseThrow(() -> new IllegalStateException("기본 정보를 찾을 수 없습니다."));
+
+        String residentPlain = decryptNullable(basicInfoRow.residentNumberEnc());
+        String accountPlain = decryptNullable(basicInfoRow.accountNumberEnc());
+
+        String residentMasked = maskResidentNumber(residentPlain);
+        String accountMasked = maskAccountNumber(accountPlain);
 
         HrInfoRow hrInfoRow = myPageMapper.findHrInfoByEmployeeId(employeeId)
                 .orElseThrow(() -> new IllegalStateException("인사 정보를 찾을 수 없습니다."));
@@ -41,9 +50,9 @@ public class MyPageService {
                 basicInfoRow.extensionNum(),
                 formatDate(basicInfoRow.birthDate()),
                 basicInfoRow.address(),
-                basicInfoRow.residentNumberMasked(),
+                residentMasked,
                 basicInfoRow.bankName(),
-                basicInfoRow.accountNumberMasked(),
+                accountMasked,
                 basicInfoRow.profileFileUrl()
         );
 
@@ -99,5 +108,36 @@ public class MyPageService {
         int years = Math.max(period.getYears(), 0);
         int months = Math.max(period.getMonths(), 0);
         return years + "년 " + months + "개월";
+    }
+
+    private String decryptNullable(String enc) {
+        if (enc == null || enc.isBlank()) {
+            return null;
+        }
+        return fieldCryptoService.decrypt(enc);
+    }
+
+    private String maskResidentNumber(String residentPlain) {
+        if (residentPlain == null || residentPlain.isBlank()) {
+            return null;
+        }
+        String digits = residentPlain.replaceAll("[^0-9]", "");
+        if (digits.length() < 7) {
+            return "******";
+        }
+        return digits.substring(0, 6) + "-" + digits.substring(6, 7) + "******";
+    }
+
+    private String maskAccountNumber(String accountPlain) {
+        if (accountPlain == null || accountPlain.isBlank()) {
+            return null;
+        }
+        String digits = accountPlain.replaceAll("[^0-9]", "");
+        if (digits.length() <= 7) {
+            return "***";
+        }
+        String prefix = digits.substring(0, 3);
+        String suffix = digits.substring(digits.length() - 4);
+        return prefix + "-****-****-" + suffix;
     }
 }
