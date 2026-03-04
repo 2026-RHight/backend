@@ -1,13 +1,15 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.dto.request.AttendanceModifyRequest;
-import com.reverse.attendance.dto.request.ClockInRequest;
-import com.reverse.attendance.dto.request.ClockOutRequest;
-import com.reverse.attendance.dto.response.AttendanceRecordResponse;
-import com.reverse.attendance.dto.response.AttendanceSummaryResponse;
+import com.reverse.attendance.internal.application.dto.request.AttendanceModifyRequest;
+import com.reverse.attendance.internal.application.dto.request.ClockInRequest;
+import com.reverse.attendance.internal.application.dto.request.ClockOutRequest;
+import com.reverse.attendance.internal.application.dto.response.AttendanceRecordResponse;
+import com.reverse.attendance.internal.application.dto.response.AttendanceSummaryResponse;
 import com.reverse.attendance.internal.domain.Attendance;
+import com.reverse.attendance.internal.domain.AttendancePolicy;
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import com.reverse.attendance.internal.persistence.AttendanceMapper;
+import com.reverse.attendance.internal.persistence.AttendancePolicyMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +24,11 @@ import java.util.stream.Collectors;
 public class AttendanceService {
 
     private final AttendanceMapper attendanceMapper;
+    private final AttendancePolicyMapper policyMapper; // 💡 사원별 근태 규정 조회를 위해 추가 주입
 
-    private static final LocalTime STANDARD_CHECK_IN_TIME = LocalTime.of(9, 0, 0);
-    private static final LocalTime STANDARD_CHECK_OUT_TIME = LocalTime.of(18, 0, 0);
+    // 기본 출퇴근 시간 (근태 규정이 등록되지 않은 사원을 위한 Fallback)
+    private static final LocalTime FALLBACK_CHECK_IN_TIME = LocalTime.of(9, 0, 0);
+    private static final LocalTime FALLBACK_CHECK_OUT_TIME = LocalTime.of(18, 0, 0);
 
     @Transactional
     public Long clockIn(ClockInRequest request) {
@@ -36,11 +40,16 @@ public class AttendanceService {
             throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
         }
 
+        // 사원 개인의 근태 규정(출근 시간)을 가져옵니다.
+        LocalTime standardCheckInTime = getStandardCheckInTime(request.getEmployeeId());
+
         AttendanceStatus status = AttendanceStatus.NORMAL;
-        if (now.isAfter(STANDARD_CHECK_IN_TIME)) {
+
+        // 사원별 기준 시간과 비교합니다.
+        if (now.isAfter(standardCheckInTime)) {
             status = AttendanceStatus.TARDY;
             if (request.getTardyReason() == null || request.getTardyReason().trim().isEmpty()) {
-                throw new IllegalArgumentException("09:00 이후 출근 시 지각 사유를 반드시 입력해야 합니다.");
+                throw new IllegalArgumentException(standardCheckInTime + " 이후 출근 시 지각 사유를 반드시 입력해야 합니다.");
             }
         }
 
@@ -58,18 +67,21 @@ public class AttendanceService {
 
     @Transactional
     public void clockOut(ClockOutRequest request) {
-        LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(request.getEmployeeId(), today)
+        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(request.getEmployeeId(), LocalDate.now())
                 .orElseThrow(() -> new IllegalStateException("오늘의 출근 기록이 존재하지 않아 퇴근 처리를 할 수 없습니다."));
 
         if (attendance.getCheckOutTime() != null) {
             throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
         }
 
+        // 사원 개인의 근태 규정(퇴근 시간)을 가져옵니다.
+        LocalTime standardCheckOutTime = getStandardCheckOutTime(request.getEmployeeId());
         AttendanceStatus currentStatus = attendance.getStatus();
-        if (now.isBefore(STANDARD_CHECK_OUT_TIME) &&
+
+        // 하드코딩된 시간이 아닌, 사원별 기준 시간과 비교하여 조퇴 여부를 판단합니다.
+        if (now.isBefore(standardCheckOutTime) &&
                 (currentStatus == AttendanceStatus.NORMAL || currentStatus == AttendanceStatus.TARDY)) {
             currentStatus = AttendanceStatus.EARLY_LEAVE;
         }
@@ -138,5 +150,16 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
+    // 💡 내부 헬퍼 메서드: 규정 조회 로직 분리 (가독성을 높이기 위함)
+    private LocalTime getStandardCheckInTime(Long employeeId) {
+        return policyMapper.findByEmployeeId(employeeId)
+                .map(AttendancePolicy::getStdStartTime)
+                .orElse(FALLBACK_CHECK_IN_TIME);
+    }
 
+    private LocalTime getStandardCheckOutTime(Long employeeId) {
+        return policyMapper.findByEmployeeId(employeeId)
+                .map(AttendancePolicy::getStdEndTime)
+                .orElse(FALLBACK_CHECK_OUT_TIME);
+    }
 }

@@ -1,6 +1,6 @@
 package com.reverse.attendance.internal.persistence;
 
-import com.reverse.attendance.dto.response.AttendanceSummaryResponse;
+import com.reverse.attendance.internal.application.dto.response.AttendanceSummaryResponse;
 import com.reverse.attendance.internal.domain.Attendance;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

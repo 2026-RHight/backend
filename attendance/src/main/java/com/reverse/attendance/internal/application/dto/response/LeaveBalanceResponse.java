@@ -1,4 +1,4 @@
-package com.reverse.attendance.dto.response;
+package com.reverse.attendance.internal.application.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;

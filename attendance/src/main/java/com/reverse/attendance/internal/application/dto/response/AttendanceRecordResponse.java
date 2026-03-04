@@ -1,4 +1,4 @@
-package com.reverse.attendance.dto.response;
+package com.reverse.attendance.internal.application.dto.response;
 
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import lombok.Builder;

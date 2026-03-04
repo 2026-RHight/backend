@@ -1,4 +1,4 @@
-package com.reverse.attendance.dto.request;
+package com.reverse.attendance.internal.application.dto.request;
 
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import lombok.Getter;

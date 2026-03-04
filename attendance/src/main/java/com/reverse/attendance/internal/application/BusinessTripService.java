@@ -1,7 +1,7 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.dto.request.BusinessTripApplyRequest;
-import com.reverse.attendance.dto.request.BusinessTripProcessRequest;
+import com.reverse.attendance.internal.application.dto.request.BusinessTripApplyRequest;
+import com.reverse.attendance.internal.application.dto.request.BusinessTripProcessRequest;
 import com.reverse.attendance.internal.domain.BusinessTrip;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.persistence.BusinessTripMapper;

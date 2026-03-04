@@ -1,9 +1,9 @@
 package com.reverse.attendance.internal.web;
 
 
-import com.reverse.attendance.dto.request.BusinessTripApplyRequest;
-import com.reverse.attendance.dto.request.BusinessTripProcessRequest;
 import com.reverse.attendance.internal.application.BusinessTripService;
+import com.reverse.attendance.internal.application.dto.request.BusinessTripApplyRequest;
+import com.reverse.attendance.internal.application.dto.request.BusinessTripProcessRequest;
 import com.reverse.attendance.internal.domain.BusinessTrip;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
