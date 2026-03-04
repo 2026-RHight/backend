@@ -1,4 +1,4 @@
 package com.reverse.attendance;
 
-public class AttendanceFacade {
+public interface AttendanceFacade {
 }
