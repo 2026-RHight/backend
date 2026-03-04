@@ -64,7 +64,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
         LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
-                .orElseThrow(() -> new IllegalArgumentException("로그인 프로필 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalStateException("로그인 프로필 정보를 찾을 수 없습니다."));
 
         LoginUserProfileDTO profile = new LoginUserProfileDTO(
                 profileRow.employeeId(),
@@ -202,7 +202,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createToken(user.employeeId(),user.employeeNum(),roles);
 
         LoginProfileRow profileRow = authMapper.findLoginProfileByEmployeeId(user.employeeId())
-                .orElseThrow(() -> new IllegalArgumentException("로그인 프로필 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalStateException("로그인 프로필 정보를 찾을 수 없습니다."));
 
         LoginUserProfileDTO profile = new LoginUserProfileDTO(
                 profileRow.employeeId(),
