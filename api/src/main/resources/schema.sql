@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS employee (
     resident_number_hash VARCHAR(64) NOT NULL,
     initial_state BOOLEAN NOT NULL,
     employ_state ENUM('WORK','LEAVE','RESIGN') NOT NULL,
+    hire_date DATE NOT NULL,
     profile_id BIGINT NOT NULL,
     PRIMARY KEY (employee_id),
     UNIQUE KEY uk_employee_employee_num (employee_num),
@@ -114,4 +115,32 @@ CREATE TABLE IF NOT EXISTS employee_hr_info (
     CONSTRAINT fk_employee_hr_info_rank FOREIGN KEY (rank_id) REFERENCES `rank`(rank_id),
     CONSTRAINT fk_employee_hr_info_job FOREIGN KEY (job_id) REFERENCES job(job_id),
     CONSTRAINT fk_employee_hr_info_area FOREIGN KEY (area_id) REFERENCES working_area(area_id)
+);
+
+CREATE TABLE IF NOT EXISTS employee_skill_credential (
+    skill_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    category ENUM('CERTIFICATE','LANGUAGE','LICENSE','ETC') NOT NULL,
+    skill_name VARCHAR(255) NOT NULL,
+    acquisition_date DATE NOT NULL,
+    license_number VARCHAR(255) NULL,
+    hr_file_id BIGINT NOT NULL,
+    PRIMARY KEY (skill_id),
+    KEY idx_skill_employee (employee_id),
+    CONSTRAINT fk_skill_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_skill_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
+);
+
+CREATE TABLE IF NOT EXISTS employee_career_details (
+    career_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    company_name VARCHAR(255) NOT NULL,
+    org_name VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NULL,
+    hr_file_id BIGINT NOT NULL,
+    PRIMARY KEY (career_id),
+    KEY idx_career_employee (employee_id),
+    CONSTRAINT fk_career_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_career_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
 );

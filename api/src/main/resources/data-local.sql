@@ -207,6 +207,7 @@ INSERT INTO employee (
     resident_number_hash,
     initial_state,
     employ_state,
+    hire_date,
     profile_id
 )
 SELECT
@@ -225,6 +226,7 @@ SELECT
     'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
     false,
     'WORK',
+    '2024-02-04',
     1
 FROM DUAL
 WHERE NOT EXISTS (
@@ -247,6 +249,7 @@ INSERT INTO employee (
     resident_number_hash,
     initial_state,
     employ_state,
+    hire_date,
     profile_id
 )
 SELECT
@@ -265,6 +268,7 @@ SELECT
     '0cba2dac201b09cb86d5c957907426681a45300220ab5240a22e84d248004978',
     false,
     'WORK',
+    '2025-01-01',
     2
 FROM DUAL
 WHERE NOT EXISTS (
@@ -394,4 +398,202 @@ WHERE e.employee_num = '2402040002'
       SELECT 1
       FROM password_history ph
       WHERE ph.employee_id = e.employee_id
+  );
+
+-- ---------------------------------------------------------------------------
+-- HR files (skill/career attachments)
+-- ---------------------------------------------------------------------------
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 101, 'https://cdn.rhight.local/hr/skill/certificate-001.pdf', '자격증 증빙 1'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 101
+);
+
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 102, 'https://cdn.rhight.local/hr/skill/language-001.pdf', '어학 증빙 1'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 102
+);
+
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 103, 'https://cdn.rhight.local/hr/skill/license-001.pdf', '면허 증빙 1'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 103
+);
+
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 201, 'https://cdn.rhight.local/hr/career/career-001.pdf', '경력 증빙 1'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 201
+);
+
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 202, 'https://cdn.rhight.local/hr/career/career-002.pdf', '경력 증빙 2'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 202
+);
+
+INSERT INTO hr_file (hr_file_id, file_url, file_title)
+SELECT 203, 'https://cdn.rhight.local/hr/career/career-003.pdf', '경력 증빙 3'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_file WHERE hr_file_id = 203
+);
+
+-- ---------------------------------------------------------------------------
+-- Skills (for MyPage initial rendering)
+-- ---------------------------------------------------------------------------
+INSERT INTO employee_skill_credential (
+    employee_id,
+    category,
+    skill_name,
+    acquisition_date,
+    license_number,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'CERTIFICATE',
+    '정보처리기사',
+    DATE '2023-06-01',
+    'CERT-2023-0001',
+    101
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_skill_credential s
+      WHERE s.employee_id = e.employee_id
+        AND s.skill_name = '정보처리기사'
+  );
+
+INSERT INTO employee_skill_credential (
+    employee_id,
+    category,
+    skill_name,
+    acquisition_date,
+    license_number,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'LANGUAGE',
+    'TOEIC 920',
+    DATE '2024-01-01',
+    NULL,
+    102
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_skill_credential s
+      WHERE s.employee_id = e.employee_id
+        AND s.skill_name = 'TOEIC 920'
+  );
+
+INSERT INTO employee_skill_credential (
+    employee_id,
+    category,
+    skill_name,
+    acquisition_date,
+    license_number,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'CERTIFICATE',
+    'SQLD',
+    DATE '2023-09-01',
+    'SQLD-2023-0007',
+    103
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_skill_credential s
+      WHERE s.employee_id = e.employee_id
+        AND s.skill_name = 'SQLD'
+  );
+
+-- ---------------------------------------------------------------------------
+-- Career details (for MyPage initial rendering)
+-- ---------------------------------------------------------------------------
+INSERT INTO employee_career_details (
+    employee_id,
+    company_name,
+    org_name,
+    start_date,
+    end_date,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'RHight',
+    '백엔드 개발자 · 모바일팀',
+    DATE '2024-02-01',
+    NULL,
+    201
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_career_details c
+      WHERE c.employee_id = e.employee_id
+        AND c.company_name = 'RHight'
+        AND c.start_date = DATE '2024-02-01'
+  );
+
+INSERT INTO employee_career_details (
+    employee_id,
+    company_name,
+    org_name,
+    start_date,
+    end_date,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'Example Platform',
+    '서버 개발자 · 플랫폼개발팀',
+    DATE '2021-03-01',
+    DATE '2024-01-31',
+    202
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_career_details c
+      WHERE c.employee_id = e.employee_id
+        AND c.company_name = 'Example Platform'
+        AND c.start_date = DATE '2021-03-01'
+  );
+
+INSERT INTO employee_career_details (
+    employee_id,
+    company_name,
+    org_name,
+    start_date,
+    end_date,
+    hr_file_id
+)
+SELECT
+    e.employee_id,
+    'Example Service',
+    '백엔드 개발자 · 서비스개발팀',
+    DATE '2019-07-01',
+    DATE '2021-02-28',
+    203
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_career_details c
+      WHERE c.employee_id = e.employee_id
+        AND c.company_name = 'Example Service'
+        AND c.start_date = DATE '2019-07-01'
   );
