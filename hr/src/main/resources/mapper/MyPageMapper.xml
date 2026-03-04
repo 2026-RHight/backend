@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.MyPageMapper">
+
+    <select id="findBasicInfoByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.BasicInfoRow">
+        SELECT e.employee_num         AS employeeNum,
+               e.employee_name        AS employeeName,
+               e.email                AS email,
+               e.phone                AS phone,
+               e.ext                  AS extensionNum,
+               e.birth_date           AS birthDate,
+               e.address              AS address,
+               e.resident_number_enc  AS residentNumberMasked,
+               e.bank_name            AS bankName,
+               e.account_number_enc   AS accountNumberMasked,
+               f.file_url             AS profileFileUrl
+        FROM employee e
+        LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
+        WHERE e.employee_id = #{employeeId}
+    </select>
+
+    <select id="findHrInfoByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.HrInfoRow">
+        SELECT o.org_name       AS orgName,
+               p.position_name  AS positionName,
+               r.rank_name      AS rankName,
+               j.job_name       AS jobName,
+               e.employ_state   AS employeeState,
+               e.hire_date      AS hireDate,
+               hr.employ_type   AS employType,
+               hr.recruit_type  AS recruitType,
+               w.area_name      AS areaName
+        FROM employee e
+        LEFT JOIN employee_hr_info hr ON hr.employee_id = e.employee_id
+        LEFT JOIN organization o ON hr.org_id = o.org_id
+        LEFT JOIN `position` p        ON hr.position_id = p.position_id
+        LEFT JOIN `rank` r            ON hr.rank_id = r.rank_id
+        LEFT JOIN job j               ON hr.job_id = j.job_id
+        LEFT JOIN working_area w      ON hr.area_id = w.area_id
+        WHERE e.employee_id = #{employeeId}
+    </select>
+
+    <select id="findSkillsByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.SkillItemRow">
+        SELECT s.category                                  AS category,
+               s.skill_name                                AS skillName,
+               DATE_FORMAT(s.acquisition_date, '%Y.%m.%d') AS acquisitionDate,
+               s.license_number                            AS licenseNumber,
+               s.hr_file_id                                AS hrFileId
+        FROM employee_skill_credential s
+        WHERE s.employee_id = #{employeeId}
+        ORDER BY s.acquisition_date DESC, s.skill_id DESC
+    </select>
+
+    <select id="findCareersByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.CareerItemRow">
+        SELECT c.career_id                                 AS careerId,
+               c.company_name                              AS companyName,
+               c.org_name                                  AS orgName,
+               DATE_FORMAT(c.start_date, '%Y.%m.%d')       AS startDate,
+               DATE_FORMAT(c.end_date, '%Y.%m.%d')         AS endDate,
+               c.hr_file_id                                AS hrFileId
+        FROM employee_career_details c
+        WHERE c.employee_id = #{employeeId}
+        ORDER BY c.start_date DESC, c.career_id DESC
+    </select>
+
+</mapper>
