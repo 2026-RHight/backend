@@ -72,3 +72,11 @@ tasks.register('installLocalGitHook', Copy) {
 tasks.named('compileJava') {
     dependsOn 'installLocalGitHook'
 }
+
+bootJar {
+    enabled = false // 실행 가능한 jar 생성 금지 (메인 클래스 없어도 됨)
+}
+
+jar {
+    enabled = true  // 다른 모듈이 참조할 수 있는 일반 jar 파일 생성
+}

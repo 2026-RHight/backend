@@ -40,6 +40,9 @@ public class Employee {
     private String address;
 
     @Column(nullable = false)
+    private LocalDate hireDate;
+
+    @Column(nullable = false)
     private LocalDate birthDate;
 
     @Column(nullable = false)
