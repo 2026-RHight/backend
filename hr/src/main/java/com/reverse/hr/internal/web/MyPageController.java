@@ -3,13 +3,16 @@ package com.reverse.hr.internal.web;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.MyPageService;
-import com.reverse.hr.internal.application.dto.response.MyPageResponseDTO;
+import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
+import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
+import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/mypage")
@@ -23,4 +26,13 @@ public class MyPageController {
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user){
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
     }
+
+    @PostMapping(value = "/skills", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<CreateSkillResponseDTO> createSkills (@AuthenticationPrincipal CustomUser user,
+                                                             @Valid @RequestPart("request") CreateSkillRequestDTO request,
+                                                             @RequestPart("file")MultipartFile file){
+        return ApiResponse.success(myPageService.createSkill(user.getEmployeeId(), request, file));
+    }
+
+
 }

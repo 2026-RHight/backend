@@ -1,9 +1,7 @@
 package com.reverse.hr.internal.persistence;
 
-import com.reverse.hr.internal.persistence.row.BasicInfoRow;
-import com.reverse.hr.internal.persistence.row.CareerItemRow;
-import com.reverse.hr.internal.persistence.row.HrInfoRow;
-import com.reverse.hr.internal.persistence.row.SkillItemRow;
+import com.reverse.hr.internal.persistence.param.SkillCreateParam;
+import com.reverse.hr.internal.persistence.row.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -24,5 +22,9 @@ public interface MyPageMapper {
 
     // 경력 사항
     List<CareerItemRow> findCareersByEmployeeId(@Param("employeeId") Long employeeId);
+
+    int insertHrFile(HrFileRow hrFileRow);
+
+    int insertSkill(SkillCreateParam param);
 
 }

@@ -73,4 +73,27 @@
         ORDER BY c.start_date DESC, c.career_id DESC
     </select>
 
+    <insert id="insertHrFile" useGeneratedKeys="true" keyProperty="hrFileId">
+        INSERT INTO hr_file (file_url, file_title)
+        VALUES (#{fileUrl}, #{fileTitle})
+    </insert>
+
+    <insert id="insertSkill" useGeneratedKeys="true" keyProperty="skillId">
+        INSERT INTO employee_skill_credential (
+            employee_id,
+            category,
+            skill_name,
+            acquisition_date,
+            license_number,
+            hr_file_id
+        ) VALUES (
+                     #{employeeId},
+                     #{category},
+                     #{skillName},
+                     #{acquisitionDate},
+                     #{licenseNumber},
+                     #{hrFileId}
+                 )
+    </insert>
+
 </mapper>
