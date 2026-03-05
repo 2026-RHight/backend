@@ -9,6 +9,7 @@ import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
+import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -88,6 +89,22 @@ public class MyPageController {
     ) {
         myPageService.deleteCareer(user.getEmployeeId(), careerId);
         return ApiResponse.success();
+    }
+
+    @GetMapping("/skills/{skillId}/evidence")
+    public ApiResponse<EvidenceFileResponseDTO> getSkillEvidenceFile(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long skillId
+    ) {
+        return ApiResponse.success(myPageService.getSkillEvidenceFile(user.getEmployeeId(), skillId));
+    }
+
+    @GetMapping("/careers/{careerId}/evidence")
+    public ApiResponse<EvidenceFileResponseDTO> getCareerEvidenceFile(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long careerId
+    ) {
+        return ApiResponse.success(myPageService.getCareerEvidenceFile(user.getEmployeeId(), careerId));
     }
 
 

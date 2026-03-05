@@ -8,6 +8,7 @@ import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
+import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
@@ -315,6 +316,28 @@ public class MyPageService {
         }
 
         deleteHrFileAndS3IfUnreferenced(fileRow);
+    }
+
+    public EvidenceFileResponseDTO getSkillEvidenceFile(Long employeeId, Long skillId) {
+        HrFileRow fileRow = myPageMapper.findSkillFileByIdAndEmployeeId(employeeId, skillId)
+                .orElseThrow(() -> new IllegalStateException("증빙 파일을 찾을 수 없습니다."));
+
+        return new EvidenceFileResponseDTO(
+                fileRow.getHrFileId(),
+                fileRow.getFileTitle(),
+                fileRow.getFileUrl()
+        );
+    }
+
+    public EvidenceFileResponseDTO getCareerEvidenceFile(Long employeeId, Long careerId) {
+        HrFileRow fileRow = myPageMapper.findCareerFileByIdAndEmployeeId(employeeId, careerId)
+                .orElseThrow(() -> new IllegalStateException("증빙 파일을 찾을 수 없습니다."));
+
+        return new EvidenceFileResponseDTO(
+                fileRow.getHrFileId(),
+                fileRow.getFileTitle(),
+                fileRow.getFileUrl()
+        );
     }
 
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
