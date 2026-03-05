@@ -20,7 +20,7 @@ public class BusinessTrip {
     private LocalDateTime endDatetime;
     private String reason;
     private ApprovalStatus  approvalStatus;
-    private String rejectionReason;
+    private String rejectReason;
 
     @Builder
     public BusinessTrip(Long tripId
@@ -37,7 +37,7 @@ public class BusinessTrip {
         this.endDatetime = endDatetime;
         this.reason = reason;
         this.approvalStatus = approvalStatus;
-        this.rejectionReason = rejectReason;
+        this.rejectReason = rejectReason;
     }
 
 }
