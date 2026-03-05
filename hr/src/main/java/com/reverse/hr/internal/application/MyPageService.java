@@ -1,6 +1,8 @@
 package com.reverse.hr.internal.application;
 
+import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.FieldCryptoService;
+import com.reverse.hr.internal.dto.request.ChangeMyPasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
@@ -8,12 +10,15 @@ import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
+import com.reverse.hr.internal.exception.AuthErrorCode;
+import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.MyPageMapper;
 import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,11 +35,15 @@ import java.util.Set;
 public class MyPageService {
 
     private final MyPageMapper myPageMapper;
+    private final AuthMapper authMapper;
+    private final PasswordEncoder passwordEncoder;
     private final FieldCryptoService fieldCryptoService;
     private final S3FileService s3FileService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 10MB
+    private static final int MIN_PASSWORD_LENGTH = 8;
+    private static final int MAX_PASSWORD_LENGTH = 20;
     private static final Set<String> ALLOWED_EXT = Set.of("pdf", "jpg", "jpeg", "png");
     private static final Set<String> ALLOWED_CONTENT_TYPE = Set.of(
             "application/pdf",
@@ -234,6 +243,53 @@ public class MyPageService {
         }
     }
 
+    @Transactional
+    public void changeMyPassword(Long employeeId, ChangeMyPasswordRequestDTO request) {
+        LoginUserRow user = authMapper.findUserByEmployeeId(employeeId)
+                .orElseThrow(() -> new UnauthorizedException(
+                        AuthErrorCode.AUTH_LOGIN_FAILED,
+                        "인증 정보가 올바르지 않습니다."
+                ));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.password())) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.AUTH_LOGIN_FAILED,
+                    "현재 비밀번호가 올바르지 않습니다."
+            );
+        }
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.INVALID_PASSWORD_CONFIRM,
+                    "새 비밀번호와 비밀번호 확인이 일치하지 않습니다."
+            );
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.password())) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.INVALID_NEW_PASSWORD,
+                    "기존 비밀번호와 다른 비밀번호를 입력해주세요."
+            );
+        }
+
+        validateNewPasswordPolicy(request.newPassword());
+        String encodedNewPassword = passwordEncoder.encode(request.newPassword());
+
+        int updated = authMapper.updatePasswordAndInitialState(
+                employeeId,
+                encodedNewPassword,
+                false
+        );
+        int inserted = authMapper.insertPasswordHistory(
+                employeeId,
+                encodedNewPassword
+        );
+
+        if (updated != 1 || inserted != 1) {
+            throw new IllegalStateException("비밀번호 변경 처리 중 오류가 발생했습니다.");
+        }
+    }
+
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
         S3FileService.UploadResult uploaded = s3FileService.upload(file, baseDir + "/" + employeeId);
 
@@ -288,6 +344,27 @@ public class MyPageService {
         }
         if (request.address() != null && request.address().length() > 255) {
             throw new IllegalArgumentException("주소는 255자 이하여야 합니다.");
+        }
+    }
+
+    private void validateNewPasswordPolicy(String newPassword) {
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH || newPassword.length() > MAX_PASSWORD_LENGTH) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.INVALID_NEW_PASSWORD,
+                    "비밀번호는 8자 이상 20자 이하여야 합니다."
+            );
+        }
+
+        boolean hasUpper = newPassword.chars().anyMatch(Character::isUpperCase);
+        boolean hasLower = newPassword.chars().anyMatch(Character::isLowerCase);
+        boolean hasDigit = newPassword.chars().anyMatch(Character::isDigit);
+        boolean hasSpecial = newPassword.chars().anyMatch(ch -> "!@#$%^&*()-_=+[]{}?".indexOf(ch) >= 0);
+
+        if (!(hasUpper && hasLower && hasDigit && hasSpecial)) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.INVALID_NEW_PASSWORD,
+                    "비밀번호는 영문 대/소문자, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다."
+            );
         }
     }
 

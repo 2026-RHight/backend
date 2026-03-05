@@ -3,6 +3,7 @@ package com.reverse.hr.internal.web;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.MyPageService;
+import com.reverse.hr.internal.dto.request.ChangeMyPasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
@@ -34,6 +35,15 @@ public class MyPageController {
     @GetMapping
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user){
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
+    }
+
+    @PatchMapping("/password")
+    public ApiResponse<Void> changeMyPassword(
+            @AuthenticationPrincipal CustomUser user,
+            @Valid @RequestBody ChangeMyPasswordRequestDTO request
+    ) {
+        myPageService.changeMyPassword(user.getEmployeeId(), request);
+        return ApiResponse.success();
     }
 
     @PatchMapping(value = "/basic-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
