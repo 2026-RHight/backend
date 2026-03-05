@@ -6,18 +6,24 @@
     <update id="updateSequenceNumber">
         UPDATE sequence_doc
         SET last_doc = last_doc + 1
-        WHERE prefix = #{prefix} AND year = #{year}
+        WHERE prefix = #{prefix, jdbcType=CHAR}
+                  AND year = #{year, jdbcType=CHAR}
     </update>
 
     <select id="getSequenceNumber" resultType="int">
         SELECT last_doc
         FROM sequence_doc
-        WHERE prefix = #{prefix} AND year = #{year}
+        WHERE prefix = #{prefix, jdbcType=CHAR}
+                  AND year = #{year, jdbcType=CHAR}
     </select>
 
     <insert id="insertInitialSequence">
         INSERT INTO sequence_doc (prefix, year, last_doc)
-        VALUES (#{prefix}, #{year}, 1)
+        VALUES (
+                   #{prefix, jdbcType=CHAR},
+                   #{year, jdbcType=CHAR},
+                   1
+               )
     </insert>
 
 </mapper>
