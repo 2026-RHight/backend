@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -223,6 +225,7 @@ public class MyPageService {
 
         validateProfileImageFile(profileImage);
         S3FileService.UploadResult uploaded = s3FileService.upload(profileImage, "hr/profile/" + employeeId);
+        registerRollbackDelete(uploaded.key());
 
         try {
             HrFileRow hrFile = new HrFileRow(
@@ -342,6 +345,7 @@ public class MyPageService {
 
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
         S3FileService.UploadResult uploaded = s3FileService.upload(file, baseDir + "/" + employeeId);
+        registerRollbackDelete(uploaded.key());
 
         HrFileRow hrFile = new HrFileRow(
                 null,
@@ -359,6 +363,20 @@ public class MyPageService {
             deleteQuietly(uploaded.key());
             throw e;
         }
+    }
+
+    private void registerRollbackDelete(String s3Key) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    deleteQuietly(s3Key);
+                }
+            }
+        });
     }
 
     private void validateSkillRequest(CreateSkillRequestDTO request) {
