@@ -1,10 +1,13 @@
 package com.reverse.hr.internal.application;
 
 import com.reverse.core.security.FieldCryptoService;
+import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
+import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import com.reverse.hr.internal.persistence.MyPageMapper;
+import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.row.*;
 import lombok.RequiredArgsConstructor;
@@ -132,6 +135,35 @@ public class MyPageService {
         }
     }
 
+    @Transactional
+    public CreateCareerResponseDTO createCareer(Long employeeId, CreateCareerRequestDTO request, MultipartFile file) {
+        validateCareerRequest(request);
+        validateEvidenceFile(file);
+        EvidenceUploadResult uploadResult = uploadEvidenceFile(employeeId, file, "hr/career");
+
+        try{
+            CareerCreateParam param = new CareerCreateParam(
+                    null,
+                    employeeId,
+                    request.companyName(),
+                    request.orgName(),
+                    request.startDate(),
+                    request.endDate(),
+                    uploadResult.hrFileId()
+            );
+
+            int inserted = myPageMapper.insertCareer(param);
+            if (inserted != 1) {
+                throw new IllegalStateException("경력 사항 저장 중 오류가 발생했습니다.");
+            }
+
+            return new CreateCareerResponseDTO(param.getCareerId(), uploadResult.hrFileId());
+        } catch (RuntimeException e) {
+            deleteQuietly(uploadResult.s3Key());
+            throw e;
+        }
+    }
+
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
         S3FileService.UploadResult uploaded = s3FileService.upload(file, baseDir + "/" + employeeId);
 
@@ -158,6 +190,25 @@ public class MyPageService {
             throw new IllegalArgumentException("취득일은 오늘 이후 날짜로 입력할 수 없습니다.");
         }
     }
+
+    private void validateCareerRequest(CreateCareerRequestDTO request) {
+        if (request.companyName() != null && request.companyName().length() > 255) {
+            throw new IllegalArgumentException("회사명은 255자 이하여야 합니다.");
+        }
+
+        if (request.orgName() != null && request.orgName().length() > 255) {
+            throw new IllegalArgumentException("직무/소속은 255자 이하여야 합니다.");
+        }
+
+        if (request.startDate() == null) {
+            throw new IllegalArgumentException("시작일은 필수입니다.");
+        }
+
+        if (request.endDate() != null && request.endDate().isBefore(request.startDate())) {
+            throw new IllegalArgumentException("종료일은 시작일보다 빠를 수 없습니다.");
+        }
+    }
+
 
     private void validateEvidenceFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {

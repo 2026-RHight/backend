@@ -96,4 +96,13 @@
                  )
     </insert>
 
+    <insert id="insertCareer" useGeneratedKeys="true" keyProperty="careerId">
+        INSERT INTO employee_career_details (
+            employee_id, company_name, org_name, start_date, end_date, hr_file_id
+        ) VALUES (
+                     #{employeeId}, #{companyName}, #{orgName}, #{startDate}, #{endDate}, #{hrFileId}
+                 )
+    </insert>
+
+
 </mapper>

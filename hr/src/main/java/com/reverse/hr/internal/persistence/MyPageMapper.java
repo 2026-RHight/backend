@@ -1,5 +1,6 @@
 package com.reverse.hr.internal.persistence;
 
+import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.row.*;
 import org.apache.ibatis.annotations.Mapper;
@@ -26,5 +27,8 @@ public interface MyPageMapper {
     int insertHrFile(HrFileRow hrFileRow);
 
     int insertSkill(SkillCreateParam param);
+
+    int insertCareer(CareerCreateParam param);
+
 
 }
