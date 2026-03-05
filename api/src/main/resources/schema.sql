@@ -69,13 +69,13 @@ CREATE TABLE IF NOT EXISTS organization (
     CONSTRAINT fk_organization_parent FOREIGN KEY (parent_org_id) REFERENCES organization(org_id)
 );
 
-CREATE TABLE IF NOT EXISTS `position` (
+CREATE TABLE IF NOT EXISTS hr_position (
     position_id BIGINT NOT NULL AUTO_INCREMENT,
     position_name VARCHAR(255) NOT NULL,
     PRIMARY KEY (position_id)
 );
 
-CREATE TABLE IF NOT EXISTS `rank` (
+CREATE TABLE IF NOT EXISTS hr_rank (
     rank_id BIGINT NOT NULL AUTO_INCREMENT,
     rank_name VARCHAR(255) NOT NULL,
     rank_no BIGINT NULL,
@@ -111,8 +111,8 @@ CREATE TABLE IF NOT EXISTS employee_hr_info (
     KEY idx_employee_hr_effective_from (effective_from),
     CONSTRAINT fk_employee_hr_info_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_employee_hr_info_org FOREIGN KEY (org_id) REFERENCES organization(org_id),
-    CONSTRAINT fk_employee_hr_info_position FOREIGN KEY (position_id) REFERENCES `position`(position_id),
-    CONSTRAINT fk_employee_hr_info_rank FOREIGN KEY (rank_id) REFERENCES `rank`(rank_id),
+    CONSTRAINT fk_employee_hr_info_position FOREIGN KEY (position_id) REFERENCES hr_position(position_id),
+    CONSTRAINT fk_employee_hr_info_rank FOREIGN KEY (rank_id) REFERENCES hr_rank(rank_id),
     CONSTRAINT fk_employee_hr_info_job FOREIGN KEY (job_id) REFERENCES job(job_id),
     CONSTRAINT fk_employee_hr_info_area FOREIGN KEY (area_id) REFERENCES working_area(area_id)
 );
@@ -143,4 +143,23 @@ CREATE TABLE IF NOT EXISTS employee_career_details (
     KEY idx_career_employee (employee_id),
     CONSTRAINT fk_career_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_career_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
+);
+
+CREATE TABLE IF NOT EXISTS hr_event (
+    hr_event_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    event_type ENUM('PROMOTION','TRANSFER','STATE_CHANGE','POSITION_CHANGE','ORG_CHANGE') NOT NULL,
+    event_title VARCHAR(255) NOT NULL,
+    requested_at DATETIME NULL,
+    approved_at DATETIME NULL,
+    effective_from DATE NOT NULL,
+    effective_to DATE NULL,
+    excuse VARCHAR(255) NULL,
+    before_change JSON NULL,
+    after_change JSON NULL,
+    PRIMARY KEY (hr_event_id),
+    KEY idx_hr_event_employee (employee_id),
+    KEY idx_hr_event_type (event_type),
+    KEY idx_hr_event_effective_from (effective_from),
+    CONSTRAINT fk_hr_event_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );

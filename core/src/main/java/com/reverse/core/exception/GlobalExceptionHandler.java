@@ -10,6 +10,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 @Slf4j
@@ -81,5 +83,25 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestPart(MissingServletRequestPartException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .code("INVALID_REQUEST")
+                .message("필수 요청 파트가 누락되었습니다: " + ex.getRequestPartName())
+                .build();
+
+        return ResponseEntity.badRequest().body(ApiResponse.fail(error));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .code("FILE_TOO_LARGE")
+                .message("업로드 파일 용량이 제한을 초과했습니다. 최대 50MB까지 업로드할 수 있습니다.")
+                .build();
+
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ApiResponse.fail(error));
     }
 }

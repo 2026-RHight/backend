@@ -146,32 +146,32 @@ WHERE NOT EXISTS (
 -- ---------------------------------------------------------------------------
 -- HR master data
 -- ---------------------------------------------------------------------------
-INSERT INTO `position` (position_name)
+INSERT INTO hr_position (position_name)
 SELECT '팀장'
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM `position` WHERE position_name = '팀장'
+    SELECT 1 FROM hr_position WHERE position_name = '팀장'
 );
 
-INSERT INTO `position` (position_name)
+INSERT INTO hr_position (position_name)
 SELECT '팀원'
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM `position` WHERE position_name = '팀원'
+    SELECT 1 FROM hr_position WHERE position_name = '팀원'
 );
 
-INSERT INTO `rank` (rank_name, rank_no)
+INSERT INTO hr_rank (rank_name, rank_no)
 SELECT '과장', 4
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM `rank` WHERE rank_name = '과장'
+    SELECT 1 FROM hr_rank WHERE rank_name = '과장'
 );
 
-INSERT INTO `rank` (rank_name, rank_no)
+INSERT INTO hr_rank (rank_name, rank_no)
 SELECT '대리', 3
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM `rank` WHERE rank_name = '대리'
+    SELECT 1 FROM hr_rank WHERE rank_name = '대리'
 );
 
 INSERT INTO job (job_name)
@@ -301,8 +301,8 @@ SELECT
     a.area_id
 FROM employee e
 JOIN organization o ON o.org_name = '인사팀'
-JOIN `position` p ON p.position_name = '팀장'
-JOIN `rank` r ON r.rank_name = '과장'
+JOIN hr_position p ON p.position_name = '팀장'
+JOIN hr_rank r ON r.rank_name = '과장'
 JOIN job j ON j.job_name = '백엔드 개발자'
 JOIN working_area a ON a.area_name = '서울 강남'
 WHERE e.employee_num = '2402040001'
@@ -335,8 +335,8 @@ SELECT
     a.area_id
 FROM employee e
 JOIN organization o ON o.org_name = '개발1팀'
-JOIN `position` p ON p.position_name = '팀원'
-JOIN `rank` r ON r.rank_name = '대리'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
 JOIN job j ON j.job_name = '백엔드 개발자'
 JOIN working_area a ON a.area_name = '서울 강남'
 WHERE e.employee_num = '2402040002'
@@ -596,4 +596,139 @@ WHERE e.employee_num = '2402040001'
       WHERE c.employee_id = e.employee_id
         AND c.company_name = 'Example Service'
         AND c.start_date = DATE '2019-07-01'
+  );
+
+-- ---------------------------------------------------------------------------
+-- HR events (for MyPage HR history tab)
+-- ---------------------------------------------------------------------------
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'PROMOTION',
+    '직급 변경',
+    '2025-12-20 09:10:00',
+    '2025-12-27 14:30:00',
+    DATE '2026-01-01',
+    NULL,
+    '정기 승진',
+    JSON_OBJECT('rankName', '주임'),
+    JSON_OBJECT('rankName', '대리')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'PROMOTION'
+        AND h.effective_from = DATE '2026-01-01'
+  );
+
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'TRANSFER',
+    '부서 이동',
+    '2025-01-18 10:00:00',
+    '2025-01-25 16:10:00',
+    DATE '2025-02-02',
+    NULL,
+    '프로젝트 조직 개편',
+    JSON_OBJECT('orgName', '모바일3팀'),
+    JSON_OBJECT('orgName', '모바일1팀')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'TRANSFER'
+        AND h.effective_from = DATE '2025-02-02'
+  );
+
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'STATE_CHANGE',
+    '재직 상태 변경',
+    '2024-07-23 10:40:00',
+    '2024-07-29 18:20:00',
+    DATE '2024-08-01',
+    DATE '2024-11-30',
+    '육아 휴직 신청',
+    JSON_OBJECT('employeeState', 'WORK'),
+    JSON_OBJECT('employeeState', 'LEAVE')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'STATE_CHANGE'
+        AND h.effective_from = DATE '2024-08-01'
+  );
+
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'STATE_CHANGE',
+    '재직 상태 변경',
+    '2024-11-20 11:30:00',
+    '2024-11-27 09:50:00',
+    DATE '2024-12-01',
+    NULL,
+    '복직 승인',
+    JSON_OBJECT('employeeState', 'LEAVE'),
+    JSON_OBJECT('employeeState', 'WORK')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'STATE_CHANGE'
+        AND h.effective_from = DATE '2024-12-01'
   );

@@ -1,4 +1,4 @@
-package com.reverse.hr.internal.application.dto.response;
+package com.reverse.hr.internal.dto.response;
 
 public record TokenResponseDTO(
         String accessToken
