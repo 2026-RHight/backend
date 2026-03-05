@@ -21,7 +21,7 @@
         FROM employee e
                  LEFT JOIN employee_hr_info hr ON hr.employee_id = e.employee_id
                  LEFT JOIN organization o ON hr.org_id = o.org_id
-                 LEFT JOIN `position` p ON hr.position_id = p.position_id
+                 LEFT JOIN hr_position p ON hr.position_id = p.position_id
                  LEFT JOIN job j ON hr.job_id = j.job_id
                  LEFT JOIN working_area w ON hr.area_id = w.area_id
                  LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
@@ -63,8 +63,8 @@
         FROM employee_hr_info hr
         JOIN employee e ON hr.employee_id = e.employee_id
         LEFT JOIN organization o ON hr.org_id = o.org_id
-        LEFT JOIN `position` p        ON hr.position_id = p.position_id
-        LEFT JOIN `rank` r            ON hr.rank_id = r.rank_id
+        LEFT JOIN hr_position p        ON hr.position_id = p.position_id
+        LEFT JOIN hr_rank r            ON hr.rank_id = r.rank_id
         LEFT JOIN job j               ON hr.job_id = j.job_id
         LEFT JOIN working_area w      ON hr.area_id = w.area_id
         WHERE hr.employee_id = #{employeeId}
