@@ -149,7 +149,7 @@
                f.file_url   AS fileUrl,
                f.file_title AS fileTitle
         FROM employee_skill_credential s
-                 JOIN hr_file f ON f.hr_file_id = s.hr_file_id
+                 LEFT JOIN hr_file f ON f.hr_file_id = s.hr_file_id
         WHERE s.employee_id = #{employeeId}
           AND s.skill_id = #{skillId}
         LIMIT 1
@@ -168,7 +168,7 @@
                f.file_url   AS fileUrl,
                f.file_title AS fileTitle
         FROM employee_career_details c
-                 JOIN hr_file f ON f.hr_file_id = c.hr_file_id
+                 LEFT JOIN hr_file f ON f.hr_file_id = c.hr_file_id
         WHERE c.employee_id = #{employeeId}
           AND c.career_id = #{careerId}
         LIMIT 1

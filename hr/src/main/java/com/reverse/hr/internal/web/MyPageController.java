@@ -12,6 +12,7 @@ import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class MyPageController {
     private final MyPageService myPageService;
 
     @GetMapping("/header")
+    @Operation(summary = "마이페이지 헤더")
     public ApiResponse<MyPageHeaderResponseDTO> mypageHeader(@AuthenticationPrincipal CustomUser user){
         return ApiResponse.success(myPageService.getMyPageHeader(user.getEmployeeId()));
     }

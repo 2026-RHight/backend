@@ -42,7 +42,7 @@ public class MyPageService {
     private final S3FileService s3FileService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 10MB
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50MB
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 20;
     private static final Set<String> ALLOWED_EXT = Set.of("pdf", "jpg", "jpeg", "png");
@@ -350,7 +350,10 @@ public class MyPageService {
         );
 
         try {
-            myPageMapper.insertHrFile(hrFile);
+            int inserted = myPageMapper.insertHrFile(hrFile);
+            if (inserted != 1 || hrFile.getHrFileId() == null) {
+                throw new IllegalStateException("증빙 파일 메타데이터 저장 중 오류가 발생했습니다.");
+            }
             return new EvidenceUploadResult(hrFile.getHrFileId(), uploaded.key());
         } catch (RuntimeException e) {
             deleteQuietly(uploaded.key());
@@ -425,7 +428,7 @@ public class MyPageService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("파일 크기는 10MB 이하여야 합니다.");
+            throw new IllegalArgumentException("파일 크기는 50MB 이하여야 합니다.");
         }
 
         String originalName = file.getOriginalFilename();
@@ -484,7 +487,19 @@ public class MyPageService {
             throw new IllegalStateException("파일 메타 삭제 중 오류가 발생했습니다.");
         }
 
-        s3FileService.deleteByFileUrl(fileRow.getFileUrl());
+        String fileUrl = fileRow.getFileUrl();
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                         @Override
+                         public void afterCommit() {
+                            s3FileService.deleteByFileUrl(fileUrl);
+                         }
+                  }
+            );
+        } else {
+            s3FileService.deleteByFileUrl(fileUrl);
+        }
     }
 
     private String extractExt(String fileName) {

@@ -99,7 +99,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
         ErrorResponse error = ErrorResponse.builder()
                 .code("FILE_TOO_LARGE")
-                .message("업로드 파일 용량이 제한을 초과했습니다. 최대 20MB까지 업로드할 수 있습니다.")
+                .message("업로드 파일 용량이 제한을 초과했습니다. 최대 50MB까지 업로드할 수 있습니다.")
                 .build();
 
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ApiResponse.fail(error));

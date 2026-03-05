@@ -27,6 +27,9 @@ public class S3FileService {
 
     public UploadResult upload(MultipartFile file, String dir) {
         String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.isBlank()) {
+            originalName = "unnamed";
+        }
         String ext = getExt(originalName);
         String key = dir + "/" + UUID.randomUUID() + ext;
 
