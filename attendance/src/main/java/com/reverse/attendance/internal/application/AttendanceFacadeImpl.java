@@ -3,7 +3,7 @@ package com.reverse.attendance.internal.application;
 import com.reverse.attendance.AttendanceFacade;
 import com.reverse.attendance.dto.request.LeaveBalanceInitializeRequest;
 import com.reverse.attendance.dto.response.PayrollAttendanceResponse;
-import com.reverse.attendance.internal.application.dto.response.AttendanceDashboardResponse;
+import com.reverse.attendance.internal.dto.response.AttendanceDashboardResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

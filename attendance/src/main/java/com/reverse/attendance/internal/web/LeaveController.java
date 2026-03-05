@@ -2,9 +2,9 @@ package com.reverse.attendance.internal.web;
 
 
 import com.reverse.attendance.internal.application.LeaveService;
-import com.reverse.attendance.internal.application.dto.request.LeaveApplyRequest;
-import com.reverse.attendance.internal.application.dto.request.LeaveProcessRequest;
-import com.reverse.attendance.internal.application.dto.response.LeaveBalanceResponse;
+import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
+import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
+import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
 import com.reverse.attendance.internal.domain.LeaveRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

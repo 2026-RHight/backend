@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.core.mapper.SequenceMapper">
+
+    <update id="updateSequenceNumber">
+        UPDATE sequence_doc
+        SET last_doc = last_doc + 1
+        WHERE prefix = #{prefix} AND year = #{year}
+    </update>
+
+    <select id="getSequenceNumber" resultType="int">
+        SELECT last_doc
+        FROM sequence_doc
+        WHERE prefix = #{prefix} AND year = #{year}
+    </select>
+
+    <insert id="insertInitialSequence">
+        INSERT INTO sequence_doc (prefix, year, last_doc)
+        VALUES (#{prefix}, #{year}, 1)
+    </insert>
+
+</mapper>

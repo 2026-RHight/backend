@@ -1,11 +1,11 @@
 package com.reverse.attendance.internal.web;
 
 import com.reverse.attendance.internal.application.AttendanceService;
-import com.reverse.attendance.internal.application.dto.request.AttendanceModifyRequest;
-import com.reverse.attendance.internal.application.dto.request.ClockInRequest;
-import com.reverse.attendance.internal.application.dto.request.ClockOutRequest;
-import com.reverse.attendance.internal.application.dto.response.AttendanceRecordResponse;
-import com.reverse.attendance.internal.application.dto.response.AttendanceSummaryResponse;
+import com.reverse.attendance.internal.dto.request.AttendanceModifyRequest;
+import com.reverse.attendance.internal.dto.request.ClockInRequest;
+import com.reverse.attendance.internal.dto.request.ClockOutRequest;
+import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
+import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,8 +1,9 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.internal.application.dto.request.OvertimeProcessRequest;
+import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
 import com.reverse.attendance.internal.domain.Overtime;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
+import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
 import com.reverse.attendance.internal.persistence.OvertimeMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ public class OvertimeService {
     private final OvertimeMapper overtimeMapper;
 
     @Transactional
-    public void applyOvertime(com.reverse.attendance.internal.application.dto.request.OvertimeApplyRequest request) {
+    public void applyOvertime(OvertimeApplyRequest request) {
         if (request.getStartTime().isAfter(request.getEndTime())) {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }

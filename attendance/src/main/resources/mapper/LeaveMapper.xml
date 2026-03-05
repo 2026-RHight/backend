@@ -6,7 +6,7 @@
 
     <select id="findTotalAnnualLeaveByEmployeeId" resultType="java.lang.Double">
         SELECT total_annual_leave
-        FROM leave_balance
+        FROM vacation_balance
         WHERE employee_id = #{employeeId}
     </select>
 

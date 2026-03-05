@@ -1,15 +1,15 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.internal.application.dto.request.LeaveApplyRequest;
-import com.reverse.attendance.internal.application.dto.request.LeaveProcessRequest;
-import com.reverse.attendance.internal.application.dto.response.LeaveBalanceResponse;
+import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
+import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
+import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
 import com.reverse.attendance.internal.domain.LeaveRequest;
 import com.reverse.attendance.internal.domain.enums.LeaveStatus;
 import com.reverse.attendance.internal.persistence.LeaveMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.temporal.ChronoUnit;
+
 import java.util.List;
 
 @Service
@@ -17,6 +17,7 @@ import java.util.List;
 public class LeaveService {
 
     private final LeaveMapper leaveMapper;
+    private final com.reverse.attendance.internal.persistence.AttendanceMapper attendanceMapper;
 
     // 연차 현황 조회
     @Transactional(readOnly = true)
@@ -42,7 +43,15 @@ public class LeaveService {
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
         double deductionDays = request.getLeaveType().getDeductionDays();
         if (request.getLeaveType() == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
-            long daysBetween = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
+            long daysBetween = 0;
+            java.time.LocalDate date = request.getStartDate();
+            while (!date.isAfter(request.getEndDate())) {
+                java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+                if (dayOfWeek != java.time.DayOfWeek.SATURDAY && dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+                    daysBetween++;
+                }
+                date = date.plusDays(1);
+            }
             deductionDays = daysBetween * 1.0;
         }
 
@@ -129,5 +138,42 @@ public class LeaveService {
                 .build();
 
         leaveMapper.updateLeaveStatus(processedRequest);
+        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
+        if (request.isApprove()) {
+            java.time.LocalDate ptr = leaveRequest.getStartDate();
+            while (!ptr.isAfter(leaveRequest.getEndDate())) {
+                java.time.DayOfWeek dayOfWeek = ptr.getDayOfWeek();
+                if (dayOfWeek != java.time.DayOfWeek.SATURDAY && dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+
+                    // 해당 일자의 근태 기록이 이미 있다면 업데이트, 없다면 새로 INSERT
+                    java.util.Optional<com.reverse.attendance.internal.domain.Attendance> existingRecord = attendanceMapper
+                            .findByEmployeeIdAndWorkDate(leaveRequest.getEmployeeId(), ptr);
+
+                    if (existingRecord.isPresent()) {
+                        com.reverse.attendance.internal.domain.Attendance rec = existingRecord.get();
+                        com.reverse.attendance.internal.domain.Attendance updatedRec = com.reverse.attendance.internal.domain.Attendance
+                                .builder()
+                                .attendanceId(rec.getAttendanceId())
+                                .employeeId(rec.getEmployeeId())
+                                .workDate(rec.getWorkDate())
+                                .checkInTime(rec.getCheckInTime())
+                                .checkOutTime(rec.getCheckOutTime())
+                                .status(com.reverse.attendance.internal.domain.enums.AttendanceStatus.VACATION)
+                                .modifyReason("휴가 승인으로 인한 자동 변경")
+                                .build();
+                        attendanceMapper.updateAttendanceByAdmin(updatedRec);
+                    } else {
+                        com.reverse.attendance.internal.domain.Attendance newRec = com.reverse.attendance.internal.domain.Attendance
+                                .builder()
+                                .employeeId(leaveRequest.getEmployeeId())
+                                .workDate(ptr)
+                                .status(com.reverse.attendance.internal.domain.enums.AttendanceStatus.VACATION)
+                                .build();
+                        attendanceMapper.insertCheckIn(newRec);
+                    }
+                }
+                ptr = ptr.plusDays(1);
+            }
+        }
     }
 }

@@ -42,7 +42,7 @@
         WHERE attendance_id = #{attendanceId}
     </update>
 
-    <select id="countMonthlySummary" resultType="com.reverse.attendance.dto.response.AttendanceSummaryResponse">
+    <select id="countMonthlySummary" resultType="com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse">
         SELECT
             COUNT(CASE WHEN status = 'NORMAL' THEN 1 END) as normalCount,
             COUNT(CASE WHEN status = 'TARDY' THEN 1 END) as tardyCount,
@@ -56,12 +56,12 @@
 
     <select id="findMonthlyRecords" resultType="com.reverse.attendance.internal.domain.Attendance">
         SELECT
-        attendance_id as attendanceId,
-        employee_id as employeeId,
-        work_date as workDate,
-        check_in_time as checkInTime,
-        check_out_time as checkOutTime,
-        status as status
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status
         FROM attendance_record
         WHERE employee_id = #{employeeId}
         AND DATE_FORMAT(work_date, '%Y-%m') = #{yearMonth}
