@@ -1,4 +1,4 @@
-package com.reverse.hr.internal.application.dto.response;
+package com.reverse.hr.internal.dto.response;
 
 import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.EmployType;
