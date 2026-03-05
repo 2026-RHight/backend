@@ -17,13 +17,13 @@ public class OvertimeService {
     private final OvertimeMapper overtimeMapper;
 
     @Transactional
-    public void applyOvertime(OvertimeApplyRequest request) {
+    public void applyOvertime(OvertimeApplyRequest request, Long employeeId) {
         if (request.getStartTime().isAfter(request.getEndTime())) {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
         Overtime overtime = Overtime.builder()
-                .employeeId(request.getEmployeeId())
+                .employeeId(employeeId)
                 .workDate(request.getWorkDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())

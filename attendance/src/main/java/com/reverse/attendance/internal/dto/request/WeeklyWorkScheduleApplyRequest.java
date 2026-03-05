@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class WeeklyWorkScheduleApplyRequest {
 
-    private Long employeeId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDate planDate;

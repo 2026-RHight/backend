@@ -39,7 +39,7 @@ public class LeaveService {
 
     // 휴가 신청
     @Transactional
-    public void applyLeave(LeaveApplyRequest request) {
+    public void applyLeave(LeaveApplyRequest request, Long employeeId) {
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
         double deductionDays = request.getLeaveType().getDeductionDays();
         if (request.getLeaveType() == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
@@ -56,13 +56,13 @@ public class LeaveService {
         }
 
         // 잔여 연차 검증
-        LeaveBalanceResponse balance = getLeaveBalance(request.getEmployeeId());
+        LeaveBalanceResponse balance = getLeaveBalance(employeeId);
         if (balance.getRemainingAnnualLeave() < deductionDays) {
             throw new IllegalStateException("잔여 연차가 부족하여 휴가를 신청할 수 없습니다.");
         }
 
         LeaveRequest leaveRequest = LeaveRequest.builder()
-                .employeeId(request.getEmployeeId())
+                .employeeId(employeeId)
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .leaveType(request.getLeaveType())

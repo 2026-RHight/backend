@@ -31,17 +31,17 @@ public class AttendanceService {
     private static final LocalTime FALLBACK_CHECK_OUT_TIME = LocalTime.of(18, 0, 0);
 
     @Transactional
-    public Long clockIn(ClockInRequest request) {
+    public Long clockIn(ClockInRequest request, Long employeeId) {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        Optional<Attendance> existingRecord = attendanceMapper.findByEmployeeIdAndWorkDate(request.getEmployeeId(), today);
+        Optional<Attendance> existingRecord = attendanceMapper.findByEmployeeIdAndWorkDate(employeeId, today);
         if (existingRecord.isPresent()) {
             throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
         }
 
         // 사원 개인의 근태 규정(출근 시간)을 가져옵니다.
-        LocalTime standardCheckInTime = getStandardCheckInTime(request.getEmployeeId());
+        LocalTime standardCheckInTime = getStandardCheckInTime(employeeId);
 
         AttendanceStatus status = AttendanceStatus.NORMAL;
 
@@ -54,7 +54,7 @@ public class AttendanceService {
         }
 
         Attendance attendance = Attendance.builder()
-                .employeeId(request.getEmployeeId())
+                .employeeId(employeeId)
                 .workDate(today)
                 .checkInTime(now)
                 .status(status)
@@ -66,10 +66,10 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void clockOut(ClockOutRequest request) {
+    public void clockOut(ClockOutRequest request, Long employeeId) {
         LocalTime now = LocalTime.now();
 
-        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(request.getEmployeeId(), LocalDate.now())
+        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                 .orElseThrow(() -> new IllegalStateException("오늘의 출근 기록이 존재하지 않아 퇴근 처리를 할 수 없습니다."));
 
         if (attendance.getCheckOutTime() != null) {
@@ -77,7 +77,7 @@ public class AttendanceService {
         }
 
         // 사원 개인의 근태 규정(퇴근 시간)을 가져옵니다.
-        LocalTime standardCheckOutTime = getStandardCheckOutTime(request.getEmployeeId());
+        LocalTime standardCheckOutTime = getStandardCheckOutTime(employeeId);
         AttendanceStatus currentStatus = attendance.getStatus();
 
         // 하드코딩된 시간이 아닌, 사원별 기준 시간과 비교하여 조퇴 여부를 판단합니다.
@@ -107,15 +107,18 @@ public class AttendanceService {
             throw new IllegalArgumentException("근태 기록 수정 시 사유를 반드시 입력해야 합니다.");
         }
 
-        Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(request.getTargetEmployeeId(), request.getWorkDate())
+        Attendance attendance = attendanceMapper
+                .findByEmployeeIdAndWorkDate(request.getTargetEmployeeId(), request.getWorkDate())
                 .orElseThrow(() -> new IllegalStateException("해당 날짜의 근태 기록이 존재하지 않습니다."));
 
         Attendance updatedAttendance = Attendance.builder()
                 .attendanceId(attendance.getAttendanceId())
                 .employeeId(attendance.getEmployeeId())
                 .workDate(attendance.getWorkDate())
-                .checkInTime(request.getNewCheckInTime() != null ? request.getNewCheckInTime() : attendance.getCheckInTime())
-                .checkOutTime(request.getNewCheckOutTime() != null ? request.getNewCheckOutTime() : attendance.getCheckOutTime())
+                .checkInTime(
+                        request.getNewCheckInTime() != null ? request.getNewCheckInTime() : attendance.getCheckInTime())
+                .checkOutTime(request.getNewCheckOutTime() != null ? request.getNewCheckOutTime()
+                        : attendance.getCheckOutTime())
                 .status(request.getNewStatus() != null ? request.getNewStatus() : attendance.getStatus())
                 .tardyReason(attendance.getTardyReason())
                 .modifyReason(request.getModifyReason())

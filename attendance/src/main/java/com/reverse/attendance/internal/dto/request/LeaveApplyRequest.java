@@ -10,7 +10,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class LeaveApplyRequest {
 
-    private Long employeeId;
     private LocalDate startDate;
     private LocalDate endDate;
     private LeaveType leaveType;

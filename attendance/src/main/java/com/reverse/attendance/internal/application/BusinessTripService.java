@@ -18,13 +18,13 @@ public class BusinessTripService {
 
     // 외근/출장 신청
     @Transactional
-    public void applyBusinessTrip(BusinessTripApplyRequest request) {
+    public void applyBusinessTrip(BusinessTripApplyRequest request, Long employeeId) {
         if (request.getStartDatetime().isAfter(request.getEndDatetime())) {
             throw new IllegalArgumentException("종료 일시가 시작 일시보다 빠를 수 없습니다.");
         }
 
         BusinessTrip trip = BusinessTrip.builder()
-                .employeeId(request.getEmployeeId())
+                .employeeId(employeeId)
                 .tripType(request.getTripType())
                 .destination(request.getDestination())
                 .startDatetime(request.getStartDatetime())

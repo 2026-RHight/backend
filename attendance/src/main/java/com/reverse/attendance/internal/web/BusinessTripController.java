@@ -1,6 +1,5 @@
 package com.reverse.attendance.internal.web;
 
-
 import com.reverse.attendance.internal.application.BusinessTripService;
 import com.reverse.attendance.internal.dto.request.BusinessTripApplyRequest;
 import com.reverse.attendance.internal.dto.request.BusinessTripProcessRequest;
@@ -8,6 +7,8 @@ import com.reverse.attendance.internal.domain.BusinessTrip;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.reverse.core.security.CustomUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -20,15 +21,16 @@ public class BusinessTripController {
 
     // 사용자 : 내 신청 내역 조회
     @GetMapping("/my-requests")
-    public ResponseEntity<List<BusinessTrip>> getMyTrips(@RequestParam Long employeeId) {
-        return ResponseEntity.ok(businessTripService.getMyTrips(employeeId));
+    public ResponseEntity<List<BusinessTrip>> getMyTrips(@AuthenticationPrincipal CustomUser user) {
+        return ResponseEntity.ok(businessTripService.getMyTrips(user.getEmployeeId()));
     }
 
     // 사용자 : 외근/출장 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyTrip(@RequestBody BusinessTripApplyRequest request) {
+    public ResponseEntity<String> applyTrip(@RequestBody BusinessTripApplyRequest request,
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            businessTripService.applyBusinessTrip(request);
+            businessTripService.applyBusinessTrip(request, user.getEmployeeId());
             return ResponseEntity.ok("외근/출장 신청이 완료되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -41,9 +43,9 @@ public class BusinessTripController {
     @PutMapping("/{tripId}/cancel")
     public ResponseEntity<String> cancelTrip(
             @PathVariable Long tripId,
-            @RequestParam Long employeeId) {
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            businessTripService.cancelTrip(tripId, employeeId);
+            businessTripService.cancelTrip(tripId, user.getEmployeeId());
             return ResponseEntity.ok("신청이 취소되었습니다.");
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

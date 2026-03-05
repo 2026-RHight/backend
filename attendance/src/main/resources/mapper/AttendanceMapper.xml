@@ -24,6 +24,7 @@
             modify_reason as modifyReason
         FROM attendance_record
         WHERE employee_id = #{employeeId} AND work_date = #{workDate}
+        LIMIT 1
     </select>
 
     <update id="updateCheckOut">

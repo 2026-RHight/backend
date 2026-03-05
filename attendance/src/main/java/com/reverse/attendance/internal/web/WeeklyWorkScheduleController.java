@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.reverse.core.security.CustomUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import java.util.List;
 
 @RestController
@@ -19,9 +22,10 @@ public class WeeklyWorkScheduleController {
 
     // 유연근무 신청
     @PostMapping
-    public ResponseEntity<String> applySchedule(@RequestBody WeeklyWorkScheduleApplyRequest request) {
+    public ResponseEntity<String> applySchedule(@RequestBody WeeklyWorkScheduleApplyRequest request,
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            scheduleService.applySchedule(request);
+            scheduleService.applySchedule(request, user.getEmployeeId());
             return ResponseEntity.ok("유연근무 신청이 완료되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -32,16 +36,17 @@ public class WeeklyWorkScheduleController {
 
     // 내 신청 내역 조회
     @GetMapping("/my")
-    public ResponseEntity<List<WeeklyWorkSchedule>> getMySchedules(@RequestParam Long employeeId) {
-        List<WeeklyWorkSchedule> schedules = scheduleService.getMySchedules(employeeId);
+    public ResponseEntity<List<WeeklyWorkSchedule>> getMySchedules(@AuthenticationPrincipal CustomUser user) {
+        List<WeeklyWorkSchedule> schedules = scheduleService.getMySchedules(user.getEmployeeId());
         return ResponseEntity.ok(schedules);
     }
 
     // 신청 취소
     @PutMapping("/{weeklyId}/cancel")
-    public ResponseEntity<String> cancelSchedule(@PathVariable Long weeklyId, @RequestParam Long employeeId) {
+    public ResponseEntity<String> cancelSchedule(@PathVariable Long weeklyId,
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            scheduleService.cancelSchedule(weeklyId, employeeId);
+            scheduleService.cancelSchedule(weeklyId, user.getEmployeeId());
             return ResponseEntity.ok("유연근무 신청이 취소되었습니다.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

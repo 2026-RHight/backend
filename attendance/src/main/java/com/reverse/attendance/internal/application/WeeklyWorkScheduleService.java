@@ -18,13 +18,13 @@ public class WeeklyWorkScheduleService {
     private final WeeklyWorkScheduleMapper scheduleMapper;
 
     @Transactional
-    public void applySchedule(WeeklyWorkScheduleApplyRequest request) {
+    public void applySchedule(WeeklyWorkScheduleApplyRequest request, Long employeeId) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new IllegalArgumentException("유연근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
         WeeklyWorkSchedule schedule = WeeklyWorkSchedule.builder()
-                .employeeId(request.getEmployeeId())
+                .employeeId(employeeId)
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .planDate(request.getPlanDate())

@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class OvertimeApplyRequest {
 
-    private Long employeeId;
     private LocalDate workDate;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

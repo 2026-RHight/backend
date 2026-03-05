@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.reverse.core.security.CustomUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import java.util.List;
 
 @RestController
@@ -19,15 +22,16 @@ public class OvertimeController {
 
     // 사용자 : 내 신청 내역 조회
     @GetMapping("/my-requests")
-    public ResponseEntity<List<Overtime>> getMyOvertimes(@RequestParam Long employeeId) {
-        return ResponseEntity.ok(overtimeService.getMyOvertimes(employeeId));
+    public ResponseEntity<List<Overtime>> getMyOvertimes(@AuthenticationPrincipal CustomUser user) {
+        return ResponseEntity.ok(overtimeService.getMyOvertimes(user.getEmployeeId()));
     }
 
     // 사용자 : 연장근무 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyOvertime(@RequestBody OvertimeApplyRequest request) {
+    public ResponseEntity<String> applyOvertime(@RequestBody OvertimeApplyRequest request,
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            overtimeService.applyOvertime(request);
+            overtimeService.applyOvertime(request, user.getEmployeeId());
             return ResponseEntity.ok("연장근무 신청이 완료되었습니다.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -40,9 +44,9 @@ public class OvertimeController {
     @PutMapping("/{overtimeId}/cancel")
     public ResponseEntity<String> cancelOvertime(
             @PathVariable Long overtimeId,
-            @RequestParam Long employeeId) {
+            @AuthenticationPrincipal CustomUser user) {
         try {
-            overtimeService.cancelOvertime(overtimeId, employeeId);
+            overtimeService.cancelOvertime(overtimeId, user.getEmployeeId());
             return ResponseEntity.ok("신청이 취소되었습니다.");
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ClockInRequest {
 
-    private Long employeeId;
     private String tardyReason;
-
-
 
 }
