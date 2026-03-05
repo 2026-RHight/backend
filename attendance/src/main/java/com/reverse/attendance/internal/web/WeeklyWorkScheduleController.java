@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import com.reverse.core.security.CustomUser;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -22,7 +23,7 @@ public class WeeklyWorkScheduleController {
 
     // 유연근무 신청
     @PostMapping
-    public ResponseEntity<String> applySchedule(@RequestBody WeeklyWorkScheduleApplyRequest request,
+    public ResponseEntity<String> applySchedule(@Valid @RequestBody WeeklyWorkScheduleApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             scheduleService.applySchedule(request, user.getEmployeeId());

@@ -2,7 +2,6 @@ package com.reverse.attendance.internal.application;
 
 import com.reverse.attendance.internal.dto.request.AttendanceModifyRequest;
 import com.reverse.attendance.internal.dto.request.ClockInRequest;
-import com.reverse.attendance.internal.dto.request.ClockOutRequest;
 import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import com.reverse.attendance.internal.domain.Attendance;
@@ -66,7 +65,7 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void clockOut(ClockOutRequest request, Long employeeId) {
+    public void clockOut(Long employeeId) {
         LocalTime now = LocalTime.now();
 
         Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())

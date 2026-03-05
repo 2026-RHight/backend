@@ -40,6 +40,13 @@ public class LeaveService {
     // 휴가 신청
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
+        if (request.getStartDate() == null || request.getEndDate() == null || request.getLeaveType() == null) {
+                        throw new IllegalArgumentException("휴가 유형/시작일/종료일은 필수입니다.");
+        }
+        if (request.getStartDate().isAfter(request.getEndDate())) {
+                        throw new IllegalArgumentException("종료일이 시작일보다 빠를 수 없습니다.");
+        }
+
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
         double deductionDays = request.getLeaveType().getDeductionDays();
         if (request.getLeaveType() == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
@@ -53,6 +60,9 @@ public class LeaveService {
                 date = date.plusDays(1);
             }
             deductionDays = daysBetween * 1.0;
+            if (deductionDays <= 0) {
+                throw new IllegalArgumentException("근무일이 포함된 연차만 신청할 수 있습니다.");
+            }
         }
 
         // 잔여 연차 검증

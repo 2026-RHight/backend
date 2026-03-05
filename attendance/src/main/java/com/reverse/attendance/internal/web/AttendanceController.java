@@ -3,10 +3,10 @@ package com.reverse.attendance.internal.web;
 import com.reverse.attendance.internal.application.AttendanceService;
 import com.reverse.attendance.internal.dto.request.AttendanceModifyRequest;
 import com.reverse.attendance.internal.dto.request.ClockInRequest;
-import com.reverse.attendance.internal.dto.request.ClockOutRequest;
 import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,7 +22,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PostMapping("/clock-in")
-    public ResponseEntity<String> clockIn(@RequestBody ClockInRequest request,
+    public ResponseEntity<String> clockIn(@Valid @RequestBody ClockInRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             Long attendanceId = attendanceService.clockIn(request, user.getEmployeeId());
@@ -35,10 +35,9 @@ public class AttendanceController {
     }
 
     @PutMapping("/clock-out")
-    public ResponseEntity<String> clockOut(@RequestBody ClockOutRequest request,
-            @AuthenticationPrincipal CustomUser user) {
+    public ResponseEntity<String> clockOut(@AuthenticationPrincipal CustomUser user) {
         try {
-            attendanceService.clockOut(request, user.getEmployeeId());
+            attendanceService.clockOut(user.getEmployeeId());
             return ResponseEntity.ok("퇴근 처리가 완료되었습니다.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -50,7 +49,7 @@ public class AttendanceController {
     @PutMapping("/admin/modify")
     public ResponseEntity<String> modifyAttendanceByAdmin(@RequestBody AttendanceModifyRequest request) {
         try {
-            // 여기서 @AuthenticationPrincipal 등을 사용해 API 호출한 사람이 ' 팀장 및 관리자 ' 권한인지 체크해야 하는
+            // @AuthenticationPrincipal 등을 사용해 API 호출한 사람이 ' 팀장 및 관리자 ' 권한인지 체크해야 하는
             // 로직들어가야됨.
             attendanceService.modifyAttendanceByAdmin(request);
             return ResponseEntity.ok("근태 기록이 성공적으로 수정되었습니다.");

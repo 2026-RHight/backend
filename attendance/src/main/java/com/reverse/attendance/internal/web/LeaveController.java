@@ -5,6 +5,7 @@ import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
 import com.reverse.attendance.internal.domain.LeaveRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class LeaveController {
 
     // 휴가 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyLeave(@RequestBody LeaveApplyRequest request,
+    public ResponseEntity<String> applyLeave(@Valid @RequestBody LeaveApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             leaveService.applyLeave(request, user.getEmployeeId());

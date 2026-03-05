@@ -19,6 +19,9 @@ public class BusinessTripService {
     // 외근/출장 신청
     @Transactional
     public void applyBusinessTrip(BusinessTripApplyRequest request, Long employeeId) {
+        if (request.getStartDatetime() == null || request.getEndDatetime() == null) {
+                        throw new IllegalArgumentException("시작/종료 일시는 필수입니다.");
+        }
         if (request.getStartDatetime().isAfter(request.getEndDatetime())) {
             throw new IllegalArgumentException("종료 일시가 시작 일시보다 빠를 수 없습니다.");
         }

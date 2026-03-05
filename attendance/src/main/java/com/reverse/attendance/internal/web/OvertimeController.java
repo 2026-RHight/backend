@@ -4,6 +4,7 @@ import com.reverse.attendance.internal.application.OvertimeService;
 import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
 import com.reverse.attendance.internal.domain.Overtime;
 import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +29,7 @@ public class OvertimeController {
 
     // 사용자 : 연장근무 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyOvertime(@RequestBody OvertimeApplyRequest request,
+    public ResponseEntity<String> applyOvertime(@Valid @RequestBody OvertimeApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             overtimeService.applyOvertime(request, user.getEmployeeId());

@@ -19,6 +19,10 @@ public class WeeklyWorkScheduleService {
 
     @Transactional
     public void applySchedule(WeeklyWorkScheduleApplyRequest request, Long employeeId) {
+        if (request == null || request.getStartDate() == null || request.getEndDate() == null
+                || request.getPlanDate() == null) {
+            throw new IllegalArgumentException("시작/종료 시간과 근무일은 필수입니다.");
+        }
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new IllegalArgumentException("유연근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }

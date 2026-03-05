@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.reverse.core.security.CustomUser;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -27,7 +28,7 @@ public class BusinessTripController {
 
     // 사용자 : 외근/출장 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyTrip(@RequestBody BusinessTripApplyRequest request,
+    public ResponseEntity<String> applyTrip(@Valid @RequestBody BusinessTripApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             businessTripService.applyBusinessTrip(request, user.getEmployeeId());
