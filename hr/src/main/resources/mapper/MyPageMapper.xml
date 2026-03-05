@@ -5,6 +5,30 @@
 
 <mapper namespace="com.reverse.hr.internal.persistence.MyPageMapper">
 
+    <select id="findMyPageHeaderByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.MyPageHeaderRow">
+        SELECT e.employee_name AS employeeName,
+               e.employ_state  AS employeeState,
+               o.org_name      AS orgName,
+               j.job_name      AS jobName,
+               p.position_name AS positionName,
+               e.email         AS email,
+               e.phone         AS phone,
+               e.ext           AS extensionNum,
+               w.area_name     AS areaName,
+               f.file_url      AS profileFileUrl
+        FROM employee e
+                 LEFT JOIN employee_hr_info hr ON hr.employee_id = e.employee_id
+                 LEFT JOIN organization o ON hr.org_id = o.org_id
+                 LEFT JOIN hr_position p ON hr.position_id = p.position_id
+                 LEFT JOIN job j ON hr.job_id = j.job_id
+                 LEFT JOIN working_area w ON hr.area_id = w.area_id
+                 LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
+        WHERE e.employee_id = #{employeeId}
+        LIMIT 1
+    </select>
+
     <select id="findBasicInfoByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.BasicInfoRow">
@@ -39,8 +63,8 @@
         FROM employee_hr_info hr
         JOIN employee e ON hr.employee_id = e.employee_id
         LEFT JOIN organization o ON hr.org_id = o.org_id
-        LEFT JOIN `position` p        ON hr.position_id = p.position_id
-        LEFT JOIN `rank` r            ON hr.rank_id = r.rank_id
+        LEFT JOIN hr_position p        ON hr.position_id = p.position_id
+        LEFT JOIN hr_rank r            ON hr.rank_id = r.rank_id
         LEFT JOIN job j               ON hr.job_id = j.job_id
         LEFT JOIN working_area w      ON hr.area_id = w.area_id
         WHERE hr.employee_id = #{employeeId}
@@ -49,7 +73,8 @@
     <select id="findSkillsByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.SkillItemRow">
-        SELECT s.category                                  AS category,
+        SELECT s.skill_id                                  AS skillId,
+               s.category                                  AS category,
                s.skill_name                                AS skillName,
                DATE_FORMAT(s.acquisition_date, '%Y.%m.%d') AS acquisitionDate,
                s.license_number                            AS licenseNumber,
@@ -72,5 +97,105 @@
         WHERE c.employee_id = #{employeeId}
         ORDER BY c.start_date DESC, c.career_id DESC
     </select>
+
+    <insert id="insertHrFile" useGeneratedKeys="true" keyProperty="hrFileId">
+        INSERT INTO hr_file (file_url, file_title)
+        VALUES (#{fileUrl}, #{fileTitle})
+    </insert>
+
+    <insert id="insertSkill" useGeneratedKeys="true" keyProperty="skillId">
+        INSERT INTO employee_skill_credential (
+            employee_id,
+            category,
+            skill_name,
+            acquisition_date,
+            license_number,
+            hr_file_id
+        ) VALUES (
+                     #{employeeId},
+                     #{category},
+                     #{skillName},
+                     #{acquisitionDate},
+                     #{licenseNumber},
+                     #{hrFileId}
+                 )
+    </insert>
+
+    <insert id="insertCareer" useGeneratedKeys="true" keyProperty="careerId">
+        INSERT INTO employee_career_details (
+            employee_id, company_name, org_name, start_date, end_date, hr_file_id
+        ) VALUES (
+                     #{employeeId}, #{companyName}, #{orgName}, #{startDate}, #{endDate}, #{hrFileId}
+                 )
+    </insert>
+
+    <update id="updateBasicInfo">
+        UPDATE employee
+        SET email = #{email},
+            phone = #{phone},
+            address = #{address}
+        WHERE employee_id = #{employeeId}
+    </update>
+
+    <update id="updateProfileId">
+        UPDATE employee
+        SET profile_id = #{profileId}
+        WHERE employee_id = #{employeeId}
+    </update>
+
+    <select id="findSkillFileByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
+        SELECT f.hr_file_id AS hrFileId,
+               f.file_url   AS fileUrl,
+               f.file_title AS fileTitle
+        FROM employee_skill_credential s
+                 LEFT JOIN hr_file f ON f.hr_file_id = s.hr_file_id
+        WHERE s.employee_id = #{employeeId}
+          AND s.skill_id = #{skillId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteSkillByIdAndEmployeeId">
+        DELETE
+        FROM employee_skill_credential
+        WHERE employee_id = #{employeeId}
+          AND skill_id = #{skillId}
+    </delete>
+
+    <select id="findCareerFileByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
+        SELECT f.hr_file_id AS hrFileId,
+               f.file_url   AS fileUrl,
+               f.file_title AS fileTitle
+        FROM employee_career_details c
+                 LEFT JOIN hr_file f ON f.hr_file_id = c.hr_file_id
+        WHERE c.employee_id = #{employeeId}
+          AND c.career_id = #{careerId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteCareerByIdAndEmployeeId">
+        DELETE
+        FROM employee_career_details
+        WHERE employee_id = #{employeeId}
+          AND career_id = #{careerId}
+    </delete>
+
+    <select id="countHrFileReferences" resultType="int">
+        SELECT (
+                   (SELECT COUNT(*) FROM employee e WHERE e.profile_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM employee_skill_credential s WHERE s.hr_file_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM employee_career_details c WHERE c.hr_file_id = #{hrFileId})
+                   ) AS refCount
+    </select>
+
+    <delete id="deleteHrFileById">
+        DELETE
+        FROM hr_file
+        WHERE hr_file_id = #{hrFileId}
+    </delete>
+
 
 </mapper>

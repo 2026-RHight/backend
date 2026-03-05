@@ -13,7 +13,11 @@ spring:
       ddl-auto: validate # 운영은 실수를 막기 위해 무조건 validate
     show-sql: false
 
-s3:
-  endpoint: ${PROD_S3_ENDPOINT}
-  access-key: ${PROD_S3_KEY}
-  secret-key: ${PROD_S3_SECRET}
+cloud:
+  s3:
+    endpoint: ${PROD_S3_ENDPOINT}
+    region: ${PROD_S3_REGION:ap-northeast-2}
+    bucket: ${PROD_S3_BUCKET:rhight}
+    credentials:
+      access-key: ${PROD_S3_KEY}
+      secret-key: ${PROD_S3_SECRET}

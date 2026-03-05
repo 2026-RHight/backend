@@ -8,10 +8,10 @@
     <select id="findUserByEmployeeNum"
             parameterType="String"
             resultType="com.reverse.hr.internal.persistence.row.LoginUserRow">
-        SELECT employee_id       AS employeeId,
-               employee_num      AS employeeNum,
-               employee_password AS password,
-               initial_state     AS initialState
+        SELECT employee_id          AS employeeId,
+               employee_num         AS employeeNum,
+               employee_password    AS password,
+               initial_state        AS initialState
         FROM employee
         WHERE employee_num = #{employeeNum}
     </select>
@@ -19,9 +19,9 @@
     <select id="findUserByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.LoginUserRow">
-        SELECT employee_id   AS employeeId,
-               employee_num  AS employeeNum,
-               employee_password  AS password,
+        SELECT employee_id          AS employeeId,
+               employee_num         AS employeeNum,
+               employee_password    AS password,
                initial_state AS initialState
         FROM employee
         WHERE employee_id = #{employeeId}
@@ -40,18 +40,18 @@
     <select id="findLoginProfileByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.LoginProfileRow">
-        SELECT e.employee_id   AS employeeId,
-        e.employee_num  AS employeeNum,
-        e.employee_name AS employeeName,
-        o.org_name      AS orgName,
-        p.position_name AS positionName,
-        r.rank_name     AS rankName,
-        j.job_name      AS jobName
+        SELECT e.employee_id    AS employeeId,
+        e.employee_num          AS employeeNum,
+        e.employee_name         AS employeeName,
+        o.org_name              AS orgName,
+        p.position_name         AS positionName,
+        r.rank_name             AS rankName,
+        j.job_name              AS jobName
         FROM employee e
         LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
         LEFT JOIN organization o ON o.org_id = h.org_id
-        LEFT JOIN `position` p   ON p.position_id = h.position_id
-        LEFT JOIN `rank` r       ON r.rank_id = h.rank_id
+        LEFT JOIN hr_position p   ON p.position_id = h.position_id
+        LEFT JOIN hr_rank r       ON r.rank_id = h.rank_id
         LEFT JOIN job j          ON j.job_id = h.job_id
         WHERE e.employee_id = #{employeeId}
         LIMIT 1

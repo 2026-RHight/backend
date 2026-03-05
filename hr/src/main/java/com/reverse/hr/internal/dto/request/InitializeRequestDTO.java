@@ -1,4 +1,4 @@
-package com.reverse.hr.internal.application.dto.request;
+package com.reverse.hr.internal.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 

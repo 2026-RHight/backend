@@ -17,8 +17,8 @@
         FROM employee e
                  LEFT JOIN employee_hr_info hr ON hr.employee_id = e.employee_id
                  LEFT JOIN organization o ON o.org_id = hr.org_id
-                 LEFT JOIN `rank` r ON r.rank_id = hr.rank_id
-                 LEFT JOIN `position` p ON p.position_id = hr.position_id
+                 LEFT JOIN hr_rank r ON r.rank_id = hr.rank_id
+                 LEFT JOIN hr_position p ON p.position_id = hr.position_id
                  LEFT JOIN job j ON j.job_id = hr.job_id
         WHERE e.employee_id = #{employeeId}
     </select>
