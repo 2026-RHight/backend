@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.FlexibleWorkDetailMapper">
+
+    <insert id="insertFlexibleWorkDetail"
+            parameterType="com.reverse.approval.internal.persistence.param.FlexibleWorkParam">
+        INSERT INTO flexible_work_detail (
+            approval_id,
+            start_dt,
+            end_dt,
+            reason
+        )
+        VALUES (
+            #{approvalId},
+            #{startDate},
+            #{endDate},
+            #{reason}
+        )
+    </insert>
+
+</mapper>

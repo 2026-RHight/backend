@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.ApprovalMapper">
+
+    <insert id="insertElectronicApproval"
+            parameterType="com.reverse.approval.internal.persistence.param.ElectronicApprovalParam"
+            useGeneratedKeys="true"
+            keyProperty="approvalId"
+            keyColumn="approval_id">
+        INSERT INTO electronic_approval (
+            title,
+            doc_type,
+            approval_status,
+            draft_dt,
+            drafter_id,
+            drafter_name,
+            department_name
+        )
+        VALUES (
+            #{title},
+            #{docType},
+            #{approvalStatus},
+            #{draftDate},
+            #{drafterId},
+            #{drafterName},
+            #{departmentName}
+        )
+    </insert>
+
+</mapper>

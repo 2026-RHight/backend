@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.RecipientLineMapper">
+
+    <insert id="insertRecipientLine"
+            parameterType="com.reverse.approval.internal.persistence.param.RecipientLineParam">
+        INSERT INTO recipient_line (
+            approval_id,
+            receiver_id,
+            receiver_name,
+            receiver_rank
+        )
+        VALUES (
+            #{approvalId},
+            #{receiverId},
+            #{receiverName},
+            #{receiverRank}
+        )
+    </insert>
+
+</mapper>
