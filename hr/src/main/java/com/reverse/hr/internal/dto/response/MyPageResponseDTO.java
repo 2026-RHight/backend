@@ -39,6 +39,7 @@ public record MyPageResponseDTO(
             String areaName
     ) {}
     public record SkillItem(
+            Long skillId,
             SkillCategory category,
             String skillName,
             String acquisitionDate,

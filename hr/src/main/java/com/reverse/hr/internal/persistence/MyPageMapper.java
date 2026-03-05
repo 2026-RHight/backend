@@ -38,5 +38,17 @@ public interface MyPageMapper {
 
     int updateProfileId(@Param("employeeId") Long employeeId, @Param("profileId") Long profileId);
 
+    Optional<HrFileRow> findSkillFileByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
+
+    int deleteSkillByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
+
+    Optional<HrFileRow> findCareerFileByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
+
+    int deleteCareerByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
+
+    int countHrFileReferences(@Param("hrFileId") Long hrFileId);
+
+    int deleteHrFileById(@Param("hrFileId") Long hrFileId);
+
 
 }

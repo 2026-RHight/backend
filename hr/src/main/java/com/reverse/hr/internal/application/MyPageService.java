@@ -120,6 +120,7 @@ public class MyPageService {
 
         List<MyPageResponseDTO.SkillItem> skills = skillRows.stream()
                 .map(row -> new MyPageResponseDTO.SkillItem(
+                        row.skillId(),
                         row.category(),
                         row.skillName(),
                         row.acquisitionDate(),
@@ -290,6 +291,32 @@ public class MyPageService {
         }
     }
 
+    @Transactional
+    public void deleteSkill(Long employeeId, Long skillId) {
+        HrFileRow fileRow = myPageMapper.findSkillFileByIdAndEmployeeId(employeeId, skillId)
+                .orElseThrow(() -> new IllegalStateException("삭제할 역량 정보를 찾을 수 없습니다."));
+
+        int deleted = myPageMapper.deleteSkillByIdAndEmployeeId(employeeId, skillId);
+        if (deleted != 1) {
+            throw new IllegalStateException("역량 정보 삭제 중 오류가 발생했습니다.");
+        }
+
+        deleteHrFileAndS3IfUnreferenced(fileRow);
+    }
+
+    @Transactional
+    public void deleteCareer(Long employeeId, Long careerId) {
+        HrFileRow fileRow = myPageMapper.findCareerFileByIdAndEmployeeId(employeeId, careerId)
+                .orElseThrow(() -> new IllegalStateException("삭제할 경력 정보를 찾을 수 없습니다."));
+
+        int deleted = myPageMapper.deleteCareerByIdAndEmployeeId(employeeId, careerId);
+        if (deleted != 1) {
+            throw new IllegalStateException("경력 사항 삭제 중 오류가 발생했습니다.");
+        }
+
+        deleteHrFileAndS3IfUnreferenced(fileRow);
+    }
+
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
         S3FileService.UploadResult uploaded = s3FileService.upload(file, baseDir + "/" + employeeId);
 
@@ -417,6 +444,24 @@ public class MyPageService {
         } catch (RuntimeException ignored) {
             // 보상 삭제 실패는 원본 예외를 우선한다.
         }
+    }
+
+    private void deleteHrFileAndS3IfUnreferenced(HrFileRow fileRow) {
+        if (fileRow == null || fileRow.getHrFileId() == null) {
+            return;
+        }
+
+        int refCount = myPageMapper.countHrFileReferences(fileRow.getHrFileId());
+        if (refCount > 0) {
+            return;
+        }
+
+        int deletedHrFile = myPageMapper.deleteHrFileById(fileRow.getHrFileId());
+        if (deletedHrFile != 1) {
+            throw new IllegalStateException("파일 메타 삭제 중 오류가 발생했습니다.");
+        }
+
+        s3FileService.deleteByFileUrl(fileRow.getFileUrl());
     }
 
     private String extractExt(String fileName) {

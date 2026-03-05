@@ -73,7 +73,8 @@
     <select id="findSkillsByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.SkillItemRow">
-        SELECT s.category                                  AS category,
+        SELECT s.skill_id                                  AS skillId,
+               s.category                                  AS category,
                s.skill_name                                AS skillName,
                DATE_FORMAT(s.acquisition_date, '%Y.%m.%d') AS acquisitionDate,
                s.license_number                            AS licenseNumber,
@@ -141,6 +142,60 @@
         SET profile_id = #{profileId}
         WHERE employee_id = #{employeeId}
     </update>
+
+    <select id="findSkillFileByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
+        SELECT f.hr_file_id AS hrFileId,
+               f.file_url   AS fileUrl,
+               f.file_title AS fileTitle
+        FROM employee_skill_credential s
+                 JOIN hr_file f ON f.hr_file_id = s.hr_file_id
+        WHERE s.employee_id = #{employeeId}
+          AND s.skill_id = #{skillId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteSkillByIdAndEmployeeId">
+        DELETE
+        FROM employee_skill_credential
+        WHERE employee_id = #{employeeId}
+          AND skill_id = #{skillId}
+    </delete>
+
+    <select id="findCareerFileByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
+        SELECT f.hr_file_id AS hrFileId,
+               f.file_url   AS fileUrl,
+               f.file_title AS fileTitle
+        FROM employee_career_details c
+                 JOIN hr_file f ON f.hr_file_id = c.hr_file_id
+        WHERE c.employee_id = #{employeeId}
+          AND c.career_id = #{careerId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteCareerByIdAndEmployeeId">
+        DELETE
+        FROM employee_career_details
+        WHERE employee_id = #{employeeId}
+          AND career_id = #{careerId}
+    </delete>
+
+    <select id="countHrFileReferences" resultType="int">
+        SELECT (
+                   (SELECT COUNT(*) FROM employee e WHERE e.profile_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM employee_skill_credential s WHERE s.hr_file_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM employee_career_details c WHERE c.hr_file_id = #{hrFileId})
+                   ) AS refCount
+    </select>
+
+    <delete id="deleteHrFileById">
+        DELETE
+        FROM hr_file
+        WHERE hr_file_id = #{hrFileId}
+    </delete>
 
 
 </mapper>

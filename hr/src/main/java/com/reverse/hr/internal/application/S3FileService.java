@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.UUID;
 
 @Service
@@ -59,6 +60,31 @@ public class S3FileService {
             s3Client.deleteObject(req);
         } catch (Exception e) {
             throw new IllegalStateException("파일 삭제 실패", e);
+        }
+    }
+
+    public void deleteByFileUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return;
+        }
+        String key = extractKeyFromFileUrl(fileUrl);
+        delete(key);
+    }
+
+    private String extractKeyFromFileUrl(String fileUrl) {
+        try {
+            String path = URI.create(fileUrl).getPath(); // /{bucket}/{key}
+            if (path == null || path.isBlank()) {
+                throw new IllegalArgumentException("유효하지 않은 파일 URL입니다.");
+            }
+            String normalized = path.startsWith("/") ? path.substring(1) : path;
+            String bucketPrefix = bucket + "/";
+            if (!normalized.startsWith(bucketPrefix)) {
+                throw new IllegalArgumentException("버킷 경로가 일치하지 않습니다.");
+            }
+            return normalized.substring(bucketPrefix.length());
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("파일 URL에서 key 파싱 실패", e);
         }
     }
 

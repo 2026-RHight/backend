@@ -72,6 +72,24 @@ public class MyPageController {
         return ApiResponse.success(myPageService.createCareer(user.getEmployeeId(), request, file));
     }
 
+    @DeleteMapping("/skills/{skillId}")
+    public ApiResponse<Void> deleteSkill(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long skillId
+    ) {
+        myPageService.deleteSkill(user.getEmployeeId(), skillId);
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/careers/{careerId}")
+    public ApiResponse<Void> deleteCareer(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long careerId
+    ) {
+        myPageService.deleteCareer(user.getEmployeeId(), careerId);
+        return ApiResponse.success();
+    }
+
 
 
 }
