@@ -5,8 +5,10 @@ import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.MyPageService;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
+import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
+import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -24,9 +26,24 @@ public class MyPageController {
 
     private final MyPageService myPageService;
 
+    @GetMapping("/header")
+    public ApiResponse<MyPageHeaderResponseDTO> mypageHeader(@AuthenticationPrincipal CustomUser user){
+        return ApiResponse.success(myPageService.getMyPageHeader(user.getEmployeeId()));
+    }
+
     @GetMapping
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user){
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
+    }
+
+    @PatchMapping(value = "/basic-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Void> updateBasicInfo(
+            @AuthenticationPrincipal CustomUser user,
+            @Valid @RequestPart("request") UpdateBasicInfoRequestDTO request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+        myPageService.updateBasicInfo(user.getEmployeeId(), request, profileImage);
+        return ApiResponse.success();
     }
 
     @PostMapping(value = "/skills", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

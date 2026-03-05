@@ -3,12 +3,15 @@ package com.reverse.hr.internal.application;
 import com.reverse.core.security.FieldCryptoService;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
+import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
+import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import com.reverse.hr.internal.persistence.MyPageMapper;
 import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
+import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,13 +34,37 @@ public class MyPageService {
     private final S3FileService s3FileService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-    private static final long MAX_FILE_SIZE = 10L * 1024 * 1024; // 10MB
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 10MB
     private static final Set<String> ALLOWED_EXT = Set.of("pdf", "jpg", "jpeg", "png");
     private static final Set<String> ALLOWED_CONTENT_TYPE = Set.of(
             "application/pdf",
             "image/jpeg",
             "image/png"
     );
+    private static final Set<String> ALLOWED_PROFILE_EXT = Set.of("jpg", "jpeg", "png", "webp");
+    private static final Set<String> ALLOWED_PROFILE_CONTENT_TYPE = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
+
+    public MyPageHeaderResponseDTO getMyPageHeader(Long employeeId) {
+        MyPageHeaderRow row = myPageMapper.findMyPageHeaderByEmployeeId(employeeId)
+                .orElseThrow(() -> new IllegalStateException("상단 헤더 정보를 찾을 수 없습니다."));
+
+        return new MyPageHeaderResponseDTO(
+                row.employeeName(),
+                row.employeeState(),
+                row.orgName(),
+                row.jobName(),
+                row.positionName(),
+                row.email(),
+                row.phone(),
+                row.extensionNum(),
+                row.areaName(),
+                row.profileFileUrl()
+        );
+    }
 
     public MyPageResponseDTO getMyPage(Long employeeId){
         BasicInfoRow basicInfoRow = myPageMapper.findBasicInfoByEmployeeId(employeeId)
@@ -164,6 +191,49 @@ public class MyPageService {
         }
     }
 
+    @Transactional
+    public void updateBasicInfo(Long employeeId, UpdateBasicInfoRequestDTO request, MultipartFile profileImage) {
+        validateUpdateBasicInfoRequest(request);
+
+        int updated = myPageMapper.updateBasicInfo(new UpdateBasicInfoParam(
+                employeeId,
+                request.email(),
+                request.phone(),
+                request.address()
+        ));
+
+        if (updated != 1) {
+            throw new IllegalStateException("기본 정보 수정 중 오류가 발생했습니다.");
+        }
+
+        if (profileImage == null || profileImage.isEmpty()) {
+            return;
+        }
+
+        validateProfileImageFile(profileImage);
+        S3FileService.UploadResult uploaded = s3FileService.upload(profileImage, "hr/profile/" + employeeId);
+
+        try {
+            HrFileRow hrFile = new HrFileRow(
+                    null,
+                    uploaded.fileUrl(),
+                    uploaded.originalName()
+            );
+            int inserted = myPageMapper.insertHrFile(hrFile);
+            if (inserted != 1 || hrFile.getHrFileId() == null) {
+                throw new IllegalStateException("프로필 파일 저장 중 오류가 발생했습니다.");
+            }
+
+            int profileUpdated = myPageMapper.updateProfileId(employeeId, hrFile.getHrFileId());
+            if (profileUpdated != 1) {
+                throw new IllegalStateException("프로필 이미지 반영 중 오류가 발생했습니다.");
+            }
+        } catch (RuntimeException e) {
+            deleteQuietly(uploaded.key());
+            throw e;
+        }
+    }
+
     private EvidenceUploadResult uploadEvidenceFile(Long employeeId, MultipartFile file, String baseDir){
         S3FileService.UploadResult uploaded = s3FileService.upload(file, baseDir + "/" + employeeId);
 
@@ -209,6 +279,18 @@ public class MyPageService {
         }
     }
 
+    private void validateUpdateBasicInfoRequest(UpdateBasicInfoRequestDTO request) {
+        if (request.email() != null && request.email().length() > 100) {
+            throw new IllegalArgumentException("이메일은 100자 이하여야 합니다.");
+        }
+        if (request.phone() != null && request.phone().length() > 50) {
+            throw new IllegalArgumentException("연락처는 50자 이하여야 합니다.");
+        }
+        if (request.address() != null && request.address().length() > 255) {
+            throw new IllegalArgumentException("주소는 255자 이하여야 합니다.");
+        }
+    }
+
 
     private void validateEvidenceFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -228,6 +310,27 @@ public class MyPageService {
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPE.contains(contentType.toLowerCase())) {
             throw new IllegalArgumentException("허용되지 않는 파일 타입입니다.");
+        }
+    }
+
+    private void validateProfileImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("프로필 이미지는 비어 있을 수 없습니다.");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("파일 크기는 10MB 이하여야 합니다.");
+        }
+
+        String originalName = file.getOriginalFilename();
+        String ext = extractExt(originalName);
+        if (!ALLOWED_PROFILE_EXT.contains(ext)) {
+            throw new IllegalArgumentException("허용되지 않는 프로필 이미지 확장자입니다.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_PROFILE_CONTENT_TYPE.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("허용되지 않는 프로필 이미지 타입입니다.");
         }
     }
 

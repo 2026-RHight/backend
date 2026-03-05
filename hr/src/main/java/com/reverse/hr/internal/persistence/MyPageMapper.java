@@ -2,6 +2,7 @@ package com.reverse.hr.internal.persistence;
 
 import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
+import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -14,6 +15,9 @@ public interface MyPageMapper {
 
     // 기본 정보
     Optional<BasicInfoRow> findBasicInfoByEmployeeId(@Param("employeeId") Long employeeId);
+
+    // 마이페이지 상단 헤더 정보
+    Optional<MyPageHeaderRow> findMyPageHeaderByEmployeeId(@Param("employeeId") Long employeeId);
 
     // 인사 정보
     Optional<HrInfoRow> findHrInfoByEmployeeId(@Param("employeeId") Long employeeId);
@@ -29,6 +33,10 @@ public interface MyPageMapper {
     int insertSkill(SkillCreateParam param);
 
     int insertCareer(CareerCreateParam param);
+
+    int updateBasicInfo(UpdateBasicInfoParam param);
+
+    int updateProfileId(@Param("employeeId") Long employeeId, @Param("profileId") Long profileId);
 
 
 }
