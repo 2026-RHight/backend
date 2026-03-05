@@ -263,3 +263,136 @@ CREATE TABLE IF NOT EXISTS hr_event (
     KEY idx_hr_event_effective_from (effective_from),
     CONSTRAINT fk_hr_event_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
+
+CREATE TABLE IF NOT EXISTS sequence_doc (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    prefix VARCHAR(3) NOT NULL,
+    `year` VARCHAR(4) NOT NULL,
+    last_doc INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_sequence_doc_prefix_year (prefix, `year`)
+);
+
+CREATE TABLE IF NOT EXISTS electronic_approval (
+    approval_id BIGINT NOT NULL AUTO_INCREMENT,
+    doc_type VARCHAR(31) NOT NULL,
+    doc_id VARCHAR(1000) NULL,
+    title VARCHAR(1000) NOT NULL,
+    approval_status ENUM('TEMP','PENDING','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
+    draft_dt DATETIME NOT NULL,
+    drafter_id BIGINT NOT NULL,
+    drafter_name VARCHAR(255) NOT NULL,
+    department_name VARCHAR(255) NOT NULL,
+    approve_dt DATETIME NULL,
+    read_dt DATETIME NULL,
+    PRIMARY KEY (approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS approval_line (
+    approval_line_id BIGINT NOT NULL AUTO_INCREMENT,
+    approval_seq TINYINT NOT NULL,
+    approval_status ENUM('TEMP','PENDING','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
+    reason VARCHAR(1000) NULL,
+    approved_dt DATETIME NULL,
+    approval_id BIGINT NOT NULL,
+    approver_id BIGINT NOT NULL,
+    approver_name VARCHAR(50) NOT NULL,
+    approver_rank VARCHAR(255) NOT NULL,
+    read_dt DATETIME NULL,
+    PRIMARY KEY (approval_line_id),
+    KEY idx_approval_line_approval_id (approval_id),
+    CONSTRAINT fk_approval_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS approval_attachment (
+    file_id BIGINT NOT NULL AUTO_INCREMENT,
+    file_path VARCHAR(1024) NOT NULL,
+    original_name VARCHAR(512) NOT NULL,
+    created_dt DATETIME NOT NULL,
+    approval_id BIGINT NOT NULL,
+    PRIMARY KEY (file_id),
+    KEY idx_approval_attachment_approval_id (approval_id),
+    CONSTRAINT fk_approval_attachment_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS recipient_line (
+    recipient_id BIGINT NOT NULL AUTO_INCREMENT,
+    approval_id BIGINT NOT NULL,
+    receiver_id BIGINT NOT NULL,
+    receiver_name VARCHAR(50) NOT NULL,
+    receiver_rank VARCHAR(255) NOT NULL,
+    read_dt DATETIME NULL,
+    PRIMARY KEY (recipient_id),
+    KEY idx_recipient_line_approval_id (approval_id),
+    CONSTRAINT fk_recipient_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS reference_line (
+    reference_id BIGINT NOT NULL AUTO_INCREMENT,
+    approval_id BIGINT NOT NULL,
+    referencer_id BIGINT NOT NULL,
+    referencer_name VARCHAR(50) NOT NULL,
+    reference_rank VARCHAR(255) NOT NULL,
+    read_dt DATETIME NULL,
+    PRIMARY KEY (reference_id),
+    KEY idx_reference_line_approval_id (approval_id),
+    CONSTRAINT fk_reference_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS vacation_detail (
+    approval_id BIGINT NOT NULL,
+    vacation_type ENUM('ANNUAL','HALF','SICK','ETC') NOT NULL,
+    start_dt DATETIME NOT NULL,
+    end_dt DATETIME NOT NULL,
+    reason TEXT NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_vacation_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS overtime_detail (
+    approval_id BIGINT NOT NULL,
+    work_date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    reason TEXT NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_overtime_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS flexible_work_detail (
+    approval_id BIGINT NOT NULL,
+    start_dt DATETIME NOT NULL,
+    end_dt DATETIME NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_flexible_work_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS business_trip_detail (
+    approval_id BIGINT NOT NULL,
+    trip_type VARCHAR(100) NOT NULL,
+    destination VARCHAR(100) NOT NULL,
+    start_dt DATETIME NOT NULL,
+    end_dt DATETIME NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_business_trip_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS leave_detail (
+    approval_id BIGINT NOT NULL,
+    start_dt DATETIME NOT NULL,
+    end_dt DATETIME NOT NULL,
+    leave_type ENUM('PARENTAL_LEAVE','SICK_LEAVE','FAMILY_CARE_LEAVE') NOT NULL,
+    reason TEXT NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_leave_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
+
+CREATE TABLE IF NOT EXISTS rtw_detail (
+    approval_id BIGINT NOT NULL,
+    rtw_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    PRIMARY KEY (approval_id),
+    CONSTRAINT fk_rtw_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+);
