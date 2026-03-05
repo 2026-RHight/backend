@@ -63,7 +63,10 @@ public class WeeklyWorkScheduleService {
                 .approvalStatus(ApprovalStatus.CANCELED)
                 .build();
 
-        scheduleMapper.updateStatus(canceledSchedule);
+        int updatedRows = scheduleMapper.updateStatusIfPending(canceledSchedule);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -87,6 +90,9 @@ public class WeeklyWorkScheduleService {
                 .approvalStatus(newStatus)
                 .build();
 
-        scheduleMapper.updateStatus(processedSchedule);
+        int updatedRows = scheduleMapper.updateStatusIfPending(processedSchedule);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 }

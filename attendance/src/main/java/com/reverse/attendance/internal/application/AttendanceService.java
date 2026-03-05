@@ -10,12 +10,12 @@ import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import com.reverse.attendance.internal.persistence.AttendanceMapper;
 import com.reverse.attendance.internal.persistence.AttendancePolicyMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,7 +25,7 @@ public class AttendanceService {
     private final AttendanceMapper attendanceMapper;
     private final AttendancePolicyMapper policyMapper; // 💡 사원별 근태 규정 조회를 위해 추가 주입
 
-    // 기본 출퇴근 시간 (근태 규정이 등록되지 않은 사원을 위한 Fallback)
+    // 기본 출퇴근 시간 (근태 규정이 등록되지 않은 사원을 위한)
     private static final LocalTime FALLBACK_CHECK_IN_TIME = LocalTime.of(9, 0, 0);
     private static final LocalTime FALLBACK_CHECK_OUT_TIME = LocalTime.of(18, 0, 0);
 
@@ -34,17 +34,12 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        Optional<Attendance> existingRecord = attendanceMapper.findByEmployeeIdAndWorkDate(employeeId, today);
-        if (existingRecord.isPresent()) {
-            throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
-        }
-
         // 사원 개인의 근태 규정(출근 시간)을 가져옵니다.
         LocalTime standardCheckInTime = getStandardCheckInTime(employeeId);
 
         AttendanceStatus status = AttendanceStatus.NORMAL;
 
-        // 사원별 기준 시간과 비교합니다.
+        // 사원별 기준 시간과 비교함
         if (now.isAfter(standardCheckInTime)) {
             status = AttendanceStatus.TARDY;
             if (request.getTardyReason() == null || request.getTardyReason().trim().isEmpty()) {
@@ -60,7 +55,11 @@ public class AttendanceService {
                 .tardyReason(status == AttendanceStatus.TARDY ? request.getTardyReason() : null)
                 .build();
 
-        attendanceMapper.insertCheckIn(attendance);
+        try {
+            attendanceMapper.insertCheckIn(attendance);
+        } catch (DuplicateKeyException e) {
+            throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
+        }
         return attendance.getAttendanceId();
     }
 
@@ -68,6 +67,7 @@ public class AttendanceService {
     public void clockOut(Long employeeId) {
         LocalTime now = LocalTime.now();
 
+        // 기존 기록 조회 (상태 판단을 위해)
         Attendance attendance = attendanceMapper.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                 .orElseThrow(() -> new IllegalStateException("오늘의 출근 기록이 존재하지 않아 퇴근 처리를 할 수 없습니다."));
 
@@ -75,28 +75,28 @@ public class AttendanceService {
             throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
         }
 
-        // 사원 개인의 근태 규정(퇴근 시간)을 가져옵니다.
+        // 사원 개인의 근태 규정(퇴근 시간) 및 조퇴 여부 판단
         LocalTime standardCheckOutTime = getStandardCheckOutTime(employeeId);
         AttendanceStatus currentStatus = attendance.getStatus();
 
-        // 하드코딩된 시간이 아닌, 사원별 기준 시간과 비교하여 조퇴 여부를 판단합니다.
         if (now.isBefore(standardCheckOutTime) &&
                 (currentStatus == AttendanceStatus.NORMAL || currentStatus == AttendanceStatus.TARDY)) {
             currentStatus = AttendanceStatus.EARLY_LEAVE;
         }
 
-        Attendance updatedAttendance = Attendance.builder()
-                .attendanceId(attendance.getAttendanceId())
-                .employeeId(attendance.getEmployeeId())
-                .workDate(attendance.getWorkDate())
-                .checkInTime(attendance.getCheckInTime())
+        // 조건부 UPDATE 시도 (다른 스레드가 이미 퇴근 처리했는지 check_out_time IS NULL로 확인)
+        Attendance attendanceToUpdate = Attendance.builder()
+                .employeeId(employeeId)
+                .workDate(LocalDate.now())
                 .checkOutTime(now)
                 .status(currentStatus)
-                .tardyReason(attendance.getTardyReason())
-                .modifyReason(attendance.getModifyReason())
                 .build();
 
-        attendanceMapper.updateCheckOut(updatedAttendance);
+        int updatedRows = attendanceMapper.updateCheckOut(attendanceToUpdate);
+
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
+        }
     }
 
     @Transactional
@@ -110,15 +110,32 @@ public class AttendanceService {
                 .findByEmployeeIdAndWorkDate(request.getTargetEmployeeId(), request.getWorkDate())
                 .orElseThrow(() -> new IllegalStateException("해당 날짜의 근태 기록이 존재하지 않습니다."));
 
+        LocalTime resolvedCheckIn = attendance.getCheckInTime();
+        if (request.getNewCheckInTime() != null) {
+            resolvedCheckIn = request.getNewCheckInTime();
+        }
+
+        LocalTime resolvedCheckOut = attendance.getCheckOutTime();
+        if (request.getNewCheckOutTime() != null) {
+            resolvedCheckOut = request.getNewCheckOutTime();
+        }
+
+        AttendanceStatus resolvedStatus = attendance.getStatus();
+        if (request.getNewStatus() != null) {
+            resolvedStatus = request.getNewStatus();
+        }
+
+        if (resolvedCheckIn != null && resolvedCheckOut != null && resolvedCheckIn.isAfter(resolvedCheckOut)) {
+            throw new IllegalArgumentException("출근 시간은 퇴근 시간보다 늦을 수 없습니다.");
+        }
+
         Attendance updatedAttendance = Attendance.builder()
                 .attendanceId(attendance.getAttendanceId())
                 .employeeId(attendance.getEmployeeId())
                 .workDate(attendance.getWorkDate())
-                .checkInTime(
-                        request.getNewCheckInTime() != null ? request.getNewCheckInTime() : attendance.getCheckInTime())
-                .checkOutTime(request.getNewCheckOutTime() != null ? request.getNewCheckOutTime()
-                        : attendance.getCheckOutTime())
-                .status(request.getNewStatus() != null ? request.getNewStatus() : attendance.getStatus())
+                .checkInTime(resolvedCheckIn)
+                .checkOutTime(resolvedCheckOut)
+                .status(resolvedStatus)
                 .tardyReason(attendance.getTardyReason())
                 .modifyReason(request.getModifyReason())
                 .build();

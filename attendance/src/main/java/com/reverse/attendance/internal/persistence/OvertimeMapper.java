@@ -14,9 +14,9 @@ public interface OvertimeMapper {
 
     List<Overtime> findByEmployeeId(@Param("employeeId") Long employeeId);
 
-    Optional<Overtime> findById(@Param("overtimeId")  Long overtimeId);
+    Optional<Overtime> findById(@Param("overtimeId") Long overtimeId);
 
-    void updateStatus(Overtime overtime);
+    int updateStatusIfPending(Overtime overtime);
 
     List<Overtime> findAll(@Param("approvalStatus") String approvalStatus);
 

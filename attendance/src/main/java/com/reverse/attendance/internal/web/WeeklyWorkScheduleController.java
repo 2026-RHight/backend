@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.reverse.core.security.CustomUser;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import jakarta.validation.Valid;
@@ -57,6 +58,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 부서원 신청 내역 조회 (팀장/관리자)
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/team")
     public ResponseEntity<List<WeeklyWorkSchedule>> getTeamSchedules(@RequestParam(required = false) String status) {
         List<WeeklyWorkSchedule> schedules = scheduleService.getAllSchedules(status);
@@ -64,6 +66,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 결재 처리 (승인/반려 - 팀장/관리자용)
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/process")
     public ResponseEntity<String> processSchedule(@RequestBody WeeklyWorkScheduleProcessRequest request) {
         try {

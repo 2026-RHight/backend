@@ -11,6 +11,7 @@ import com.reverse.core.security.CustomUser;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
@@ -40,7 +41,6 @@ public class BusinessTripController {
         }
     }
 
-    // 사용자 : 신청 취소
     @PutMapping("/{tripId}/cancel")
     public ResponseEntity<String> cancelTrip(
             @PathVariable Long tripId,
@@ -56,6 +56,7 @@ public class BusinessTripController {
     }
 
     // 관리자 : 전체 리스트 조회
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/admin/requests")
     public ResponseEntity<List<BusinessTrip>> getAllTrips(
             @RequestParam(required = false) String status) {
@@ -63,6 +64,7 @@ public class BusinessTripController {
     }
 
     // 관리자 : 승인/반려 결재
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/admin/process")
     public ResponseEntity<String> processTrip(@RequestBody BusinessTripProcessRequest request) {
         try {

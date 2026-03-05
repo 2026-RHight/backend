@@ -60,7 +60,10 @@ public class OvertimeService {
                 .approvalStatus(ApprovalStatus.CANCELED)
                 .build();
 
-        overtimeMapper.updateStatus(canceledOvertime);
+        int updatedRows = overtimeMapper.updateStatusIfPending(canceledOvertime);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +99,9 @@ public class OvertimeService {
                 .rejectReason(rejectReason)
                 .build();
 
-        overtimeMapper.updateStatus(processedOvertime);
+        int updatedRows = overtimeMapper.updateStatusIfPending(processedOvertime);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 }

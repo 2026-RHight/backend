@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.reverse.core.security.CustomUser;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class AttendanceController {
     }
 
     @PutMapping("/admin/modify")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     public ResponseEntity<String> modifyAttendanceByAdmin(@RequestBody AttendanceModifyRequest request) {
         try {
             // @AuthenticationPrincipal 등을 사용해 API 호출한 사람이 ' 팀장 및 관리자 ' 권한인지 체크해야 하는

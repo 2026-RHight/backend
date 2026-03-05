@@ -20,7 +20,7 @@ public class BusinessTripService {
     @Transactional
     public void applyBusinessTrip(BusinessTripApplyRequest request, Long employeeId) {
         if (request.getStartDatetime() == null || request.getEndDatetime() == null) {
-                        throw new IllegalArgumentException("시작/종료 일시는 필수입니다.");
+            throw new IllegalArgumentException("시작/종료 일시는 필수입니다.");
         }
         if (request.getStartDatetime().isAfter(request.getEndDatetime())) {
             throw new IllegalArgumentException("종료 일시가 시작 일시보다 빠를 수 없습니다.");
@@ -63,7 +63,10 @@ public class BusinessTripService {
                 .approvalStatus(ApprovalStatus.CANCELED)
                 .build();
 
-        businessTripMapper.updateStatus(canceledTrip);
+        int updatedRows = businessTripMapper.updateStatusIfPending(canceledTrip);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 
     // 팀원 전체 내역 조회 (관리자용)
@@ -101,6 +104,9 @@ public class BusinessTripService {
                 .rejectReason(rejectReason)
                 .build();
 
-        businessTripMapper.updateStatus(processedTrip);
+        int updatedRows = businessTripMapper.updateStatusIfPending(processedTrip);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 }

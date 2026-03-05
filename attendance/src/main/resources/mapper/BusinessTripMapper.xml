@@ -31,11 +31,12 @@
         WHERE trip_id = #{tripId}
     </select>
 
-    <update id="updateStatus">
+    <update id="updateStatusIfPending">
         UPDATE business_trip_request
         SET approval_status = #{approvalStatus},
             reject_reason = #{rejectReason}
         WHERE trip_id = #{tripId}
+          AND approval_status = 'PENDING'
     </update>
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.BusinessTrip">

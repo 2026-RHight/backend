@@ -70,9 +70,6 @@ CREATE TABLE IF NOT EXISTS organization (
     );
 
 
-CREATE TABLE IF NOT EXISTS `position` (
-                                        position_id BIGINT NOT NULL AUTO_INCREMENT,
-                                        position_name VARCHAR(255) NOT NULL,
 
 CREATE TABLE IF NOT EXISTS hr_position (
     position_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -80,9 +77,6 @@ CREATE TABLE IF NOT EXISTS hr_position (
     PRIMARY KEY (position_id)
     );
 
-CREATE TABLE IF NOT EXISTS `rank` (
-                                    rank_id BIGINT NOT NULL AUTO_INCREMENT,
-                                    rank_name VARCHAR(255) NOT NULL,
 CREATE TABLE IF NOT EXISTS hr_rank (
     rank_id BIGINT NOT NULL AUTO_INCREMENT,
     rank_name VARCHAR(255) NOT NULL,
@@ -139,7 +133,8 @@ CREATE TABLE IF NOT EXISTS attendance_record (
                                                 status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',
     modify_reason VARCHAR(255) COMMENT '관리자 수정 사유',
-    CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+    CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    UNIQUE KEY uk_attendance_employee_date (employee_id, work_date)
     );
 
 -- 사원별 총 연차 관리
@@ -190,6 +185,22 @@ CREATE TABLE IF NOT EXISTS overtime_request (
     CONSTRAINT fk_overtime_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
 
+-- 유연근무 신청 내역
+CREATE TABLE IF NOT EXISTS weekly_work_schedule (
+    weekly_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    start_date DATETIME NOT NULL,
+    end_date DATETIME NOT NULL,
+    approval_status VARCHAR(20) NOT NULL COMMENT 'PENDING(대기), APPROVED(승인), REJECTED(반려), CANCELED(취소)',
+    plan_date DATE NOT NULL COMMENT '근무 계획 일자',
+    work_form VARCHAR(50) NOT NULL COMMENT 'OFFICE, REMOTE 등',
+    schedule_title VARCHAR(255) NOT NULL,
+    memo TEXT,
+    created_at DATETIME NOT NULL,
+    update_at DATETIME,
+    CONSTRAINT fk_weekly_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+    );
+
 
 -- 팀원이 작성한 자격증/경력 관련 테이블
 
@@ -221,7 +232,6 @@ CREATE TABLE IF NOT EXISTS employee_career_details (
     CONSTRAINT fk_career_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_career_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
     );
-);
 
 CREATE TABLE IF NOT EXISTS hr_event (
     hr_event_id BIGINT NOT NULL AUTO_INCREMENT,

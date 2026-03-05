@@ -18,6 +18,6 @@ public interface WeeklyWorkScheduleMapper {
 
     List<WeeklyWorkSchedule> findAll(@Param("status") String status);
 
-    void updateStatus(WeeklyWorkSchedule schedule);
+    int updateStatusIfPending(WeeklyWorkSchedule schedule);
 
 }

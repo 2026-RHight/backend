@@ -31,7 +31,9 @@
         UPDATE attendance_record
         SET check_out_time = #{checkOutTime},
             status = #{status}
-        WHERE attendance_id = #{attendanceId}
+        WHERE employee_id = #{employeeId}
+          AND work_date = #{workDate}
+          AND check_out_time IS NULL
     </update>
 
     <update id="updateAttendanceByAdmin">

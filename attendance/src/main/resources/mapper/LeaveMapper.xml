@@ -55,11 +55,12 @@
         WHERE leave_request_id = #{leaveRequestId}
     </select>
 
-    <update id="updateLeaveStatus">
+    <update id="updateStatusIfPending">
         UPDATE leave_request
         SET leave_status = #{leaveStatus},
             reject_reason = #{rejectReason}
         WHERE leave_request_id = #{leaveRequestId}
+          AND leave_status = 'PENDING'
     </update>
 
     <select id="findAllLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">

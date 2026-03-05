@@ -20,7 +20,7 @@ public interface BusinessTripMapper {
     Optional<BusinessTrip> findById(@Param("tripId") Long tripId);
 
     // 상태 업데이트 (승인/반려/취소)
-    void updateStatus(BusinessTrip businessTrip);
+    int updateStatusIfPending(BusinessTrip businessTrip);
 
     // 전체 내역 조회(관리자용)
     List<BusinessTrip> findAll(@Param("approvalStatus") String approvalStatus);

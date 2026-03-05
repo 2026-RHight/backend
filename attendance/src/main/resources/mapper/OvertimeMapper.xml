@@ -31,11 +31,12 @@
         WHERE overtime_id = #{overtimeId}
     </select>
 
-    <update id="updateStatus">
+    <update id="updateStatusIfPending">
         UPDATE overtime_request
         SET approval_status = #{approvalStatus},
             reject_reason = #{rejectReason}
         WHERE overtime_id = #{overtimeId}
+          AND approval_status = 'PENDING'
     </update>
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.Overtime">

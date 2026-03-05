@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.reverse.core.security.CustomUser;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -64,6 +65,7 @@ public class LeaveController {
 
     // 팀원 전체 휴가 리스트 조회(관리자)
     // 예: GET /api/v1/leaves/admin/requests?status=PENDING
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/admin/requests")
     public ResponseEntity<List<LeaveRequest>> getAllTeamLeaveRequests(
             @RequestParam(required = false) String status) {
@@ -71,6 +73,7 @@ public class LeaveController {
     }
 
     // 휴가 승인/반려 결재 처리(관리자)
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/admin/process")
     public ResponseEntity<String> processLeaveRequest(@RequestBody LeaveProcessRequest request) {
         try {

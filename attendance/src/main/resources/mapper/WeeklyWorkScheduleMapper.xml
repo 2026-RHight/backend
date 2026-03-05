@@ -9,9 +9,9 @@
             employee_id, start_date, end_date, approval_status,
             plan_date, work_form, schedule_title, memo, created_at
         ) VALUES (
-             #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
-             #{planDate}, #{workForm}, #{scheduleTitle}, #{memo}, NOW()
-         )
+            #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
+            #{planDate}, #{workForm}, #{scheduleTitle}, #{memo}, NOW()
+        )
     </insert>
 
     <select id="findById" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
@@ -49,11 +49,12 @@
         ORDER BY start_date DESC
     </select>
 
-    <update id="updateStatus">
+    <update id="updateStatusIfPending">
         UPDATE weekly_work_schedule
         SET approval_status = #{approvalStatus},
             update_at = NOW()
-        WHERE weekly_id = #{weeklyId} AND approval_status = #{expectedStatus}
+        WHERE weekly_id = #{weeklyId}
+        AND approval_status = 'PENDING'
     </update>
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">

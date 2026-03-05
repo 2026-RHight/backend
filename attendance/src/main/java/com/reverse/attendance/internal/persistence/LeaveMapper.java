@@ -11,16 +11,17 @@ import java.util.Optional;
 public interface LeaveMapper {
 
     Optional<Double> findTotalAnnualLeaveByEmployeeId(@Param("employeeId") Long employeeId);
+
     Double sumUsedDaysByStatus(@Param("employeeId") Long employeeId, @Param("status") String status);
+
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
     List<LeaveRequest> findLeaveRequestsByEmployeeId(@Param("employeeId") Long employeeId);
 
     Optional<LeaveRequest> findLeaveRequestById(@Param("leaveRequestId") Long leaveRequestId);
 
-    void updateLeaveStatus(LeaveRequest leaveRequest);
+    int updateStatusIfPending(LeaveRequest leaveRequest);
 
     List<LeaveRequest> findAllLeaveRequests(@Param("leaveStatus") String leaveStatus);
-
 
 }

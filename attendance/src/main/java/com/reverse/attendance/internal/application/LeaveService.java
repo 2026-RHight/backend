@@ -41,10 +41,10 @@ public class LeaveService {
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
         if (request.getStartDate() == null || request.getEndDate() == null || request.getLeaveType() == null) {
-                        throw new IllegalArgumentException("휴가 유형/시작일/종료일은 필수입니다.");
+            throw new IllegalArgumentException("휴가 유형/시작일/종료일은 필수입니다.");
         }
         if (request.getStartDate().isAfter(request.getEndDate())) {
-                        throw new IllegalArgumentException("종료일이 시작일보다 빠를 수 없습니다.");
+            throw new IllegalArgumentException("종료일이 시작일보다 빠를 수 없습니다.");
         }
 
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
@@ -109,7 +109,10 @@ public class LeaveService {
                 .leaveStatus(LeaveStatus.CANCELED) // 취소로 상태 변경
                 .build();
 
-        leaveMapper.updateLeaveStatus(canceledRequest);
+        int updatedRows = leaveMapper.updateStatusIfPending(canceledRequest);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -147,7 +150,10 @@ public class LeaveService {
                 .rejectReason(rejectReason)
                 .build();
 
-        leaveMapper.updateLeaveStatus(processedRequest);
+        int updatedRows = leaveMapper.updateStatusIfPending(processedRequest);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+        }
         // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
         if (request.isApprove()) {
             java.time.LocalDate ptr = leaveRequest.getStartDate();

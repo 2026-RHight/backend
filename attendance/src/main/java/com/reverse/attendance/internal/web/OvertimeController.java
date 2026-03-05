@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.reverse.core.security.CustomUser;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
@@ -57,6 +58,7 @@ public class OvertimeController {
     }
 
     // 관리자 : 전체 리스트 조회
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/admin/requests")
     public ResponseEntity<List<Overtime>> getAllOvertimes(
             @RequestParam(required = false) String status) {
@@ -64,6 +66,7 @@ public class OvertimeController {
     }
 
     // 관리자 : 승인 / 반려 결재
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/admin/process")
     public ResponseEntity<String> processOvertime(@RequestBody OvertimeProcessRequest request) {
         try {
