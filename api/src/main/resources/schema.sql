@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS sequence_doc (
 
 CREATE TABLE IF NOT EXISTS electronic_approval (
     approval_id BIGINT NOT NULL AUTO_INCREMENT,
-    doc_type VARCHAR(31) NOT NULL,
+    doc_type VARCHAR(31) NULL,
     doc_id VARCHAR(1000) NULL,
     title VARCHAR(1000) NOT NULL,
     approval_status ENUM('TEMP','PENDING','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
