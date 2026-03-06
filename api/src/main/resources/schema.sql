@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS attendance_record (
                                                 attendance_id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                                 employee_id BIGINT NOT NULL,
                                                 work_date DATE NOT NULL,
-                                                check_in_time TIME NOT NULL,
+                                                check_in_time TIME,
                                                 check_out_time TIME,
                                                 status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',

@@ -27,8 +27,8 @@
         INSERT INTO leave_request (
             employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
         ) VALUES (
-                     #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
-                 )
+                    #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
+                )
     </insert>
 
     <select id="findLeaveRequestsByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
@@ -67,7 +67,7 @@
         SET leave_status = #{leaveStatus},
             reject_reason = #{rejectReason}
         WHERE leave_request_id = #{leaveRequestId}
-          AND leave_status = 'PENDING'
+            AND leave_status = 'PENDING'
     </update>
 
     <select id="findAllLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
@@ -94,8 +94,8 @@
         SELECT leave_type
         FROM leave_request
         WHERE employee_id = #{employeeId}
-          AND leave_status = 'APPROVED'
-          AND #{date} BETWEEN start_date AND end_date
+            AND leave_status = 'APPROVED'
+            AND #{date} BETWEEN start_date AND end_date
         LIMIT 1
     </select>
 
