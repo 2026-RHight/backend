@@ -24,6 +24,7 @@ public class AttendanceService {
 
     private final AttendanceMapper attendanceMapper;
     private final AttendancePolicyMapper policyMapper; // 💡 사원별 근태 규정 조회를 위해 추가 주입
+    private final com.reverse.attendance.internal.persistence.LeaveMapper leaveMapper;
 
     // 기본 출퇴근 시간 (근태 규정이 등록되지 않은 사원을 위한)
     private static final LocalTime FALLBACK_CHECK_IN_TIME = LocalTime.of(9, 0, 0);
@@ -34,8 +35,8 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
 
-        // 사원 개인의 근태 규정(출근 시간)을 가져옵니다.
-        LocalTime standardCheckInTime = getStandardCheckInTime(employeeId);
+        // 사원 개인의 근태 규정(출근 시간)을 가져옵니다. 반차 등에 의해 조정될 수 있습니다.
+        LocalTime standardCheckInTime = getStandardCheckInTime(employeeId, today);
 
         AttendanceStatus status = AttendanceStatus.NORMAL;
 
@@ -74,9 +75,12 @@ public class AttendanceService {
         if (attendance.getCheckOutTime() != null) {
             throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
         }
+        if (attendance.getCheckInTime() == null) {
+            throw new IllegalStateException("출근 기록이 없는 상태에서는 퇴근 처리할 수 없습니다.");
+        }
 
-        // 사원 개인의 근태 규정(퇴근 시간) 및 조퇴 여부 판단
-        LocalTime standardCheckOutTime = getStandardCheckOutTime(employeeId);
+        // 사원 개인의 근태 규정(퇴근 시간) 및 조퇴 여부 판단. 반차 등에 의해 조정될 수 있습니다.
+        LocalTime standardCheckOutTime = getStandardCheckOutTime(employeeId, LocalDate.now());
         AttendanceStatus currentStatus = attendance.getStatus();
 
         if (now.isBefore(standardCheckOutTime) &&
@@ -136,7 +140,7 @@ public class AttendanceService {
                 .checkInTime(resolvedCheckIn)
                 .checkOutTime(resolvedCheckOut)
                 .status(resolvedStatus)
-                .tardyReason(attendance.getTardyReason())
+                .tardyReason(resolvedStatus == AttendanceStatus.TARDY ? attendance.getTardyReason() : null)
                 .modifyReason(request.getModifyReason())
                 .build();
 
@@ -170,15 +174,36 @@ public class AttendanceService {
     }
 
     // 💡 내부 헬퍼 메서드: 규정 조회 로직 분리 (가독성을 높이기 위함)
-    private LocalTime getStandardCheckInTime(Long employeeId) {
-        return policyMapper.findByEmployeeId(employeeId)
+    private LocalTime getStandardCheckInTime(Long employeeId, LocalDate date) {
+        LocalTime stdTime = policyMapper.findByEmployeeId(employeeId)
                 .map(AttendancePolicy::getStdStartTime)
                 .orElse(FALLBACK_CHECK_IN_TIME);
+
+        java.util.Optional<com.reverse.attendance.internal.domain.enums.LeaveType> approvedHalfDay = leaveMapper
+                .findApprovedLeaveTypeByDate(employeeId, date);
+
+        if (approvedHalfDay.isPresent()
+                && approvedHalfDay.get() == com.reverse.attendance.internal.domain.enums.LeaveType.HALF_AM) {
+            // 오전 반차일 경우 출근 기준 시간을 5시간 미룸 (예: 09:00 -> 14:00)
+            return stdTime.plusHours(5);
+        }
+        return stdTime;
     }
 
-    private LocalTime getStandardCheckOutTime(Long employeeId) {
-        return policyMapper.findByEmployeeId(employeeId)
+    private LocalTime getStandardCheckOutTime(Long employeeId, LocalDate date) {
+        LocalTime stdTime = policyMapper.findByEmployeeId(employeeId)
                 .map(AttendancePolicy::getStdEndTime)
                 .orElse(FALLBACK_CHECK_OUT_TIME);
+
+        java.util.Optional<com.reverse.attendance.internal.domain.enums.LeaveType> approvedHalfDay = leaveMapper
+                .findApprovedLeaveTypeByDate(employeeId, date);
+
+        if (approvedHalfDay.isPresent()
+                && approvedHalfDay.get() == com.reverse.attendance.internal.domain.enums.LeaveType.HALF_PM) {
+            // 오후 반차일 경우 퇴근 기준 시간을 4시간 당김 (예: 18:00 -> 14:00)
+            // (점심시간 1시간 제외 고려)
+            return stdTime.minusHours(4);
+        }
+        return stdTime;
     }
 }

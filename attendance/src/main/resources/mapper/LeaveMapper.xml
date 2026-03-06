@@ -10,6 +10,13 @@
         WHERE employee_id = #{employeeId}
     </select>
 
+    <select id="lockVacationBalanceByEmployeeId" resultType="java.lang.Double">
+        SELECT total_annual_leave
+        FROM vacation_balance
+        WHERE employee_id = #{employeeId}
+        FOR UPDATE
+    </select>
+
     <select id="sumUsedDaysByStatus" resultType="java.lang.Double">
         SELECT IFNULL(SUM(used_days), 0)
         FROM leave_request
@@ -81,6 +88,15 @@
             </if>
         </where>
         ORDER BY start_date DESC
+    </select>
+
+    <select id="findApprovedLeaveTypeByDate" resultType="com.reverse.attendance.internal.domain.enums.LeaveType">
+        SELECT leave_type
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+          AND leave_status = 'APPROVED'
+          AND #{date} BETWEEN start_date AND end_date
+        LIMIT 1
     </select>
 
 </mapper>

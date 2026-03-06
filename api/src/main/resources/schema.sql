@@ -128,8 +128,8 @@ CREATE TABLE IF NOT EXISTS attendance_record (
                                                 attendance_id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                                 employee_id BIGINT NOT NULL,
                                                 work_date DATE NOT NULL,
-                                                check_in_time DATETIME NOT NULL,
-                                                check_out_time DATETIME,
+                                                check_in_time TIME NOT NULL,
+                                                check_out_time TIME,
                                                 status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',
     modify_reason VARCHAR(255) COMMENT '관리자 수정 사유',
@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS weekly_work_schedule (
     schedule_title VARCHAR(255) NOT NULL,
     memo TEXT,
     created_at DATETIME NOT NULL,
-    update_at DATETIME,
+    updated_at DATETIME,
     CONSTRAINT fk_weekly_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
 

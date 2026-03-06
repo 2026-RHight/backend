@@ -64,7 +64,9 @@
             work_date as workDate,
             check_in_time as checkInTime,
             check_out_time as checkOutTime,
-            status as status
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason
         FROM attendance_record
         WHERE employee_id = #{employeeId}
         AND DATE_FORMAT(work_date, '%Y-%m') = #{yearMonth}

@@ -12,6 +12,8 @@ public interface LeaveMapper {
 
     Optional<Double> findTotalAnnualLeaveByEmployeeId(@Param("employeeId") Long employeeId);
 
+    void lockVacationBalanceByEmployeeId(@Param("employeeId") Long employeeId);
+
     Double sumUsedDaysByStatus(@Param("employeeId") Long employeeId, @Param("status") String status);
 
     void insertLeaveRequest(LeaveRequest leaveRequest);
@@ -23,5 +25,8 @@ public interface LeaveMapper {
     int updateStatusIfPending(LeaveRequest leaveRequest);
 
     List<LeaveRequest> findAllLeaveRequests(@Param("leaveStatus") String leaveStatus);
+
+    Optional<com.reverse.attendance.internal.domain.enums.LeaveType> findApprovedLeaveTypeByDate(
+            @Param("employeeId") Long employeeId, @Param("date") java.time.LocalDate date);
 
 }

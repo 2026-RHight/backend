@@ -40,6 +40,9 @@ public class LeaveService {
     // 휴가 신청
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
+        // 직원별 연차 신청 직렬화를 위한 행 잠금
+        leaveMapper.lockVacationBalanceByEmployeeId(employeeId);
+
         if (request.getStartDate() == null || request.getEndDate() == null || request.getLeaveType() == null) {
             throw new IllegalArgumentException("휴가 유형/시작일/종료일은 필수입니다.");
         }
@@ -154,8 +157,9 @@ public class LeaveService {
         if (updatedRows == 0) {
             throw new IllegalStateException("이미 처리된 신청 건입니다.");
         }
-        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
-        if (request.isApprove()) {
+        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성 (종일 휴가인 연차만 우선 처리)
+        if (request.isApprove()
+                && leaveRequest.getLeaveType() == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
             java.time.LocalDate ptr = leaveRequest.getStartDate();
             while (!ptr.isAfter(leaveRequest.getEndDate())) {
                 java.time.DayOfWeek dayOfWeek = ptr.getDayOfWeek();

@@ -22,7 +22,7 @@ public class OvertimeService {
                 || request.getEndTime() == null) {
             throw new IllegalArgumentException("근무 일자와 시작/종료 시간은 필수입니다.");
         }
-        if (request.getStartTime().isAfter(request.getEndTime())) {
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
