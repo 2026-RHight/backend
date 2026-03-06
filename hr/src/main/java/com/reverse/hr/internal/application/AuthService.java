@@ -2,11 +2,11 @@ package com.reverse.hr.internal.application;
 
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.JwtTokenProvider;
-import com.reverse.hr.internal.application.dto.request.ChangePasswordRequestDTO;
-import com.reverse.hr.internal.application.dto.request.InitializeRequestDTO;
-import com.reverse.hr.internal.application.dto.request.LoginRequestDTO;
-import com.reverse.hr.internal.application.dto.response.LoginResponseDTO;
-import com.reverse.hr.internal.application.dto.response.LoginUserProfileDTO;
+import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
+import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
+import com.reverse.hr.internal.dto.request.LoginRequestDTO;
+import com.reverse.hr.internal.dto.response.LoginResponseDTO;
+import com.reverse.hr.internal.dto.response.LoginUserProfileDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;

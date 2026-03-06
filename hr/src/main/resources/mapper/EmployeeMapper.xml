@@ -9,7 +9,7 @@
             resultType="com.reverse.core.security.EmployeeAuthInfoDTO">
         SELECT employee_id   AS employeeId,
                employee_num  AS employeeNum,
-               password      AS password
+               employee_password      AS password
         FROM employee
         WHERE employee_num = #{employeeNum}
     </select>

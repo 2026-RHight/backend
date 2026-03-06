@@ -1,0 +1,48 @@
+package com.reverse.attendance.internal.domain;
+
+import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Getter
+@NoArgsConstructor
+public class WeeklyWorkSchedule {
+    private Long weeklyId;
+    private Long employeeId;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
+    private ApprovalStatus approvalStatus; // 기존에 만든 결재 상태 Enum 재사용!
+    private LocalDate planDate;
+    private String workForm; // OFFICE, REMOTE 등
+    private String scheduleTitle;
+    private String memo;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Builder
+    public WeeklyWorkSchedule(Long weeklyId
+            , Long employeeId, LocalDateTime startDate
+            , LocalDateTime endDate, ApprovalStatus approvalStatus
+            , LocalDate planDate, String workForm
+            , String scheduleTitle, String memo
+            , LocalDateTime createdAt, LocalDateTime updatedAt)
+    {
+
+        this.weeklyId = weeklyId;
+        this.employeeId = employeeId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.approvalStatus = approvalStatus;
+        this.planDate = planDate;
+        this.workForm = workForm;
+        this.scheduleTitle = scheduleTitle;
+        this.memo = memo;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+
+    }
+
+}
