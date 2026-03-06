@@ -400,6 +400,72 @@ WHERE e.employee_num = '2402040002'
       WHERE ph.employee_id = e.employee_id
   );
 
+
+-- ==========================================
+-- 1. [필수 기본 데이터] 프로필 파일 및 사원 세팅
+-- ==========================================
+
+-- 프로필 이미지
+INSERT INTO hr_file (file_url, file_title)
+VALUES ('http://dummy.com/profile1.jpg', '기본 프로필 이미지');
+
+-- 1번 사원: 김개발 (일반 팀원)
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address,
+    birth_date, bank_name, account_number_enc, account_number_hash,
+    resident_number_enc, resident_number_hash, initial_state, employ_state, profile_id
+) VALUES (
+             'EMP2026001', '김개발', 'hashed_pwd_123', '010-1234-5678', '1234', 'dev@reverse.com', '서울시 강남구 테헤란로',
+             '1995-05-05', '국민은행', 'enc_acc_1', 'hash_acc_1',
+             'enc_res_1', 'hash_res_1', true, 'WORK', 1
+         );
+
+-- 2번 사원: 이팀장 (관리자 결재 테스트용)
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address,
+    birth_date, bank_name, account_number_enc, account_number_hash,
+    resident_number_enc, resident_number_hash, initial_state, employ_state, profile_id
+) VALUES (
+             'EMP2026002', '이팀장', 'hashed_pwd_456', '010-9876-5432', '5678', 'leader@reverse.com', '서울시 서초구 강남대로',
+             '1985-10-10', '신한은행', 'enc_acc_2', 'hash_acc_2',
+             'enc_res_2', 'hash_res_2', true, 'WORK', 1
+         );
+
+
+-- ==========================================
+-- 2. [근태 도메인] 테스트 데이터
+-- ==========================================
+
+-- 연차 부여
+INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (1, 15.0);
+INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (2, 20.0);
+
+-- 출퇴근 기록
+INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
+VALUES (1, '2026-03-04', '2026-03-04 08:50:00', '2026-03-04 18:05:00', 'NORMAL', NULL, NULL);
+
+INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
+VALUES (2, '2026-03-04', '2026-03-04 09:15:00', NULL, 'TARDY', '지하철 연착', NULL);
+
+
+-- ==========================================
+-- 3. [휴가/출장/연장근무] 결재 테스트 데이터
+-- ==========================================
+
+-- 휴가 신청
+INSERT INTO leave_request (employee_id, start_date, end_date, leave_type, leave_status, used_days, reason, reject_reason)
+VALUES (1, '2026-03-10', '2026-03-10', 'ANNUAL', 'APPROVED', 1.0, '개인 사정', NULL);
+
+INSERT INTO leave_request (employee_id, start_date, end_date, leave_type, leave_status, used_days, reason, reject_reason)
+VALUES (1, '2026-03-15', '2026-03-15', 'HALF_PM', 'PENDING', 0.5, '병원 진료', NULL);
+
+-- 외근 신청
+INSERT INTO business_trip_request (employee_id, trip_type, destination, start_datetime, end_datetime, reason, approval_status, reject_reason)
+VALUES (1, 'OUTSIDE_WORK', '고객사(A사) 미팅', '2026-03-05 14:00:00', '2026-03-05 18:00:00', '프로젝트 킥오프 미팅', 'APPROVED', NULL);
+
+-- 연장근무 신청
+INSERT INTO overtime_request (employee_id, work_date, start_time, end_time, reason, approval_status, reject_reason)
+VALUES (1, '2026-03-04', '2026-03-04 18:00:00', '2026-03-04 20:00:00', '긴급 서버 버그 수정', 'PENDING', NULL);
 -- ---------------------------------------------------------------------------
 -- HR files (skill/career attachments)
 -- ---------------------------------------------------------------------------

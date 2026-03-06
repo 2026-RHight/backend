@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.AttendancePolicyMapper">
+
+    <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.AttendancePolicy">
+        SELECT
+            policy_id as policyId,
+            employee_id as employeeId,
+            std_start_time as stdStartTime,
+            std_end_time as stdEndTime,
+            core_time_start as coreTimeStart,
+            core_time_end as coreTimeEnd,
+            break_time_start as breakTimeStart,
+            break_time_end as breakTimeEnd,
+            created_at as createdAt,
+            updated_at as updatedAt
+        FROM attendance_policy
+        WHERE employee_id = #{employeeId}
+    </select>
+
+</mapper>

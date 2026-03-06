@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper">
+
+    <insert id="insertSchedule" useGeneratedKeys="true" keyProperty="weeklyId">
+        INSERT INTO weekly_work_schedule (
+            employee_id, start_date, end_date, approval_status,
+            plan_date, work_form, schedule_title, memo, created_at
+        ) VALUES (
+            #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
+            #{planDate}, #{workForm}, #{scheduleTitle}, #{memo}, NOW()
+        )
+    </insert>
+
+    <select id="findById" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            created_at as createdAt,
+            update_at as updatedAt
+        FROM weekly_work_schedule
+        WHERE weekly_id = #{weeklyId}
+    </select>
+
+    <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            created_at as createdAt,
+            update_at as updatedAt
+        FROM weekly_work_schedule
+        WHERE employee_id = #{employeeId}
+        ORDER BY start_date DESC
+    </select>
+
+    <update id="updateStatusIfPending">
+        UPDATE weekly_work_schedule
+        SET approval_status = #{approvalStatus},
+            update_at = NOW()
+        WHERE weekly_id = #{weeklyId}
+        AND approval_status = 'PENDING'
+    </update>
+
+    <select id="findAll" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            created_at as createdAt,
+            update_at as updatedAt
+        FROM weekly_work_schedule
+        <where>
+            <if test="status != null and status != ''">
+                approval_status = #{status}
+            </if>
+        </where>
+        ORDER BY start_date DESC
+    </select>
+
+</mapper>
