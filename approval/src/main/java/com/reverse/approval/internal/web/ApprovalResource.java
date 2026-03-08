@@ -3,6 +3,7 @@ package com.reverse.approval.internal.web;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
@@ -107,5 +108,10 @@ public interface ApprovalResource {
     ResponseEntity<ApiResponse<ApprovalReviewPageResponse>> getApprovalReviews(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "전자결재 대시보드 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalDashboardResponse>> getApprovalDashboard(
             @AuthenticationPrincipal CustomUser user);
 }

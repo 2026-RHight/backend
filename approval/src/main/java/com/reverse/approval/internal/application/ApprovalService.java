@@ -10,6 +10,7 @@ import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
@@ -42,6 +43,8 @@ import com.reverse.approval.internal.persistence.param.ReferenceLineParam;
 import com.reverse.approval.internal.persistence.param.VacationDetailParam;
 import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
 import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
+import com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow;
+import com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
@@ -326,6 +329,38 @@ public class ApprovalService implements ApprovalFacade {
         boolean hasNext = page + 1 < totalPages;
         return new ApprovalReviewPageResponse(
                 content, page, size, totalElements, totalPages, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalDashboardResponse getApprovalDashboard(Long employeeId) {
+        ApprovalReviewPageResponse reviewPage = getApprovalReviews(employeeId, 0, 5);
+        ApprovalProgressOverviewResponse progressOverview =
+                getApprovalProgressOverview(employeeId, 0, 5);
+        List<ApprovalDashboardResponse.PendingReviewItem> pendingReviewDocuments =
+                reviewPage.content().stream()
+                        .map(
+                                item ->
+                                        new ApprovalDashboardResponse.PendingReviewItem(
+                                                item.approvalId(),
+                                                item.docType(),
+                                                item.title(),
+                                                item.drafterName(),
+                                                item.draftDate(),
+                                                null))
+                        .toList();
+
+        List<ApprovalDashboardResponse.MyDraftItem> myDrafts =
+                progressOverview.page().content().stream()
+                        .map(this::toDashboardMyDraftItemFromProgress)
+                        .toList();
+
+        return new ApprovalDashboardResponse(
+                new ApprovalDashboardResponse.Counts(
+                        Math.toIntExact(reviewPage.totalElements()),
+                        progressOverview.counts().inProgressCount(),
+                        nvl(approvalMapper.countDashboardCompletedThisMonth(employeeId))),
+                pendingReviewDocuments,
+                myDrafts);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {
@@ -722,6 +757,37 @@ public class ApprovalService implements ApprovalFacade {
                 row.drafterName(),
                 row.departmentName(),
                 row.draftDate());
+    }
+
+    private ApprovalDashboardResponse.PendingReviewItem toDashboardPendingReviewItem(
+            ApprovalDashboardPendingReviewRow row) {
+        return new ApprovalDashboardResponse.PendingReviewItem(
+                row.approvalId(),
+                row.docType(),
+                row.title(),
+                row.drafterName(),
+                row.draftDate(),
+                row.readDate());
+    }
+
+    private ApprovalDashboardResponse.MyDraftItem toDashboardMyDraftItem(
+            ApprovalDashboardMyDraftRow row) {
+        return new ApprovalDashboardResponse.MyDraftItem(
+                row.approvalId(),
+                row.docType(),
+                row.title(),
+                row.currentApproverName(),
+                row.approvalStatus());
+    }
+
+    private ApprovalDashboardResponse.MyDraftItem toDashboardMyDraftItemFromProgress(
+            ApprovalProgressPageResponse.ApprovalProgressItem row) {
+        return new ApprovalDashboardResponse.MyDraftItem(
+                row.approvalId(),
+                row.docType(),
+                row.title(),
+                row.currentApproverName(),
+                row.approvalStatus());
     }
 
     private void updateReadDateIfNull(Long approvalId, Long employeeId) {

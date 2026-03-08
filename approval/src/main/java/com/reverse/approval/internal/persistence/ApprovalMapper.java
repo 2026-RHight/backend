@@ -2,6 +2,9 @@ package com.reverse.approval.internal.persistence;
 
 import com.reverse.approval.internal.persistence.param.ElectronicApprovalParam;
 import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
+import com.reverse.approval.internal.persistence.row.ApprovalDashboardCountsRow;
+import com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow;
+import com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
@@ -68,6 +71,20 @@ public interface ApprovalMapper {
             @Param("employeeId") Long employeeId,
             @Param("offset") int offset,
             @Param("size") int size);
+
+    ApprovalDashboardCountsRow findApprovalDashboardCounts(@Param("employeeId") Long employeeId);
+
+    Integer countDashboardPendingReviews(@Param("employeeId") Long employeeId);
+
+    Integer countDashboardInProgress(@Param("employeeId") Long employeeId);
+
+    Integer countDashboardCompletedThisMonth(@Param("employeeId") Long employeeId);
+
+    List<ApprovalDashboardPendingReviewRow> findApprovalDashboardPendingReviews(
+            @Param("employeeId") Long employeeId, @Param("size") int size);
+
+    List<ApprovalDashboardMyDraftRow> findApprovalDashboardMyDrafts(
+            @Param("employeeId") Long employeeId, @Param("size") int size);
 
     Optional<ApprovalHeaderRow> findApprovalHeaderByApprovalId(
             @Param("approvalId") Long approvalId);
