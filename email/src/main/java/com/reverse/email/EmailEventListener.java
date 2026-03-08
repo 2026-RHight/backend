@@ -34,7 +34,7 @@ public class EmailEventListener {
             helper.setText(event.body(), true);
 
             // 발신자 이름 설정 (구글 계정 이메일을 입력하세요)
-            helper.setFrom("rhight.official@gmail.com");
+            helper.setFrom("noreply.rhight@gmail.com");
 
             mailSender.send(message);
             log.info("메일 발송 완료: {}", event.to());
