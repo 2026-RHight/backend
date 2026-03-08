@@ -57,6 +57,12 @@
           AND approval_status = 'TEMP'
     </update>
 
+    <update id="updateDocId">
+        UPDATE electronic_approval
+        SET doc_id = #{docId}
+        WHERE approval_id = #{approvalId}
+    </update>
+
     <select id="findTitleByApprovalId" resultType="string">
         SELECT title
         FROM electronic_approval

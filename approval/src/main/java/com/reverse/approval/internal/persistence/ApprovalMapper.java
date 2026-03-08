@@ -29,6 +29,8 @@ public interface ApprovalMapper {
     int updateApprovalStatusFromTempToPending(
             @Param("approvalId") Long approvalId, @Param("drafterId") Long drafterId);
 
+    int updateDocId(@Param("approvalId") Long approvalId, @Param("docId") String docId);
+
     String findTitleByApprovalId(@Param("approvalId") Long approvalId);
 
     String findApprovalStatusByApprovalId(@Param("approvalId") Long approvalId);

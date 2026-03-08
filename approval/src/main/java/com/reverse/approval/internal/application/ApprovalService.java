@@ -63,6 +63,7 @@ import com.reverse.approval.internal.persistence.row.VacationDetailRow;
 import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
+import com.reverse.core.service.NumberingService;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
 import java.util.ArrayList;
@@ -96,6 +97,7 @@ public class ApprovalService implements ApprovalFacade {
     private final RecipientLineMapper recipientLineMapper;
     private final ApprovalFileService approvalFileService;
     private final ApprovalAttachmentMapper approvalAttachmentMapper;
+    private final NumberingService numberingService;
     private final ApplicationEventPublisher eventPublisher;
 
     public String draftApproval(
@@ -112,6 +114,10 @@ public class ApprovalService implements ApprovalFacade {
         insertReferenceAndRecipientLines(
                 dto.getReferenceLine(), dto.getReceipientLine(), approval.getApprovalId());
         insertAttachments(files, approval.getApprovalId());
+        if (ApprovalStatus.PENDING.equals(status)) {
+            String docId = numberingService.generateSequence("DOC");
+            approvalMapper.updateDocId(approval.getApprovalId(), docId);
+        }
 
         if (status.equals(ApprovalStatus.PENDING)) {
             publishSubmissionMailEvents(dto, drafterProfile);
