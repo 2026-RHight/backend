@@ -5,6 +5,7 @@ import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
@@ -113,5 +114,10 @@ public interface ApprovalResource {
     @Operation(summary = "전자결재 대시보드 API")
     @SecurityRequirement(name = "JWT")
     ResponseEntity<ApiResponse<ApprovalDashboardResponse>> getApprovalDashboard(
+            @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "전자결재 메인 요약 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalMainSummaryResponse>> getApprovalMainSummary(
             @AuthenticationPrincipal CustomUser user);
 }

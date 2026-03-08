@@ -6,6 +6,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalDashboardCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
+import com.reverse.approval.internal.persistence.row.ApprovalMainItemRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
 import com.reverse.approval.internal.persistence.row.ApprovalReviewRow;
@@ -84,6 +85,16 @@ public interface ApprovalMapper {
             @Param("employeeId") Long employeeId, @Param("size") int size);
 
     List<ApprovalDashboardMyDraftRow> findApprovalDashboardMyDrafts(
+            @Param("employeeId") Long employeeId, @Param("size") int size);
+
+    Integer countMainPendingReviews(@Param("employeeId") Long employeeId);
+
+    Integer countMainInProgressApprovals(@Param("employeeId") Long employeeId);
+
+    List<ApprovalMainItemRow> findMainPendingReviews(
+            @Param("employeeId") Long employeeId, @Param("size") int size);
+
+    List<ApprovalMainItemRow> findMainInProgressApprovals(
             @Param("employeeId") Long employeeId, @Param("size") int size);
 
     Optional<ApprovalHeaderRow> findApprovalHeaderByApprovalId(

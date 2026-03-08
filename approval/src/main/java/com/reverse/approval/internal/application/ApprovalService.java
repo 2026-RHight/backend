@@ -12,6 +12,7 @@ import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
@@ -361,6 +362,41 @@ public class ApprovalService implements ApprovalFacade {
                         nvl(approvalMapper.countDashboardCompletedThisMonth(employeeId))),
                 pendingReviewDocuments,
                 myDrafts);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalMainSummaryResponse getApprovalMainSummary(Long employeeId) {
+        ApprovalReviewPageResponse reviewPage = getApprovalReviews(employeeId, 0, 5);
+        ApprovalProgressPageResponse inProgressPage =
+                searchApprovalProgress(employeeId, ProgressTabType.IN_PROGRESS, null, 0, 5);
+
+        List<ApprovalMainSummaryResponse.MainItem> pendingDocuments =
+                reviewPage.content().stream()
+                        .map(
+                                row ->
+                                        new ApprovalMainSummaryResponse.MainItem(
+                                                row.approvalId(),
+                                                row.title(),
+                                                row.drafterName(),
+                                                row.draftDate()))
+                        .toList();
+
+        List<ApprovalMainSummaryResponse.MainItem> inProgressDocuments =
+                inProgressPage.content().stream()
+                        .map(
+                                row ->
+                                        new ApprovalMainSummaryResponse.MainItem(
+                                                row.approvalId(),
+                                                row.title(),
+                                                "-",
+                                                row.draftDate()))
+                        .toList();
+
+        return new ApprovalMainSummaryResponse(
+                Math.toIntExact(reviewPage.totalElements()),
+                Math.toIntExact(inProgressPage.totalElements()),
+                pendingDocuments,
+                inProgressDocuments);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {

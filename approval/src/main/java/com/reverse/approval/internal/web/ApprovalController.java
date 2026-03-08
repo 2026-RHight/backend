@@ -9,6 +9,7 @@ import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
@@ -211,6 +212,16 @@ public class ApprovalController implements ApprovalResource {
             @AuthenticationPrincipal CustomUser user) {
         ApprovalDashboardResponse response =
                 approvalService.getApprovalDashboard(user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/main")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalMainSummaryResponse>> getApprovalMainSummary(
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalMainSummaryResponse response =
+                approvalService.getApprovalMainSummary(user.getEmployeeId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

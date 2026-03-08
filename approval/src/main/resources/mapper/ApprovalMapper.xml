@@ -529,6 +529,83 @@
         LIMIT #{size}
     </select>
 
+    <sql id="mainPendingReviewWhere">
+        ea.approval_status = 'PENDING'
+        AND al.approver_id = #{employeeId}
+        AND al.approval_status = 'PENDING'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM approval_line al2
+            WHERE al2.approval_id = ea.approval_id
+              AND al2.approval_status = 'PENDING'
+              AND al2.approval_seq &lt; al.approval_seq
+        )
+    </sql>
+
+    <sql id="mainInProgressWhere">
+        ea.approval_status = 'PENDING'
+        AND al.approver_id = #{employeeId}
+        AND (
+            al.approval_status = 'COMPLETE'
+            OR (
+                al.approval_status = 'PENDING'
+                AND EXISTS (
+                    SELECT 1
+                    FROM approval_line al2
+                    WHERE al2.approval_id = ea.approval_id
+                      AND al2.approval_status = 'PENDING'
+                      AND al2.approval_seq &lt; al.approval_seq
+                )
+            )
+        )
+    </sql>
+
+    <select id="countMainPendingReviews" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainPendingReviewWhere"/>
+    </select>
+
+    <select id="countMainInProgressApprovals" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainInProgressWhere"/>
+    </select>
+
+    <select id="findMainPendingReviews"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalMainItemRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.title AS title,
+            ea.drafter_name AS drafterName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainPendingReviewWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
+    <select id="findMainInProgressApprovals"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalMainItemRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.title AS title,
+            ea.drafter_name AS drafterName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainInProgressWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
     <select id="findApprovalHeaderByApprovalId"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
         SELECT
