@@ -34,6 +34,7 @@ dependencies {
     implementation project(':hr')
     implementation project(':payroll')
     implementation project(':performance')
+    implementation project(':email')
 
     testImplementation project(':core')
     testImplementation project(':approval')
@@ -41,9 +42,11 @@ dependencies {
     testImplementation project(':hr')
     testImplementation project(':payroll')
     testImplementation project(':performance')
+    testImplementation project(':email')
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14'
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
