@@ -4,16 +4,14 @@ import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.domain.enums.DocType;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.hr.dto.EmployeeProfileDTO;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Getter
 public class ElectronicApprovalParam {
-    @Setter
-    private Long approvalId;
+    @Setter private Long approvalId;
     private final String title;
     private final DocType docType;
     private final ApprovalStatus approvalStatus;
@@ -23,7 +21,14 @@ public class ElectronicApprovalParam {
     private final String departmentName;
 
     @Builder
-    public ElectronicApprovalParam(String title, DocType docType, ApprovalStatus approvalStatus, LocalDateTime draftDate, Long drafterId, String drafterName, String departmentName) {
+    public ElectronicApprovalParam(
+            String title,
+            DocType docType,
+            ApprovalStatus approvalStatus,
+            LocalDateTime draftDate,
+            Long drafterId,
+            String drafterName,
+            String departmentName) {
         this.title = title;
         this.docType = docType;
         this.approvalStatus = approvalStatus;
@@ -34,10 +39,7 @@ public class ElectronicApprovalParam {
     }
 
     public static ElectronicApprovalParam from(
-            DraftApproval dto,
-            EmployeeProfileDTO profile,
-            ApprovalStatus status
-    ) {
+            DraftApproval dto, EmployeeProfileDTO profile, ApprovalStatus status) {
         return ElectronicApprovalParam.builder()
                 .title(dto.getTitle())
                 .docType(dto.getDocType())

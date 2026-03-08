@@ -1,5 +1,8 @@
 package com.reverse.approval.internal.application;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,10 +14,6 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -38,11 +37,12 @@ public class ApprovalFileService {
         String key = dir + "/" + UUID.randomUUID() + ext;
 
         try {
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .contentType(file.getContentType())
-                    .build();
+            PutObjectRequest request =
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType(file.getContentType())
+                            .build();
 
             s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
             String fileUrl = endpoint + "/" + bucket + "/" + key;
@@ -55,10 +55,7 @@ public class ApprovalFileService {
 
     public byte[] download(String key) {
         try {
-            GetObjectRequest request = GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .build();
+            GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
             ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(request);
             return objectBytes.asByteArray();
@@ -73,10 +70,8 @@ public class ApprovalFileService {
 
     public void delete(String key) {
         try {
-            DeleteObjectRequest request = DeleteObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .build();
+            DeleteObjectRequest request =
+                    DeleteObjectRequest.builder().bucket(bucket).key(key).build();
             s3Client.deleteObject(request);
         } catch (RuntimeException e) {
             throw new IllegalStateException("Failed to delete file", e);

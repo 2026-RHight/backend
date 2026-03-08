@@ -1,10 +1,9 @@
 package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.dto.request.FlexibleWorkRequest;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class FlexibleWorkParam {
@@ -14,7 +13,8 @@ public class FlexibleWorkParam {
     private final String reason;
 
     @Builder
-    public FlexibleWorkParam(Long approvalId, LocalDateTime startDate, LocalDateTime endDate, String reason) {
+    public FlexibleWorkParam(
+            Long approvalId, LocalDateTime startDate, LocalDateTime endDate, String reason) {
         this.approvalId = approvalId;
         this.startDate = startDate;
         this.endDate = endDate;

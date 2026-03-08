@@ -11,7 +11,8 @@ public class RecipientLineParam {
     private final String receiverRank;
 
     @Builder
-    public RecipientLineParam(Long approvalId, Long receiverId, String receiverName, String receiverRank) {
+    public RecipientLineParam(
+            Long approvalId, Long receiverId, String receiverName, String receiverRank) {
         this.approvalId = approvalId;
         this.receiverId = receiverId;
         this.receiverName = receiverName;
@@ -19,11 +20,7 @@ public class RecipientLineParam {
     }
 
     public static RecipientLineParam from(
-            Long receiverId,
-            Long approvalId,
-            String receiverName,
-            String receiverRank
-    ) {
+            Long receiverId, Long approvalId, String receiverName, String receiverRank) {
         return RecipientLineParam.builder()
                 .approvalId(approvalId)
                 .receiverId(receiverId)

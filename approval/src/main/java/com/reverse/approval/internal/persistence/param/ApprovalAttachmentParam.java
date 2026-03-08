@@ -1,9 +1,8 @@
 package com.reverse.approval.internal.persistence.param;
 
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class ApprovalAttachmentParam {
@@ -13,7 +12,8 @@ public class ApprovalAttachmentParam {
     private final Long approvalId;
 
     @Builder
-    public ApprovalAttachmentParam(String filePath, String originalName, LocalDateTime createdDt, Long approvalId) {
+    public ApprovalAttachmentParam(
+            String filePath, String originalName, LocalDateTime createdDt, Long approvalId) {
         this.filePath = filePath;
         this.originalName = originalName;
         this.createdDt = createdDt;
@@ -21,10 +21,7 @@ public class ApprovalAttachmentParam {
     }
 
     public static ApprovalAttachmentParam from(
-            String filePath,
-            String originalName,
-            Long approvalId
-    ) {
+            String filePath, String originalName, Long approvalId) {
         return ApprovalAttachmentParam.builder()
                 .filePath(filePath)
                 .originalName(originalName)

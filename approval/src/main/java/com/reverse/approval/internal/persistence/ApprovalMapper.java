@@ -10,7 +10,8 @@ public interface ApprovalMapper {
 
     int countByApprovalId(@Param("approvalId") Long approvalId);
 
-    int countByApprovalIdAndDrafterId(@Param("approvalId") Long approvalId, @Param("drafterId") Long drafterId);
+    int countByApprovalIdAndDrafterId(
+            @Param("approvalId") Long approvalId, @Param("drafterId") Long drafterId);
 
     int deleteElectronicApprovalById(@Param("approvalId") Long approvalId);
 }

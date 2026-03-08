@@ -2,10 +2,9 @@ package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.domain.enums.VacationType;
 import com.reverse.approval.internal.dto.request.VacationRequest;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class VacationDetailParam {
@@ -16,7 +15,12 @@ public class VacationDetailParam {
     private final String reason;
 
     @Builder
-    public VacationDetailParam(Long approvalId, VacationType vacationType, LocalDateTime startDate, LocalDateTime endDate, String reason) {
+    public VacationDetailParam(
+            Long approvalId,
+            VacationType vacationType,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String reason) {
         this.approvalId = approvalId;
         this.vacationType = vacationType;
         this.startDate = startDate;
@@ -24,7 +28,7 @@ public class VacationDetailParam {
         this.reason = reason;
     }
 
-    public static VacationDetailParam from(VacationRequest dto, Long approvalId){
+    public static VacationDetailParam from(VacationRequest dto, Long approvalId) {
         return VacationDetailParam.builder()
                 .approvalId(approvalId)
                 .vacationType(dto.getVacationType())

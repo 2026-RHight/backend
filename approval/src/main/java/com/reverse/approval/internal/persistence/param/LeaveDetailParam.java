@@ -2,10 +2,9 @@ package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.domain.enums.LeaveType;
 import com.reverse.approval.internal.dto.request.LeaveRequest;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class LeaveDetailParam {
@@ -16,7 +15,12 @@ public class LeaveDetailParam {
     private final String reason;
 
     @Builder
-    public LeaveDetailParam(Long approvalId, LocalDateTime startDate, LocalDateTime endDate, LeaveType leaveType, String reason) {
+    public LeaveDetailParam(
+            Long approvalId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            LeaveType leaveType,
+            String reason) {
         this.approvalId = approvalId;
         this.startDate = startDate;
         this.endDate = endDate;

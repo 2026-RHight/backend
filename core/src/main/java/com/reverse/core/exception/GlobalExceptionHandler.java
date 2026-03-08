@@ -62,13 +62,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadRequestException(BadRequestException ex) {
         log.error("BadRequestException 발생: message: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .message(ex.getMessage())
-                .build();
+        ErrorResponse error = ErrorResponse.builder().message(ex.getMessage()).build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(error));
     }
-
 
     // JSON 파싱/바인딩 실패
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -90,9 +87,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFoundException(
-            NotFoundException ex
-    ){
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundException(NotFoundException ex) {
         log.error("NotFoundException 발생: message: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(ex));
     }

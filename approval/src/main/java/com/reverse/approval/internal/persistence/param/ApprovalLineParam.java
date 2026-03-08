@@ -21,8 +21,7 @@ public class ApprovalLineParam {
             ApprovalStatus approvalStatus,
             Long approverId,
             String approverName,
-            String approverRank
-    ) {
+            String approverRank) {
         this.approvalId = approvalId;
         this.approvalSeq = approvalSeq;
         this.approvalStatus = approvalStatus;
@@ -36,8 +35,7 @@ public class ApprovalLineParam {
             Long approvalId,
             ApprovalStatus status,
             String approverName,
-            String approverRank
-    ) {
+            String approverRank) {
         return ApprovalLineParam.builder()
                 .approvalId(approvalId)
                 .approvalSeq(dto.getApprovalSeq())

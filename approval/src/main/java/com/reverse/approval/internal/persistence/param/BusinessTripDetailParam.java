@@ -1,10 +1,9 @@
 package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.dto.request.BusinessTripRequest;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class BusinessTripDetailParam {
@@ -16,7 +15,13 @@ public class BusinessTripDetailParam {
     private final String reason;
 
     @Builder
-    public BusinessTripDetailParam(Long approvalId, String tripType, String destination, LocalDateTime startDate, LocalDateTime endDate, String reason) {
+    public BusinessTripDetailParam(
+            Long approvalId,
+            String tripType,
+            String destination,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String reason) {
         this.approvalId = approvalId;
         this.tripType = tripType;
         this.destination = destination;

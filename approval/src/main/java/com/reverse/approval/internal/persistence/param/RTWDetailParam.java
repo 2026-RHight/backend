@@ -1,10 +1,9 @@
 package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.dto.request.RTWRequest;
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDate;
 
 @Getter
 public class RTWDetailParam {

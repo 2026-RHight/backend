@@ -11,7 +11,8 @@ public class ReferenceLineParam {
     private final String referenceRank;
 
     @Builder
-    public ReferenceLineParam(Long approvalId, Long referencerId, String referencerName, String referenceRank) {
+    public ReferenceLineParam(
+            Long approvalId, Long referencerId, String referencerName, String referenceRank) {
         this.approvalId = approvalId;
         this.referencerId = referencerId;
         this.referencerName = referencerName;
@@ -19,11 +20,7 @@ public class ReferenceLineParam {
     }
 
     public static ReferenceLineParam from(
-            Long referencerId,
-            Long approvalId,
-            String referencerName,
-            String referenceRank
-    ) {
+            Long referencerId, Long approvalId, String referencerName, String referenceRank) {
         return ReferenceLineParam.builder()
                 .approvalId(approvalId)
                 .referencerId(referencerId)

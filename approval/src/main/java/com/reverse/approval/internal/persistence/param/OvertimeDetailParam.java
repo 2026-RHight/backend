@@ -1,11 +1,10 @@
 package com.reverse.approval.internal.persistence.param;
 
 import com.reverse.approval.internal.dto.request.OvertimeRequest;
-import lombok.Builder;
-import lombok.Getter;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
+import lombok.Builder;
+import lombok.Getter;
 
 @Getter
 public class OvertimeDetailParam {
@@ -16,7 +15,12 @@ public class OvertimeDetailParam {
     private final String reason;
 
     @Builder
-    public OvertimeDetailParam(Long approvalId, LocalDate workDate, LocalTime startTime, LocalTime endTime, String reason) {
+    public OvertimeDetailParam(
+            Long approvalId,
+            LocalDate workDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            String reason) {
         this.approvalId = approvalId;
         this.workDate = workDate;
         this.startTime = startTime;
