@@ -146,6 +146,29 @@ WHERE NOT EXISTS (
 -- ---------------------------------------------------------------------------
 -- Organization closure (ancestor-descendant)
 -- ---------------------------------------------------------------------------
+/*TODO : 클로이 (org_closure 배포 반영)
+
+- 현재 org_closure는 로컬 시드(data-local.sql)에서만 백필됨.
+- 운영/개발 DB에는 org_closure가 비어 있을 수 있으므로, 배포 확정 시 아래 작업을 반드시 추가한다.
+
+1) 배포 마이그레이션에 org_closure 1회 백필 SQL 추가
+- organization 기준으로 closure 재생성
+- 권장 순서:
+  - DELETE FROM org_closure;
+  - WITH RECURSIVE ... INSERT INTO org_closure ...
+
+2) 배포 파이프라인에 마이그레이션 실행 단계 추가
+- Flyway/Liquibase 도입 또는 배포 스크립트에서 SQL 1회 실행
+
+3) 추후 조직 변경 기능(생성/이동/비활성화) 개발 시
+- 트랜잭션 내에서 org_closure 갱신 로직 함께 구현
+- 또는 DB 트리거/프로시저로 정합성 보장
+
+검증 쿼리
+- SELECT COUNT(*) FROM org_closure;
+- 0 건이면 백필 누락으로 판단
+*/
+
 DELETE FROM org_closure;
 
 INSERT INTO org_closure (ancestor_org_id, descendant_org_id, depth, sort_path)
@@ -1184,24 +1207,17 @@ JOIN working_area a ON a.area_name = '서울 강남'
 WHERE e.employee_num = '2402040011'
   AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
 
--- 모바일1팀 정렬 검증용 추가 인원 (팀장 1명 + 팀원: 대리 > 주임 > 사원)
+-- 모바일1팀 정렬 검증용 추가 인원 (팀원: 과장 > 대리 > 주임 > 사원)
 INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
 SELECT e.employee_id, o.org_id, DATE '2023-05-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
 FROM employee e
 JOIN organization o ON o.org_name = '모바일1팀'
-JOIN hr_position p ON p.position_name = '팀장'
+JOIN hr_position p ON p.position_name = '팀원'
 JOIN hr_rank r ON r.rank_name = '과장'
 JOIN job j ON j.job_name = '백엔드 개발자'
 JOIN working_area a ON a.area_name = '서울 강남'
 WHERE e.employee_num = '2402040012'
   AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
-
--- 기존에 강과장이 팀원으로 이미 들어간 경우를 보정한다.
-UPDATE employee_hr_info h
-JOIN employee e ON e.employee_id = h.employee_id
-JOIN hr_position p ON p.position_name = '팀장'
-SET h.position_id = p.position_id
-WHERE e.employee_num = '2402040012';
 
 INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
 SELECT e.employee_id, o.org_id, DATE '2023-08-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id

@@ -26,7 +26,7 @@ public class AuthController {
         return ApiResponse.success(token);
     }
 
-    @Operation(summary = "초기회된 비밀번호 변경")
+    @Operation(summary = "초기화된 비밀번호 변경")
     @PatchMapping("/password")
     public ApiResponse<LoginResponseDTO> changeInitialPassword(
             @RequestHeader(value = "Authorization", required = false) String authorization,

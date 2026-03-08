@@ -69,7 +69,7 @@ public class OrganizationService {
     public List<OrganizationMemberResponseDTO> getMyOrganizationMembers(Long employeeId) {
         Long orgId = organizationMapper.findMyOrgIdByEmployeeId(employeeId);
         if (orgId == null) {
-            throw new IllegalStateException("소속 조직 정보가 없습니다.");
+            throw new NotFoundException("ORG_NOT_FOUND", "소속 조직 정보가 없습니다.");
         }
         return getOrganizationMembers(orgId);
     }
@@ -78,10 +78,10 @@ public class OrganizationService {
         validateSameTeamAccess(viewerEmployeeId, targetEmployeeId);
 
         BasicInfoRow basicInfoRow = myPageMapper.findBasicInfoByEmployeeId(targetEmployeeId)
-                .orElseThrow(() -> new IllegalStateException("기본 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("EMPLOYEE_BASIC_INFO_NOT_FOUND", "기본 정보를 찾을 수 없습니다."));
 
         HrInfoRow hrInfoRow = myPageMapper.findHrInfoByEmployeeId(targetEmployeeId)
-                .orElseThrow(() -> new IllegalStateException("인사 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("EMPLOYEE_HR_INFO_NOT_FOUND", "인사 정보를 찾을 수 없습니다."));
 
         List<SkillItemRow> skillRows = myPageMapper.findSkillsByEmployeeId(targetEmployeeId);
         List<CareerItemRow> careerRows = myPageMapper.findCareersByEmployeeId(targetEmployeeId);
@@ -152,11 +152,11 @@ public class OrganizationService {
         Long targetOrgId = organizationMapper.findMyOrgIdByEmployeeId(targetEmployeeId);
 
         if (myOrgId == null) {
-            throw new IllegalStateException("소속 조직 정보가 없습니다.");
+            throw new NotFoundException("ORG_NOT_FOUND", "소속 조직 정보가 없습니다.");
         }
 
         if (targetOrgId == null) {
-            throw new IllegalStateException("대상 사원의 소속 조직 정보가 없습니다.");
+            throw new NotFoundException("TARGET_ORG_NOT_FOUND", "대상 사원의 소속 조직 정보가 없습니다.");
         }
 
         if (!myOrgId.equals(targetOrgId)) {
