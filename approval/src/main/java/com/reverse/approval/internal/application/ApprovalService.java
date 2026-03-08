@@ -3,6 +3,7 @@ package com.reverse.approval.internal.application;
 import com.reverse.approval.ApprovalFacade;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.domain.enums.DocumentBoxType;
+import com.reverse.approval.internal.domain.enums.ProgressTabType;
 import com.reverse.approval.internal.dto.request.ApprovalLineRequest;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
@@ -10,6 +11,8 @@ import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.approval.internal.exception.ApprovalNotFoundException;
 import com.reverse.approval.internal.exception.AttachmentNotFoundException;
@@ -41,6 +44,8 @@ import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
+import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
+import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
 import com.reverse.approval.internal.persistence.row.BusinessTripDetailRow;
 import com.reverse.approval.internal.persistence.row.FlexibleWorkDetailRow;
 import com.reverse.approval.internal.persistence.row.LeaveDetailRow;
@@ -274,6 +279,28 @@ public class ApprovalService implements ApprovalFacade {
 
         boolean hasNext = page + 1 < totalPages;
         return new ApprovalBoxPageResponse(content, page, size, totalElements, totalPages, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalProgressOverviewResponse getApprovalProgressOverview(
+            Long employeeId, int page, int size) {
+        ApprovalProgressCountsRow countsRow = approvalMapper.findApprovalProgressCounts(employeeId);
+        ApprovalProgressPageResponse pageResponse =
+                getApprovalProgressPage(employeeId, ProgressTabType.ALL, null, page, size);
+
+        return new ApprovalProgressOverviewResponse(
+                new ApprovalProgressOverviewResponse.Counts(
+                        nvl(countsRow.allCount()),
+                        nvl(countsRow.draftCount()),
+                        nvl(countsRow.inProgressCount()),
+                        nvl(countsRow.rejectedCount())),
+                pageResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalProgressPageResponse searchApprovalProgress(
+            Long employeeId, ProgressTabType tabType, String keyword, int page, int size) {
+        return getApprovalProgressPage(employeeId, tabType, keyword, page, size);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {
@@ -601,6 +628,62 @@ public class ApprovalService implements ApprovalFacade {
                 row.drafterName(),
                 row.departmentName(),
                 row.readDate());
+    }
+
+    private ApprovalProgressPageResponse getApprovalProgressPage(
+            Long employeeId, ProgressTabType tabType, String keyword, int page, int size) {
+        if (page < 0) {
+            throw new BadRequestException("page는 0 이상이어야 합니다.");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("size는 1 이상이어야 합니다.");
+        }
+
+        String normalizedKeyword = normalizeKeyword(keyword);
+        int totalElements =
+                approvalMapper.countApprovalProgress(employeeId, tabType.name(), normalizedKeyword);
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        int offset = page * size;
+
+        List<ApprovalProgressPageResponse.ApprovalProgressItem> content =
+                approvalMapper
+                        .findApprovalProgress(
+                                employeeId, tabType.name(), normalizedKeyword, offset, size)
+                        .stream()
+                        .map(this::toApprovalProgressItem)
+                        .toList();
+
+        boolean hasNext = page + 1 < totalPages;
+        return new ApprovalProgressPageResponse(
+                content, page, size, totalElements, totalPages, hasNext);
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private ApprovalProgressPageResponse.ApprovalProgressItem toApprovalProgressItem(
+            ApprovalProgressRow row) {
+        return new ApprovalProgressPageResponse.ApprovalProgressItem(
+                row.approvalId(),
+                row.docId(),
+                row.docType(),
+                row.title(),
+                row.approvalStatus(),
+                row.draftDate(),
+                row.readDate(),
+                row.currentApproverName(),
+                nvl(row.totalApproverCount()),
+                nvl(row.doneApproverCount()),
+                nvl(row.progressPercent()));
+    }
+
+    private int nvl(Number value) {
+        return value == null ? 0 : value.intValue();
     }
 
     private void updateReadDateIfNull(Long approvalId, Long employeeId) {

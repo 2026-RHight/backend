@@ -4,6 +4,8 @@ import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,6 +81,22 @@ public interface ApprovalResource {
     @SecurityRequirement(name = "JWT")
     ResponseEntity<ApiResponse<ApprovalBoxPageResponse>> getApprovalBoxes(
             @RequestParam(value = "boxType", defaultValue = "ALL") String boxType,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "전자결재 현황 진입 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalProgressOverviewResponse>> getApprovalProgressOverview(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "전자결재 현황 검색 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalProgressPageResponse>> searchApprovalProgress(
+            @RequestParam(value = "tabType", defaultValue = "ALL") String tabType,
+            @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
             @AuthenticationPrincipal CustomUser user);

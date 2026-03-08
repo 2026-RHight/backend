@@ -3,10 +3,13 @@ package com.reverse.approval.internal.web;
 import com.reverse.approval.internal.application.ApprovalService;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.domain.enums.DocumentBoxType;
+import com.reverse.approval.internal.domain.enums.ProgressTabType;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.response.ApiResponse;
@@ -149,6 +152,41 @@ public class ApprovalController implements ApprovalResource {
 
         ApprovalBoxPageResponse response =
                 approvalService.getApprovalBoxes(user.getEmployeeId(), documentBoxType, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/progress")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalProgressOverviewResponse>>
+            getApprovalProgressOverview(
+                    @RequestParam(value = "page", defaultValue = "0") int page,
+                    @RequestParam(value = "size", defaultValue = "10") int size,
+                    @AuthenticationPrincipal CustomUser user) {
+        ApprovalProgressOverviewResponse response =
+                approvalService.getApprovalProgressOverview(user.getEmployeeId(), page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/progress/search")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalProgressPageResponse>> searchApprovalProgress(
+            @RequestParam(value = "tabType", defaultValue = "ALL") String tabType,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        ProgressTabType parsedTabType;
+        try {
+            parsedTabType = ProgressTabType.valueOf(tabType.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("지원하지 않는 전자결재 현황 탭 타입입니다.");
+        }
+
+        ApprovalProgressPageResponse response =
+                approvalService.searchApprovalProgress(
+                        user.getEmployeeId(), parsedTabType, keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

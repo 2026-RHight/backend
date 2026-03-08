@@ -262,6 +262,109 @@
         LIMIT #{size} OFFSET #{offset}
     </select>
 
+    <select id="findApprovalProgressCounts"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow">
+        SELECT
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status &lt;&gt; 'COMPLETE' THEN 1 ELSE 0 END), 0) AS SIGNED) AS allCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'TEMP' THEN 1 ELSE 0 END), 0) AS SIGNED) AS draftCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status IN ('PENDING', 'HOLD') THEN 1 ELSE 0 END), 0) AS SIGNED) AS inProgressCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'REJECTED' THEN 1 ELSE 0 END), 0) AS SIGNED) AS rejectedCount
+        FROM electronic_approval ea
+        WHERE ea.drafter_id = #{employeeId}
+    </select>
+
+    <sql id="approvalProgressWhere">
+        ea.drafter_id = #{employeeId}
+        AND ea.approval_status &lt;&gt; 'COMPLETE'
+        <choose>
+            <when test="tabType == 'DRAFT'">
+                AND ea.approval_status = 'TEMP'
+            </when>
+            <when test="tabType == 'IN_PROGRESS'">
+                AND ea.approval_status IN ('PENDING', 'HOLD')
+            </when>
+            <when test="tabType == 'REJECTED'">
+                AND ea.approval_status = 'REJECTED'
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                ea.doc_id LIKE CONCAT('%', #{keyword}, '%')
+                OR ea.title LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </sql>
+
+    <select id="countApprovalProgress" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval ea
+        WHERE
+        <include refid="approvalProgressWhere"/>
+    </select>
+
+    <select id="findApprovalProgress"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalProgressRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.draft_dt AS draftDate,
+            ea.read_dt AS readDate,
+            COALESCE(
+                (
+                    SELECT al.approver_name
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approval_status = 'PENDING'
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                '-'
+            ) AS currentApproverName,
+            CAST((
+                SELECT COUNT(*)
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+            ) AS SIGNED) AS totalApproverCount,
+            CAST((
+                SELECT COUNT(*)
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+                  AND al.approval_status &lt;&gt; 'PENDING'
+            ) AS SIGNED) AS doneApproverCount,
+            CAST((CASE
+                WHEN (
+                    SELECT COUNT(*)
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                ) = 0 THEN 0
+                ELSE ROUND(
+                    (
+                        (
+                            SELECT COUNT(*)
+                            FROM approval_line al
+                            WHERE al.approval_id = ea.approval_id
+                              AND al.approval_status &lt;&gt; 'PENDING'
+                        ) * 100.0
+                    ) / (
+                        SELECT COUNT(*)
+                        FROM approval_line al
+                        WHERE al.approval_id = ea.approval_id
+                    ),
+                    0
+                )
+            END) AS SIGNED) AS progressPercent
+        FROM electronic_approval ea
+        WHERE
+        <include refid="approvalProgressWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
     <select id="findApprovalHeaderByApprovalId"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
         SELECT
