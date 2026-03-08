@@ -144,6 +144,65 @@ WHERE NOT EXISTS (
 );
 
 -- ---------------------------------------------------------------------------
+-- Organization closure (ancestor-descendant)
+-- ---------------------------------------------------------------------------
+DELETE FROM org_closure;
+
+INSERT INTO org_closure (ancestor_org_id, descendant_org_id, depth, sort_path)
+WITH RECURSIVE tree AS (
+    SELECT o.org_id,
+           o.parent_org_id,
+           CAST(
+               CONCAT(
+                       LPAD(COALESCE(o.sort_order, 0), 4, '0'),
+                       '-',
+                       LPAD(o.org_id, 10, '0')
+               ) AS CHAR(2000)
+           ) AS sort_path
+    FROM organization o
+    WHERE o.parent_org_id IS NULL
+      AND o.is_active = TRUE
+
+    UNION ALL
+
+    SELECT c.org_id,
+           c.parent_org_id,
+           CAST(
+               CONCAT(
+                       p.sort_path,
+                       '/',
+                       LPAD(COALESCE(c.sort_order, 0), 4, '0'),
+                       '-',
+                       LPAD(c.org_id, 10, '0')
+               ) AS CHAR(2000)
+           ) AS sort_path
+    FROM organization c
+    JOIN tree p ON c.parent_org_id = p.org_id
+    WHERE c.is_active = TRUE
+),
+closure AS (
+    SELECT t.org_id AS ancestor_org_id,
+           t.org_id AS descendant_org_id,
+           0 AS depth
+    FROM tree t
+
+    UNION ALL
+
+    SELECT c.ancestor_org_id,
+           child.org_id AS descendant_org_id,
+           c.depth + 1 AS depth
+    FROM closure c
+    JOIN organization child ON child.parent_org_id = c.descendant_org_id
+    WHERE child.is_active = TRUE
+)
+SELECT c.ancestor_org_id,
+       c.descendant_org_id,
+       c.depth,
+       t.sort_path
+FROM closure c
+JOIN tree t ON t.org_id = c.descendant_org_id;
+
+-- ---------------------------------------------------------------------------
 -- HR master data
 -- ---------------------------------------------------------------------------
 INSERT INTO hr_position (position_name)
@@ -731,4 +790,526 @@ WHERE e.employee_num = '2402040001'
       WHERE h.employee_id = e.employee_id
         AND h.event_type = 'STATE_CHANGE'
         AND h.effective_from = DATE '2024-12-01'
+  );
+
+-- ---------------------------------------------------------------------------
+-- Organization chart demo seeds (tree + members)
+-- ---------------------------------------------------------------------------
+INSERT INTO hr_position (position_name)
+SELECT '본부장'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_position WHERE position_name = '본부장'
+);
+
+INSERT INTO hr_rank (rank_name, rank_no)
+SELECT '주임', 2
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_rank WHERE rank_name = '주임'
+);
+
+INSERT INTO hr_rank (rank_name, rank_no)
+SELECT '사원', 1
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_rank WHERE rank_name = '사원'
+);
+
+INSERT INTO job (job_name)
+SELECT '프론트엔드 개발자'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = '프론트엔드 개발자'
+);
+
+INSERT INTO job (job_name)
+SELECT 'QA 엔지니어'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = 'QA 엔지니어'
+);
+
+INSERT INTO job (job_name)
+SELECT '인사 평가'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = '인사 평가'
+);
+
+INSERT INTO job (job_name)
+SELECT '인사 기획'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = '인사 기획'
+);
+
+INSERT INTO job (job_name)
+SELECT '인사 운영'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = '인사 운영'
+);
+
+INSERT INTO job (job_name)
+SELECT '채용 운영'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM job WHERE job_name = '채용 운영'
+);
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040003', '박민지', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000003', '1003', 'minji.park@example.test', '서울시 테스트구 테스트로 3', '1995-03-28',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-03-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040003');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040004', '이준호', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000004', '1004', 'junho.lee@example.test', '서울시 테스트구 테스트로 4', '1994-01-10',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-04-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040004');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040005', '최수빈', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000005', '1005', 'subin.choi@example.test', '서울시 테스트구 테스트로 5', '1998-07-21',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-06-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040005');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040006', '정수진', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000006', '1006', 'sujin.jung@example.test', '서울시 테스트구 테스트로 6', '1991-05-11',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2023-01-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040006');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040007', '최유진', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000007', '1007', 'yujin.choi@example.test', '서울시 테스트구 테스트로 7', '1989-11-02',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2022-09-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040007');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040008', '김철수', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000008', '1008', 'chulsoo.kim@example.test', '서울시 테스트구 테스트로 8', '1993-08-14',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2023-03-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040008');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040009', '홍길동', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000009', '1009', 'gildong.hong@example.test', '서울시 테스트구 테스트로 9', '1997-02-25',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-07-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040009');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040010', '장원영', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000010', '1010', 'wonyoung.jang@example.test', '서울시 테스트구 테스트로 10', '1999-12-30',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-09-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040010');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040011', '송혜교', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000011', '1011', 'hyegyo.song@example.test', '서울시 테스트구 테스트로 11', '1987-01-05',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2020-03-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040011');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040012', '강과장', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000012', '1012', 'gwajang.kang@example.test', '서울시 테스트구 테스트로 12', '1990-04-18',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2023-05-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040012');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040013', '남대리', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000013', '1013', 'daeri.nam@example.test', '서울시 테스트구 테스트로 13', '1992-06-11',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2023-08-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040013');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040014', '오주임', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000014', '1014', 'juim.oh@example.test', '서울시 테스트구 테스트로 14', '1996-10-03',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-01-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040014');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040015', '한사원', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000015', '1015', 'sawon.han@example.test', '서울시 테스트구 테스트로 15', '1999-09-09',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-11-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040015');
+
+INSERT INTO employee (
+    employee_num, employee_name, employee_password, phone, ext, email, address, birth_date,
+    bank_name, account_number_enc, account_number_hash, resident_number_enc, resident_number_hash,
+    initial_state, employ_state, hire_date, profile_id
+)
+SELECT
+    '2402040016', '배대리', '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy',
+    '01000000016', '1016', 'daeri.bae@example.test', '서울시 테스트구 테스트로 16', '1993-12-12',
+    '국민은행', 'QCxP2/svQ4ulFUned7Cd1WduR35l42J2ghA7SS8J+e80Ty5Bc11q6A==',
+    '181d7c608da830efe255c510be09d2096a5599e7540e310adde70ab50f361ff4',
+    'pASZ4pw5u3YEpZzlHmuTjqjwtKJYAInm8FBXZULqbzN/U5DV6dd6rcg=',
+    'd251350014ec875cc4a093809abb639e05c97334ebf284222b0c82cfc6971df3',
+    false, 'WORK', '2024-12-01', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM employee WHERE employee_num = '2402040016');
+
+-- 모바일1팀 (4명)
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-03-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040006'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-03-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
+JOIN job j ON j.job_name = '프론트엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040003'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-04-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '주임'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040004'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-06-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '사원'
+JOIN job j ON j.job_name = 'QA 엔지니어'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040005'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+-- 인사팀 (4명)
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2022-09-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '인사팀'
+JOIN hr_position p ON p.position_name = '팀장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '인사 평가'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040007'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2023-03-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '인사팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
+JOIN job j ON j.job_name = '인사 기획'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040008'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-07-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '인사팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '사원'
+JOIN job j ON j.job_name = '인사 운영'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040009'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-09-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '인사팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '사원'
+JOIN job j ON j.job_name = '채용 운영'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040010'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+-- 기술연구소 직속 (1명)
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2020-03-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '기술연구소'
+JOIN hr_position p ON p.position_name = '본부장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040011'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+-- 모바일1팀 정렬 검증용 추가 인원 (팀장 1명 + 팀원: 대리 > 주임 > 사원)
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2023-05-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040012'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+-- 기존에 강과장이 팀원으로 이미 들어간 경우를 보정한다.
+UPDATE employee_hr_info h
+JOIN employee e ON e.employee_id = h.employee_id
+JOIN hr_position p ON p.position_name = '팀장'
+SET h.position_id = p.position_id
+WHERE e.employee_num = '2402040012';
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2023-08-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
+JOIN job j ON j.job_name = '프론트엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040013'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-01-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '주임'
+JOIN job j ON j.job_name = 'QA 엔지니어'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040014'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-11-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'NEW', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '사원'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040015'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+INSERT INTO employee_hr_info (employee_id, org_id, effective_from, position_id, rank_id, job_id, employ_type, recruit_type, area_id)
+SELECT e.employee_id, o.org_id, DATE '2024-12-01', p.position_id, r.rank_id, j.job_id, 'REGULAR', 'EXPERIENCED', a.area_id
+FROM employee e
+JOIN organization o ON o.org_name = '모바일1팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+WHERE e.employee_num = '2402040016'
+  AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
+
+-- 조직도 데모 계정 로그인 가능하도록 role/password_history 추가
+INSERT INTO employee_role (employee_id, role_id)
+SELECT e.employee_id, r.role_id
+FROM employee e
+JOIN role r ON r.role_code = 'EVALUATEE'
+WHERE e.employee_num IN ('2402040003','2402040004','2402040005','2402040006','2402040007','2402040008','2402040009','2402040010','2402040011')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_role er
+      WHERE er.employee_id = e.employee_id
+        AND er.role_id = r.role_id
+  );
+
+INSERT INTO employee_role (employee_id, role_id)
+SELECT e.employee_id, r.role_id
+FROM employee e
+JOIN role r ON r.role_code = 'EVALUATEE'
+WHERE e.employee_num IN ('2402040012','2402040013','2402040014','2402040015')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_role er
+      WHERE er.employee_id = e.employee_id
+        AND er.role_id = r.role_id
+  );
+
+INSERT INTO employee_role (employee_id, role_id)
+SELECT e.employee_id, r.role_id
+FROM employee e
+JOIN role r ON r.role_code = 'EVALUATEE'
+WHERE e.employee_num = '2402040016'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_role er
+      WHERE er.employee_id = e.employee_id
+        AND er.role_id = r.role_id
+  );
+
+INSERT INTO password_history (employee_id, password_hash, change_at)
+SELECT e.employee_id, '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy', NOW()
+FROM employee e
+WHERE e.employee_num IN ('2402040003','2402040004','2402040005','2402040006','2402040007','2402040008','2402040009','2402040010','2402040011')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM password_history ph
+      WHERE ph.employee_id = e.employee_id
+  );
+
+INSERT INTO password_history (employee_id, password_hash, change_at)
+SELECT e.employee_id, '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy', NOW()
+FROM employee e
+WHERE e.employee_num IN ('2402040012','2402040013','2402040014','2402040015')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM password_history ph
+      WHERE ph.employee_id = e.employee_id
+  );
+
+INSERT INTO password_history (employee_id, password_hash, change_at)
+SELECT e.employee_id, '$2a$10$5hZDaK2H9brQmKbMa5ZoEuaJ7XfGZgQsOOrBOsPxXUXvYwtD0.8Sy', NOW()
+FROM employee e
+WHERE e.employee_num = '2402040016'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM password_history ph
+      WHERE ph.employee_id = e.employee_id
   );

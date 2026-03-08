@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS organization (
     CONSTRAINT fk_organization_parent FOREIGN KEY (parent_org_id) REFERENCES organization(org_id)
 );
 
+CREATE TABLE IF NOT EXISTS org_closure (
+    ancestor_org_id BIGINT NOT NULL,
+    descendant_org_id BIGINT NOT NULL,
+    depth INT NOT NULL,
+    sort_path VARCHAR(2000) NULL,
+    PRIMARY KEY (ancestor_org_id, descendant_org_id),
+    KEY idx_org_closure_descendant (descendant_org_id),
+    KEY idx_org_closure_ancestor_depth (ancestor_org_id, depth),
+    CONSTRAINT fk_org_closure_ancestor FOREIGN KEY (ancestor_org_id) REFERENCES organization(org_id),
+    CONSTRAINT fk_org_closure_descendant FOREIGN KEY (descendant_org_id) REFERENCES organization(org_id)
+);
+
 CREATE TABLE IF NOT EXISTS hr_position (
     position_id BIGINT NOT NULL AUTO_INCREMENT,
     position_name VARCHAR(255) NOT NULL,
