@@ -1275,6 +1275,18 @@ WHERE e.employee_num IN ('2402040012','2402040013','2402040014','2402040015')
 INSERT INTO employee_role (employee_id, role_id)
 SELECT e.employee_id, r.role_id
 FROM employee e
+JOIN role r ON r.role_code = 'EVALUATOR'
+WHERE e.employee_num = '2402040012'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_role er
+      WHERE er.employee_id = e.employee_id
+        AND er.role_id = r.role_id
+  );
+
+INSERT INTO employee_role (employee_id, role_id)
+SELECT e.employee_id, r.role_id
+FROM employee e
 JOIN role r ON r.role_code = 'EVALUATEE'
 WHERE e.employee_num = '2402040016'
   AND NOT EXISTS (
