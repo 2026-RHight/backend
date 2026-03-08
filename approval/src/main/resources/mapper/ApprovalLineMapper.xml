@@ -113,4 +113,12 @@
           AND approver_id = #{approverId}
     </select>
 
+    <update id="updateReadDateIfNull">
+        UPDATE approval_line
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND approver_id = #{approverId}
+          AND read_dt IS NULL
+    </update>
+
 </mapper>

@@ -2,6 +2,7 @@ package com.reverse.approval.internal.web;
 
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
+import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -67,4 +69,17 @@ public interface ApprovalResource {
     @SecurityRequirement(name = "JWT")
     ResponseEntity<ApiResponse<ApprovalDetailResponse>> getApprovalDetail(
             @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "기안 읽음 처리 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<String>> markApprovalAsRead(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "문서함 조회 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalBoxPageResponse>> getApprovalBoxes(
+            @RequestParam(value = "boxType", defaultValue = "ALL") String boxType,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user);
 }

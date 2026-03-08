@@ -17,4 +17,7 @@ public interface ReferenceLineMapper {
 
     int countByApprovalIdAndReferencerId(
             @Param("approvalId") Long approvalId, @Param("referencerId") Long referencerId);
+
+    int updateReadDateIfNull(
+            @Param("approvalId") Long approvalId, @Param("referencerId") Long referencerId);
 }

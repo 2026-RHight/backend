@@ -17,4 +17,7 @@ public interface RecipientLineMapper {
 
     int countByApprovalIdAndReceiverId(
             @Param("approvalId") Long approvalId, @Param("receiverId") Long receiverId);
+
+    int updateReadDateIfNull(
+            @Param("approvalId") Long approvalId, @Param("receiverId") Long receiverId);
 }

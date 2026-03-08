@@ -45,4 +45,12 @@
           AND referencer_id = #{referencerId}
     </select>
 
+    <update id="updateReadDateIfNull">
+        UPDATE reference_line
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND referencer_id = #{referencerId}
+          AND read_dt IS NULL
+    </update>
+
 </mapper>

@@ -34,4 +34,7 @@ public interface ApprovalLineMapper {
 
     int countByApprovalIdAndApproverId(
             @Param("approvalId") Long approvalId, @Param("approverId") Long approverId);
+
+    int updateReadDateIfNull(
+            @Param("approvalId") Long approvalId, @Param("approverId") Long approverId);
 }

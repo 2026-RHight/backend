@@ -45,4 +45,12 @@
           AND receiver_id = #{receiverId}
     </select>
 
+    <update id="updateReadDateIfNull">
+        UPDATE recipient_line
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND receiver_id = #{receiverId}
+          AND read_dt IS NULL
+    </update>
+
 </mapper>

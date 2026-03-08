@@ -2,10 +2,13 @@ package com.reverse.approval.internal.web;
 
 import com.reverse.approval.internal.application.ApprovalService;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
+import com.reverse.approval.internal.domain.enums.DocumentBoxType;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
+import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
+import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +16,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -116,6 +120,35 @@ public class ApprovalController implements ApprovalResource {
             @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
         ApprovalDetailResponse response =
                 approvalService.getApprovalDetail(approvalId, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @PatchMapping(path = "/{approvalId}/read")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<String>> markApprovalAsRead(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+        approvalService.markApprovalAsRead(approvalId, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success("읽음 처리 완료"));
+    }
+
+    @Override
+    @GetMapping(path = "/boxes")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalBoxPageResponse>> getApprovalBoxes(
+            @RequestParam(value = "boxType", defaultValue = "ALL") String boxType,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        DocumentBoxType documentBoxType;
+        try {
+            documentBoxType = DocumentBoxType.valueOf(boxType.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("지원하지 않는 문서함 타입입니다.");
+        }
+
+        ApprovalBoxPageResponse response =
+                approvalService.getApprovalBoxes(user.getEmployeeId(), documentBoxType, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

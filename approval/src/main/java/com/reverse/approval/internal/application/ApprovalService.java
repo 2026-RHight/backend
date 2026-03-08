@@ -2,11 +2,13 @@ package com.reverse.approval.internal.application;
 
 import com.reverse.approval.ApprovalFacade;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
+import com.reverse.approval.internal.domain.enums.DocumentBoxType;
 import com.reverse.approval.internal.dto.request.ApprovalLineRequest;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
+import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.approval.internal.exception.ApprovalNotFoundException;
@@ -35,6 +37,7 @@ import com.reverse.approval.internal.persistence.param.RecipientLineParam;
 import com.reverse.approval.internal.persistence.param.ReferenceLineParam;
 import com.reverse.approval.internal.persistence.param.VacationDetailParam;
 import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
+import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
@@ -127,25 +130,7 @@ public class ApprovalService implements ApprovalFacade {
 
     @Transactional(readOnly = true)
     public ApprovalDetailResponse getApprovalDetail(Long approvalId, Long employeeId) {
-        ApprovalHeaderRow header =
-                approvalMapper
-                        .findApprovalHeaderByApprovalId(approvalId)
-                        .orElseThrow(() -> new ApprovalNotFoundException("존재하지 않는 기안입니다."));
-
-        boolean canAccess =
-                header.drafterId().equals(employeeId)
-                        || approvalLineMapper.countByApprovalIdAndApproverId(approvalId, employeeId)
-                                > 0
-                        || referenceLineMapper.countByApprovalIdAndReferencerId(
-                                        approvalId, employeeId)
-                                > 0
-                        || recipientLineMapper.countByApprovalIdAndReceiverId(
-                                        approvalId, employeeId)
-                                > 0;
-
-        if (!canAccess) {
-            throw new ForbiddenException("해당 기안을 조회할 권한이 없습니다.");
-        }
+        ApprovalHeaderRow header = validateReadableApproval(approvalId, employeeId);
 
         List<ApprovalDetailResponse.ApprovalLineItem> approvalLines =
                 approvalLineMapper.findLinesByApprovalId(approvalId).stream()
@@ -261,6 +246,34 @@ public class ApprovalService implements ApprovalFacade {
                 businessTripDetail,
                 leaveDetail,
                 rtwDetail);
+    }
+
+    public void markApprovalAsRead(Long approvalId, Long employeeId) {
+        validateReadableApproval(approvalId, employeeId);
+        updateReadDateIfNull(approvalId, employeeId);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalBoxPageResponse getApprovalBoxes(
+            Long employeeId, DocumentBoxType boxType, int page, int size) {
+        if (page < 0) {
+            throw new BadRequestException("page는 0 이상이어야 합니다.");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("size는 1 이상이어야 합니다.");
+        }
+
+        int totalElements = approvalMapper.countApprovalsByBox(employeeId, boxType.name());
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        int offset = page * size;
+
+        List<ApprovalBoxPageResponse.ApprovalBoxItem> content =
+                approvalMapper.findApprovalsByBox(employeeId, boxType.name(), offset, size).stream()
+                        .map(this::toApprovalBoxItem)
+                        .toList();
+
+        boolean hasNext = page + 1 < totalPages;
+        return new ApprovalBoxPageResponse(content, page, size, totalElements, totalPages, hasNext);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {
@@ -573,6 +586,51 @@ public class ApprovalService implements ApprovalFacade {
     private ApprovalDetailResponse.AttachmentItem toAttachmentItem(ApprovalAttachmentRow row) {
         return new ApprovalDetailResponse.AttachmentItem(
                 row.fileId(), row.filePath(), row.originalName(), row.createdDate());
+    }
+
+    private ApprovalBoxPageResponse.ApprovalBoxItem toApprovalBoxItem(ApprovalBoxRow row) {
+        return new ApprovalBoxPageResponse.ApprovalBoxItem(
+                row.approvalId(),
+                row.docId(),
+                row.docType(),
+                row.title(),
+                row.approvalStatus(),
+                row.draftDate(),
+                row.approveDate(),
+                row.drafterId(),
+                row.drafterName(),
+                row.departmentName(),
+                row.readDate());
+    }
+
+    private void updateReadDateIfNull(Long approvalId, Long employeeId) {
+        approvalMapper.updateReadDateIfNull(approvalId, employeeId);
+        approvalLineMapper.updateReadDateIfNull(approvalId, employeeId);
+        referenceLineMapper.updateReadDateIfNull(approvalId, employeeId);
+        recipientLineMapper.updateReadDateIfNull(approvalId, employeeId);
+    }
+
+    private ApprovalHeaderRow validateReadableApproval(Long approvalId, Long employeeId) {
+        ApprovalHeaderRow header =
+                approvalMapper
+                        .findApprovalHeaderByApprovalId(approvalId)
+                        .orElseThrow(() -> new ApprovalNotFoundException("존재하지 않는 기안입니다."));
+
+        boolean canAccess =
+                header.drafterId().equals(employeeId)
+                        || approvalLineMapper.countByApprovalIdAndApproverId(approvalId, employeeId)
+                                > 0
+                        || referenceLineMapper.countByApprovalIdAndReferencerId(
+                                        approvalId, employeeId)
+                                > 0
+                        || recipientLineMapper.countByApprovalIdAndReceiverId(
+                                        approvalId, employeeId)
+                                > 0;
+
+        if (!canAccess) {
+            throw new ForbiddenException("해당 기안을 조회할 권한이 없습니다.");
+        }
+        return header;
     }
 
     private void publishReDraftMailEvents(

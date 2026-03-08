@@ -94,6 +94,174 @@
         WHERE approval_id = #{approvalId}
     </update>
 
+    <update id="updateReadDateIfNull">
+        UPDATE electronic_approval
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND read_dt IS NULL
+          AND (
+            drafter_id = #{employeeId}
+            OR EXISTS (
+                SELECT 1
+                FROM approval_line al
+                WHERE al.approval_id = #{approvalId}
+                  AND al.approver_id = #{employeeId}
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM reference_line rf
+                WHERE rf.approval_id = #{approvalId}
+                  AND rf.referencer_id = #{employeeId}
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM recipient_line rc
+                WHERE rc.approval_id = #{approvalId}
+                  AND rc.receiver_id = #{employeeId}
+            )
+          )
+    </update>
+
+    <sql id="documentBoxWhere">
+        <choose>
+            <when test="boxType == 'INBOX'">
+                ea.approval_status = 'COMPLETE'
+                AND EXISTS (
+                    SELECT 1
+                    FROM recipient_line rli
+                    WHERE rli.approval_id = ea.approval_id
+                      AND rli.receiver_id = #{employeeId}
+                )
+            </when>
+            <when test="boxType == 'REJECTED'">
+                ea.approval_status = 'REJECTED'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'COMPLETED'">
+                ea.approval_status = 'COMPLETE'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'TEMP'">
+                ea.approval_status = 'TEMP'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'REFERENCE'">
+                EXISTS (
+                    SELECT 1
+                    FROM reference_line rfi
+                    WHERE rfi.approval_id = ea.approval_id
+                      AND rfi.referencer_id = #{employeeId}
+                )
+            </when>
+            <when test="boxType == 'HOLD'">
+                ea.approval_status = 'HOLD'
+                AND (
+                    ea.drafter_id = #{employeeId}
+                    OR EXISTS (
+                        SELECT 1
+                        FROM approval_line ali
+                        WHERE ali.approval_id = ea.approval_id
+                          AND ali.approver_id = #{employeeId}
+                    )
+                )
+            </when>
+            <otherwise>
+                (
+                    ea.approval_status = 'COMPLETE'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM recipient_line rli
+                        WHERE rli.approval_id = ea.approval_id
+                          AND rli.receiver_id = #{employeeId}
+                    )
+                )
+                OR (
+                    ea.approval_status = 'REJECTED'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR (
+                    ea.approval_status = 'COMPLETE'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR (
+                    ea.approval_status = 'TEMP'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM reference_line rfi
+                    WHERE rfi.approval_id = ea.approval_id
+                      AND rfi.referencer_id = #{employeeId}
+                )
+                OR (
+                    ea.approval_status = 'HOLD'
+                    AND (
+                        ea.drafter_id = #{employeeId}
+                        OR EXISTS (
+                            SELECT 1
+                            FROM approval_line ali
+                            WHERE ali.approval_id = ea.approval_id
+                              AND ali.approver_id = #{employeeId}
+                        )
+                    )
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="countApprovalsByBox" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval ea
+        WHERE
+        <include refid="documentBoxWhere"/>
+    </select>
+
+    <select id="findApprovalsByBox"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalBoxRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.draft_dt AS draftDate,
+            ea.approve_dt AS approveDate,
+            ea.drafter_id AS drafterId,
+            ea.drafter_name AS drafterName,
+            ea.department_name AS departmentName,
+            COALESCE(
+                (
+                    SELECT al.read_dt
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approver_id = #{employeeId}
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                (
+                    SELECT rf.read_dt
+                    FROM reference_line rf
+                    WHERE rf.approval_id = ea.approval_id
+                      AND rf.referencer_id = #{employeeId}
+                    ORDER BY rf.reference_id ASC
+                    LIMIT 1
+                ),
+                (
+                    SELECT rc.read_dt
+                    FROM recipient_line rc
+                    WHERE rc.approval_id = ea.approval_id
+                      AND rc.receiver_id = #{employeeId}
+                    ORDER BY rc.recipient_id ASC
+                    LIMIT 1
+                )
+            ) AS readDate
+        FROM electronic_approval ea
+        WHERE
+        <include refid="documentBoxWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
     <select id="findApprovalHeaderByApprovalId"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
         SELECT

@@ -1,7 +1,9 @@
 package com.reverse.approval.internal.persistence;
 
 import com.reverse.approval.internal.persistence.param.ElectronicApprovalParam;
+import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
+import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +33,17 @@ public interface ApprovalMapper {
     int updateApprovalToRejected(@Param("approvalId") Long approvalId);
 
     int updateApprovalToHold(@Param("approvalId") Long approvalId);
+
+    int updateReadDateIfNull(
+            @Param("approvalId") Long approvalId, @Param("employeeId") Long employeeId);
+
+    int countApprovalsByBox(@Param("employeeId") Long employeeId, @Param("boxType") String boxType);
+
+    List<ApprovalBoxRow> findApprovalsByBox(
+            @Param("employeeId") Long employeeId,
+            @Param("boxType") String boxType,
+            @Param("offset") int offset,
+            @Param("size") int size);
 
     Optional<ApprovalHeaderRow> findApprovalHeaderByApprovalId(
             @Param("approvalId") Long approvalId);
