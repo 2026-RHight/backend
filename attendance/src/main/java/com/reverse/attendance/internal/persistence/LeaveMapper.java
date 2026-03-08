@@ -1,11 +1,10 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.LeaveRequest;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface LeaveMapper {
@@ -14,7 +13,8 @@ public interface LeaveMapper {
 
     void lockVacationBalanceByEmployeeId(@Param("employeeId") Long employeeId);
 
-    Double sumUsedDaysByStatus(@Param("employeeId") Long employeeId, @Param("status") String status);
+    Double sumUsedDaysByStatus(
+            @Param("employeeId") Long employeeId, @Param("status") String status);
 
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
@@ -28,5 +28,4 @@ public interface LeaveMapper {
 
     Optional<com.reverse.attendance.internal.domain.enums.LeaveType> findApprovedLeaveTypeByDate(
             @Param("employeeId") Long employeeId, @Param("date") java.time.LocalDate date);
-
 }

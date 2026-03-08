@@ -9,6 +9,4 @@ public record OrganizationTreeNodeResponseDTO(
         OrgType orgType,
         Integer orgLevel,
         Integer sortOrder,
-        Long memberCount
-) {
-}
+        Long memberCount) {}

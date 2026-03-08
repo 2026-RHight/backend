@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum AttendanceStatus {
-
     NORMAL("정상"),
     TARDY("지각"),
     EARLY_LEAVE("조퇴"),
@@ -14,5 +13,4 @@ public enum AttendanceStatus {
     VACATION("휴가");
 
     private final String description;
-
 }

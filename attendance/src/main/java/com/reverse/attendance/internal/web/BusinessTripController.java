@@ -1,18 +1,17 @@
 package com.reverse.attendance.internal.web;
 
 import com.reverse.attendance.internal.application.BusinessTripService;
+import com.reverse.attendance.internal.domain.BusinessTrip;
 import com.reverse.attendance.internal.dto.request.BusinessTripApplyRequest;
 import com.reverse.attendance.internal.dto.request.BusinessTripProcessRequest;
-import com.reverse.attendance.internal.domain.BusinessTrip;
+import com.reverse.core.security.CustomUser;
+import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.reverse.core.security.CustomUser;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
-import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/business-trips")
@@ -29,7 +28,8 @@ public class BusinessTripController {
 
     // 사용자 : 외근/출장 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyTrip(@Valid @RequestBody BusinessTripApplyRequest request,
+    public ResponseEntity<String> applyTrip(
+            @Valid @RequestBody BusinessTripApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             businessTripService.applyBusinessTrip(request, user.getEmployeeId());
@@ -43,8 +43,7 @@ public class BusinessTripController {
 
     @PutMapping("/{tripId}/cancel")
     public ResponseEntity<String> cancelTrip(
-            @PathVariable Long tripId,
-            @AuthenticationPrincipal CustomUser user) {
+            @PathVariable Long tripId, @AuthenticationPrincipal CustomUser user) {
         try {
             businessTripService.cancelTrip(tripId, user.getEmployeeId());
             return ResponseEntity.ok("신청이 취소되었습니다.");

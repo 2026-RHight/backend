@@ -1,10 +1,9 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.AttendancePolicy;
+import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.Optional;
 
 @Mapper
 public interface AttendancePolicyMapper {

@@ -17,4 +17,3 @@ public class NotFoundException extends RuntimeException {
         this.code = (code == null || code.isBlank()) ? "NOT_FOUND" : code;
     }
 }
-

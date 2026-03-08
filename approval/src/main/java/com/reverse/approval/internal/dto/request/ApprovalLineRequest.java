@@ -1,7 +1,6 @@
 package com.reverse.approval.internal.dto.request;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
@@ -13,5 +12,4 @@ public class ApprovalLineRequest {
 
     @NotNull(message = "결재자가 없을수는 없습니다.")
     Long approverId;
-
 }

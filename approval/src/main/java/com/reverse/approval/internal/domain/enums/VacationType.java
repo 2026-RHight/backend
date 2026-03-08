@@ -12,5 +12,4 @@ public enum VacationType {
     ETC("기타");
 
     private final String description;
-
 }

@@ -36,9 +36,6 @@ public class CustomUserDetailService implements UserDetailsService {
                 roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
 
         return new CustomUser(
-                employee.employeeId(),
-                employee.employeeNum(),
-                authorities,
-                employee.password());
+                employee.employeeId(), employee.employeeNum(), authorities, employee.password());
     }
 }

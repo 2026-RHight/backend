@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 public class LeaveProcessRequest {
 
     private Long leaveRequestId; // 결재할 휴가 신청 건의 ID
-    private boolean approve;     // true : 승인, false : 반려
+    private boolean approve; // true : 승인, false : 반려
     private String rejectReason; // 반려일 때만 필수 입력
 }

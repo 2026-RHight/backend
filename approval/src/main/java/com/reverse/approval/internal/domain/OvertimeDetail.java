@@ -3,10 +3,9 @@ package com.reverse.approval.internal.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Comment;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Table(name = "overtime_detail")

@@ -7,6 +7,4 @@ public record EmployeeProfileDTO(
         String orgName,
         String rankName,
         String positionName,
-        String jobName
-) {
-}
+        String jobName) {}

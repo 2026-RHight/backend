@@ -10,12 +10,12 @@ import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.Comment;
 
 @Entity
-@Table(name = "sequence_doc",
-        uniqueConstraints = @UniqueConstraint(
-              name = "uk_sequence_doc_prefix_year",
-               columnNames = {"prefix", "year"}
-            )
-)
+@Table(
+        name = "sequence_doc",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_sequence_doc_prefix_year",
+                        columnNames = {"prefix", "year"}))
 @Comment("채번 테이블")
 public class SequenceDoc {
 
@@ -31,5 +31,4 @@ public class SequenceDoc {
 
     @Column(name = "last_doc", nullable = false)
     private int lastDoc = 0;
-
 }
