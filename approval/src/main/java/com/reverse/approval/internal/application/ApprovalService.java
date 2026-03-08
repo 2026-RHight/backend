@@ -60,12 +60,19 @@ import com.reverse.approval.internal.persistence.row.RTWDetailRow;
 import com.reverse.approval.internal.persistence.row.RecipientLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ReferenceLineDetailRow;
 import com.reverse.approval.internal.persistence.row.VacationDetailRow;
+import com.reverse.core.event.ApprovalFlexibleEvent;
+import com.reverse.core.event.ApprovalLeaveEvent;
+import com.reverse.core.event.ApprovalOvertimeEvent;
+import com.reverse.core.event.ApprovalRTWEvent;
+import com.reverse.core.event.ApprovalTripEvent;
+import com.reverse.core.event.ApprovalVacationEvent;
 import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.service.NumberingService;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -920,6 +927,7 @@ public class ApprovalService implements ApprovalFacade {
 
         if (pendingCount == 0) {
             approvalMapper.updateApprovalToComplete(approvalId);
+            publishFinalApprovedEvent(approvalId);
             recipients.addAll(recipientLineMapper.findRecipientIdsByApprovalId(approvalId));
             publishMailToEmployeeIds(
                     recipients,
@@ -987,6 +995,106 @@ public class ApprovalService implements ApprovalFacade {
                 drafterProfile.email(),
                 "[RHIGHT] 결재 보류: " + safeTitle,
                 "<p>" + approverName + "님이 문서를 보류했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+    }
+
+    private void publishFinalApprovedEvent(Long approvalId) {
+        ApprovalHeaderRow header =
+                approvalMapper
+                        .findApprovalHeaderByApprovalId(approvalId)
+                        .orElseThrow(() -> new ApprovalNotFoundException("존재하지 않는 기안입니다."));
+
+        LocalDateTime approvedAt = header.approveDate();
+        if (approvedAt == null) {
+            throw new IllegalStateException("최종 승인 시 approve_dt가 없습니다. approvalId=" + approvalId);
+        }
+
+        switch (header.docType()) {
+            case "VACATION" -> {
+                VacationDetailRow row =
+                        vacationMapper
+                                .findVacationDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalVacationEvent(
+                                approvalId,
+                                approvedAt,
+                                row.vacationType(),
+                                row.startDate(),
+                                row.endDate(),
+                                row.reason()));
+            }
+            case "OVERTIME" -> {
+                OvertimeDetailRow row =
+                        overtimeMapper
+                                .findOvertimeDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalOvertimeEvent(
+                                approvalId,
+                                approvedAt,
+                                row.workDate(),
+                                row.startTime(),
+                                row.endTime(),
+                                row.reason()));
+            }
+            case "FLEXIBLE" -> {
+                FlexibleWorkDetailRow row =
+                        flexibleWorkMapper
+                                .findFlexibleWorkDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalFlexibleEvent(
+                                approvalId,
+                                approvedAt,
+                                row.startDate(),
+                                row.endDate(),
+                                row.reason()));
+            }
+            case "TRIP" -> {
+                BusinessTripDetailRow row =
+                        businessTripMapper
+                                .findBusinessTripDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalTripEvent(
+                                approvalId,
+                                approvedAt,
+                                row.tripType(),
+                                row.destination(),
+                                row.startDate(),
+                                row.endDate(),
+                                row.reason()));
+            }
+            case "LEAVE" -> {
+                LeaveDetailRow row =
+                        leaveMapper
+                                .findLeaveDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalLeaveEvent(
+                                approvalId,
+                                approvedAt,
+                                row.startDate(),
+                                row.endDate(),
+                                row.leaveType(),
+                                row.reason()));
+            }
+            case "RTW" -> {
+                RTWDetailRow row =
+                        rtwMapper
+                                .findRTWDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                eventPublisher.publishEvent(
+                        new ApprovalRTWEvent(approvalId, approvedAt, row.rtwDate(), row.reason()));
+            }
+            default -> throw new ApprovalNotFoundException("지원하지 않는 문서 타입입니다.");
+        }
     }
 
     private void publishMailToEmployeeIds(Set<Long> employeeIds, String subject, String body) {
