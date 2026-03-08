@@ -3,6 +3,8 @@ package com.reverse.hr.internal.web;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.OrganizationService;
+import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
+import com.reverse.hr.internal.dto.response.OrganizationMemberDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationTreeNodeResponseDTO;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -30,14 +32,41 @@ public class OrganizationController {
     }
 
     @GetMapping("/{orgId}/members")
-    @PreAuthorize("hasRole('EVALUATOR')")
     public ApiResponse<List<OrganizationMemberResponseDTO>> getOrganizationMembers(@AuthenticationPrincipal CustomUser user, @PathVariable Long orgId) {
-        return ApiResponse.success(organizationService.getOrganizationMembers(user.getEmployeeId(), orgId));
+        return ApiResponse.success(organizationService.getOrganizationMembers(orgId));
     }
 
     @GetMapping("/my/members")
-    @PreAuthorize("hasRole('EVALUATOR')")
     public ApiResponse<List<OrganizationMemberResponseDTO>> getMyOrganizationMembers(@AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(organizationService.getMyOrganizationMembers(user.getEmployeeId()));
+    }
+
+    @GetMapping("/members/{targetEmployeeId}/detail")
+    @PreAuthorize("hasRole('EVALUATOR')")
+    public ApiResponse<OrganizationMemberDetailResponseDTO> getOrganizationMemberDetail(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long targetEmployeeId
+    ) {
+        return ApiResponse.success(organizationService.getOrganizationMemberDetail(user.getEmployeeId(), targetEmployeeId));
+    }
+
+    @GetMapping("/members/{targetEmployeeId}/skills/{skillId}/evidence")
+    @PreAuthorize("hasRole('EVALUATOR')")
+    public ApiResponse<EvidenceFileResponseDTO> getOrganizationMemberSkillEvidence(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long targetEmployeeId,
+            @PathVariable Long skillId
+    ) {
+        return ApiResponse.success(organizationService.getOrganizationMemberSkillEvidence(user.getEmployeeId(), targetEmployeeId, skillId));
+    }
+
+    @GetMapping("/members/{targetEmployeeId}/careers/{careerId}/evidence")
+    @PreAuthorize("hasRole('EVALUATOR')")
+    public ApiResponse<EvidenceFileResponseDTO> getOrganizationMemberCareerEvidence(
+            @AuthenticationPrincipal CustomUser user,
+            @PathVariable Long targetEmployeeId,
+            @PathVariable Long careerId
+    ) {
+        return ApiResponse.success(organizationService.getOrganizationMemberCareerEvidence(user.getEmployeeId(), targetEmployeeId, careerId));
     }
 }
