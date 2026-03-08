@@ -33,13 +33,18 @@ import com.reverse.approval.internal.persistence.param.RecipientLineParam;
 import com.reverse.approval.internal.persistence.param.ReferenceLineParam;
 import com.reverse.approval.internal.persistence.param.VacationDetailParam;
 import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
+import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +54,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Transactional
 public class ApprovalService implements ApprovalFacade {
+
     private final HrFacade hrFacade;
     private final ApprovalLineMapper approvalLineMapper;
     private final ApprovalMapper approvalMapper;
@@ -62,6 +68,7 @@ public class ApprovalService implements ApprovalFacade {
     private final RecipientLineMapper recipientLineMapper;
     private final ApprovalFileService approvalFileService;
     private final ApprovalAttachmentMapper approvalAttachmentMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     public String draftApproval(
             DraftApproval dto, List<MultipartFile> files, Long employeeId, ApprovalStatus status) {
@@ -79,6 +86,8 @@ public class ApprovalService implements ApprovalFacade {
         insertAttachments(files, approval.getApprovalId());
 
         if (status.equals(ApprovalStatus.PENDING)) {
+            publishSubmissionMailEvents(dto, drafterProfile);
+
             return dto.getTitle() + " 기안이 상신되었습니다.";
         } else {
             return "기안이 임시 저장 되었습니다.";
@@ -253,6 +262,75 @@ public class ApprovalService implements ApprovalFacade {
                         }
                     });
             throw e;
+        }
+    }
+
+    private void publishSubmissionMailEvents(DraftApproval dto, EmployeeProfileDTO drafterProfile) {
+        String title = dto.getTitle();
+        String drafterName =
+                drafterProfile.employeeName() == null ? "기안자" : drafterProfile.employeeName();
+
+        sendMailToFirstApprover(dto, title, drafterName);
+        sendMailToReferencers(dto, title, drafterName);
+    }
+
+    private void sendMailToFirstApprover(DraftApproval dto, String title, String drafterName) {
+        if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
+            return;
+        }
+
+        Long firstApproverId =
+                dto.getApprovalLine().stream()
+                        .min(Comparator.comparingInt(ApprovalLineRequest::getApprovalSeq))
+                        .map(ApprovalLineRequest::getApproverId)
+                        .orElse(null);
+
+        if (firstApproverId == null) {
+            return;
+        }
+
+        EmployeeProfileDTO approver = hrFacade.getEmployeeProfile(firstApproverId);
+        if (approver.email() == null || approver.email().isBlank()) {
+            return;
+        }
+
+        String subject = "[RHIGHT] 결재 요청: " + title;
+        String body = "<p>" + drafterName + "님이 결재 문서를 상신했습니다.</p><p>문서 제목: " + title + "</p>";
+        safePublishEmailEvent(approver.email(), subject, body);
+    }
+
+    private void sendMailToReferencers(DraftApproval dto, String title, String drafterName) {
+        if (dto.getReferenceLine() == null || dto.getReferenceLine().isEmpty()) {
+            return;
+        }
+
+        Set<Long> referencerIds = new LinkedHashSet<>();
+        dto.getReferenceLine()
+                .forEach(
+                        line -> {
+                            if (line.getReferencerId() != null) {
+                                referencerIds.add(line.getReferencerId());
+                            }
+                        });
+
+        String subject = "[RHIGHT] 참조 문서 도착: " + title;
+        String body = "<p>" + drafterName + "님이 참조 문서를 상신했습니다.</p><p>문서 제목: " + title + "</p>";
+
+        referencerIds.forEach(
+                referencerId -> {
+                    EmployeeProfileDTO profile = hrFacade.getEmployeeProfile(referencerId);
+                    if (profile.email() == null || profile.email().isBlank()) {
+                        return;
+                    }
+                    safePublishEmailEvent(profile.email(), subject, body);
+                });
+    }
+
+    private void safePublishEmailEvent(String to, String subject, String body) {
+        try {
+            eventPublisher.publishEvent(new EmailSendEvent(to, subject, body));
+        } catch (RuntimeException e) {
+            log.warn("이메일 이벤트 발행 실패. to={}, subject={}", to, subject, e);
         }
     }
 }
