@@ -7,6 +7,7 @@ import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.dto.response.LoginResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +19,14 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Operation(summary = "로그인")
     @PostMapping("/login")
     public ApiResponse<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request){
         LoginResponseDTO token = authService.login(request);
         return ApiResponse.success(token);
     }
 
+    @Operation(summary = "초기화된 비밀번호 변경")
     @PatchMapping("/password")
     public ApiResponse<LoginResponseDTO> changeInitialPassword(
             @RequestHeader(value = "Authorization", required = false) String authorization,
@@ -34,6 +37,7 @@ public class AuthController {
         return ApiResponse.success(token);
     }
 
+    @Operation(summary = "비밀번호 초기화")
     @PatchMapping("/initialize/password")
     public ApiResponse<Void> initializePassword(@Valid @RequestBody InitializeRequestDTO dto){
         authService.initializePassword(dto);

@@ -36,11 +36,13 @@ public class MyPageController {
     }
 
     @GetMapping
+    @Operation(summary = "마이페이지 전체 조회")
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user){
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
     }
 
     @PatchMapping("/password")
+    @Operation(summary = "내 비밀번호 변경")
     public ApiResponse<Void> changeMyPassword(
             @AuthenticationPrincipal CustomUser user,
             @Valid @RequestBody ChangeMyPasswordRequestDTO request
@@ -50,6 +52,7 @@ public class MyPageController {
     }
 
     @PatchMapping(value = "/basic-info", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "기본 정보 수정")
     public ApiResponse<Void> updateBasicInfo(
             @AuthenticationPrincipal CustomUser user,
             @Valid @RequestPart("request") UpdateBasicInfoRequestDTO request,
@@ -60,6 +63,7 @@ public class MyPageController {
     }
 
     @PostMapping(value = "/skills", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "역량 정보 추가")
     public ApiResponse<CreateSkillResponseDTO> createSkills (@AuthenticationPrincipal CustomUser user,
                                                              @Valid @RequestPart("request") CreateSkillRequestDTO request,
                                                              @RequestPart("file")MultipartFile file){
@@ -67,6 +71,7 @@ public class MyPageController {
     }
 
     @PostMapping(value = "/careers", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "경력 사항 추가")
     public ApiResponse<CreateCareerResponseDTO> createCareer(
             @AuthenticationPrincipal CustomUser user,
             @Valid @RequestPart("request") CreateCareerRequestDTO request,
@@ -76,6 +81,7 @@ public class MyPageController {
     }
 
     @DeleteMapping("/skills/{skillId}")
+    @Operation(summary = "역량 정보 삭제")
     public ApiResponse<Void> deleteSkill(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long skillId
@@ -85,6 +91,7 @@ public class MyPageController {
     }
 
     @DeleteMapping("/careers/{careerId}")
+    @Operation(summary = "경력 사항 삭제")
     public ApiResponse<Void> deleteCareer(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long careerId
@@ -94,6 +101,7 @@ public class MyPageController {
     }
 
     @GetMapping("/skills/{skillId}/evidence")
+    @Operation(summary = "역량 증빙 파일 조회")
     public ApiResponse<EvidenceFileResponseDTO> getSkillEvidenceFile(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long skillId
@@ -102,6 +110,7 @@ public class MyPageController {
     }
 
     @GetMapping("/careers/{careerId}/evidence")
+    @Operation(summary = "경력 증빙 파일 조회")
     public ApiResponse<EvidenceFileResponseDTO> getCareerEvidenceFile(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long careerId

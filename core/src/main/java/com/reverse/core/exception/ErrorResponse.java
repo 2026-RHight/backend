@@ -33,6 +33,13 @@ public class ErrorResponse {
                     .build();
         }
 
+        if (exception instanceof NotFoundException ex) {
+            return ErrorResponse.builder()
+                    .code(ex.getCode())
+                    .message(ex.getMessage())
+                    .build();
+        }
+
         return ErrorResponse.builder()
                 .code("INTERNAL_ERROR")
                 .message("서버 내부 오류가 발생했습니다.")
