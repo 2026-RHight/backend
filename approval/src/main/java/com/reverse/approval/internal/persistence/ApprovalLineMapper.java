@@ -23,6 +23,9 @@ public interface ApprovalLineMapper {
     int updateApprovalLineToRejected(
             @Param("approvalLineId") Long approvalLineId, @Param("reason") String reason);
 
+    int updateApprovalLineToHold(
+            @Param("approvalLineId") Long approvalLineId, @Param("reason") String reason);
+
     int countPendingLinesByApprovalId(@Param("approvalId") Long approvalId);
 
     List<Long> findPendingApproverIdsByApprovalId(@Param("approvalId") Long approvalId);

@@ -278,7 +278,7 @@ CREATE TABLE IF NOT EXISTS electronic_approval (
     doc_type VARCHAR(31) NULL,
     doc_id VARCHAR(1000) NULL,
     title VARCHAR(1000) NOT NULL,
-    approval_status ENUM('TEMP','PENDING','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
+    approval_status ENUM('TEMP','PENDING','HOLD','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
     draft_dt DATETIME NOT NULL,
     drafter_id BIGINT NOT NULL,
     drafter_name VARCHAR(255) NOT NULL,
@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS electronic_approval (
 CREATE TABLE IF NOT EXISTS approval_line (
     approval_line_id BIGINT NOT NULL AUTO_INCREMENT,
     approval_seq TINYINT NOT NULL,
-    approval_status ENUM('TEMP','PENDING','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
+    approval_status ENUM('TEMP','PENDING','HOLD','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
     reason VARCHAR(1000) NULL,
     approved_dt DATETIME NULL,
     approval_id BIGINT NOT NULL,

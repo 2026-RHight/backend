@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum ApprovalStatus {
     TEMP("임시 저장"),
     PENDING("결재 진행 중"),
+    HOLD("보류"),
     DELEGATED("전결"),
     COMPLETE("결재 완료"),
     REJECTED("반려"),

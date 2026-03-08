@@ -30,6 +30,8 @@ public interface ApprovalMapper {
 
     int updateApprovalToRejected(@Param("approvalId") Long approvalId);
 
+    int updateApprovalToHold(@Param("approvalId") Long approvalId);
+
     Optional<ApprovalHeaderRow> findApprovalHeaderByApprovalId(
             @Param("approvalId") Long approvalId);
 }

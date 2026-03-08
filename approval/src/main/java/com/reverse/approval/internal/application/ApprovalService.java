@@ -321,17 +321,25 @@ public class ApprovalService implements ApprovalFacade {
             throw new ForbiddenException("현재 결재 순서의 결재자만 처리할 수 있습니다.");
         }
 
+        String normalizedReason = request.reason();
+        if (normalizedReason != null) {
+            normalizedReason = normalizedReason.trim();
+            if (normalizedReason.isBlank()) {
+                normalizedReason = null;
+            }
+        }
+
         if (Boolean.TRUE.equals(request.approve())) {
-            processApprove(approvalId, currentLine, request.reason(), approverId);
+            processApprove(approvalId, currentLine, normalizedReason, approverId);
             return;
         }
 
-        if (Boolean.FALSE.equals(request.approve()) && request.reason() != null) {
-
-            processReject(approvalId, currentLine, request.reason(), approverId);
-        } else {
-            throw new BadRequestException("반려시에 사유는 무조건 있어야 합니다.");
+        if (Boolean.FALSE.equals(request.approve()) && normalizedReason != null) {
+            processReject(approvalId, currentLine, normalizedReason, approverId);
+            return;
         }
+
+        processHold(approvalId, currentLine, normalizedReason, approverId);
     }
 
     private void insertDetailByDocType(DraftApproval dto, Long approvalId) {
@@ -665,6 +673,33 @@ public class ApprovalService implements ApprovalFacade {
                 drafterProfile.email(),
                 "[RHIGHT] 결재 반려: " + safeTitle,
                 "<p>" + approverName + "님이 문서를 반려했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+    }
+
+    private void processHold(
+            Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
+        approvalLineMapper.updateApprovalLineToHold(currentLine.approvalLineId(), reason);
+        approvalMapper.updateApprovalToHold(approvalId);
+
+        Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
+        if (drafterId == null) {
+            return;
+        }
+
+        EmployeeProfileDTO approverProfile = hrFacade.getEmployeeProfile(approverId);
+        EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(drafterId);
+        if (drafterProfile.email() == null || drafterProfile.email().isBlank()) {
+            return;
+        }
+
+        String title = approvalMapper.findTitleByApprovalId(approvalId);
+        String safeTitle = (title == null || title.isBlank()) ? "제목 없음" : title;
+        String approverName =
+                approverProfile.employeeName() == null ? "결재자" : approverProfile.employeeName();
+
+        safePublishEmailEvent(
+                drafterProfile.email(),
+                "[RHIGHT] 결재 보류: " + safeTitle,
+                "<p>" + approverName + "님이 문서를 보류했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
     }
 
     private void publishMailToEmployeeIds(Set<Long> employeeIds, String subject, String body) {

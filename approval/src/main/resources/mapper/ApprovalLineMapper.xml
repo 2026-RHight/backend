@@ -68,6 +68,14 @@
         WHERE approval_line_id = #{approvalLineId}
     </update>
 
+    <update id="updateApprovalLineToHold">
+        UPDATE approval_line
+        SET approval_status = 'HOLD',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+    </update>
+
     <select id="countPendingLinesByApprovalId" resultType="int">
         SELECT COUNT(*)
         FROM approval_line
