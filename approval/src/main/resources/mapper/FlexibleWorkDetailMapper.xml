@@ -21,4 +21,13 @@
         )
     </insert>
 
+    <select id="findFlexibleWorkDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.FlexibleWorkDetailRow">
+        SELECT start_dt AS startDate,
+               end_dt AS endDate,
+               reason AS reason
+        FROM flexible_work_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

@@ -2,6 +2,7 @@ package com.reverse.approval.internal.web;
 
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
+import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,4 +62,9 @@ public interface ApprovalResource {
             @PathVariable("approvalId") Long approvalId,
             @RequestBody ApprovalProcessRequest request,
             @AuthenticationPrincipal CustomUser user);
+
+    @Operation(summary = "기안 상세 조회 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<ApprovalDetailResponse>> getApprovalDetail(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user);
 }

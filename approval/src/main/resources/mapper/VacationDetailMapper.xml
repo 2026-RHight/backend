@@ -23,4 +23,14 @@
         )
     </insert>
 
+    <select id="findVacationDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.VacationDetailRow">
+        SELECT vacation_type AS vacationType,
+               start_dt AS startDate,
+               end_dt AS endDate,
+               reason AS reason
+        FROM vacation_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

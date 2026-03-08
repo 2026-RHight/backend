@@ -88,4 +88,21 @@
         WHERE approval_id = #{approvalId}
     </update>
 
+    <select id="findApprovalHeaderByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
+        SELECT
+            approval_id      AS approvalId,
+            doc_type         AS docType,
+            doc_id           AS docId,
+            title            AS title,
+            approval_status  AS approvalStatus,
+            draft_dt         AS draftDate,
+            drafter_id       AS drafterId,
+            drafter_name     AS drafterName,
+            department_name  AS departmentName,
+            approve_dt       AS approveDate
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

@@ -4,6 +4,7 @@ import com.reverse.approval.internal.application.ApprovalService;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
+import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
@@ -97,7 +98,7 @@ public class ApprovalController implements ApprovalResource {
     }
 
     @Override
-    @Operation(summary = "결재 처리 API")
+    @Operation(summary = "기안 결재 API")
     @PatchMapping(path = "/{approvalId}/process")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResponse<String>> processApproval(
@@ -106,5 +107,15 @@ public class ApprovalController implements ApprovalResource {
             @AuthenticationPrincipal CustomUser user) {
         approvalService.processApproval(approvalId, request, user.getEmployeeId());
         return ResponseEntity.ok(ApiResponse.success("결재 처리 완료"));
+    }
+
+    @Override
+    @GetMapping(path = "/{approvalId}")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalDetailResponse>> getApprovalDetail(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+        ApprovalDetailResponse response =
+                approvalService.getApprovalDetail(approvalId, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

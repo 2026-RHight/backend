@@ -23,4 +23,14 @@
         )
     </insert>
 
+    <select id="findLeaveDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.LeaveDetailRow">
+        SELECT start_dt AS startDate,
+               end_dt AS endDate,
+               leave_type AS leaveType,
+               reason AS reason
+        FROM leave_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

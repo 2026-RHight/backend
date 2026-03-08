@@ -23,4 +23,14 @@
         )
     </insert>
 
+    <select id="findOvertimeDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.OvertimeDetailRow">
+        SELECT work_date AS workDate,
+               start_time AS startTime,
+               end_time AS endTime,
+               reason AS reason
+        FROM overtime_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

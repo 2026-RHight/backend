@@ -7,6 +7,7 @@ import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
+import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.approval.internal.exception.ApprovalNotFoundException;
 import com.reverse.approval.internal.exception.AttachmentNotFoundException;
@@ -34,7 +35,17 @@ import com.reverse.approval.internal.persistence.param.RecipientLineParam;
 import com.reverse.approval.internal.persistence.param.ReferenceLineParam;
 import com.reverse.approval.internal.persistence.param.VacationDetailParam;
 import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
+import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
+import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
+import com.reverse.approval.internal.persistence.row.BusinessTripDetailRow;
+import com.reverse.approval.internal.persistence.row.FlexibleWorkDetailRow;
+import com.reverse.approval.internal.persistence.row.LeaveDetailRow;
+import com.reverse.approval.internal.persistence.row.OvertimeDetailRow;
+import com.reverse.approval.internal.persistence.row.RTWDetailRow;
+import com.reverse.approval.internal.persistence.row.RecipientLineDetailRow;
+import com.reverse.approval.internal.persistence.row.ReferenceLineDetailRow;
+import com.reverse.approval.internal.persistence.row.VacationDetailRow;
 import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
@@ -112,6 +123,144 @@ public class ApprovalService implements ApprovalFacade {
 
         byte[] content = approvalFileService.downloadByFileUrl(attachment.filePath());
         return new DownloadedApprovalFile(attachment.originalName(), content);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalDetailResponse getApprovalDetail(Long approvalId, Long employeeId) {
+        ApprovalHeaderRow header =
+                approvalMapper
+                        .findApprovalHeaderByApprovalId(approvalId)
+                        .orElseThrow(() -> new ApprovalNotFoundException("존재하지 않는 기안입니다."));
+
+        boolean canAccess =
+                header.drafterId().equals(employeeId)
+                        || approvalLineMapper.countByApprovalIdAndApproverId(approvalId, employeeId)
+                                > 0
+                        || referenceLineMapper.countByApprovalIdAndReferencerId(
+                                        approvalId, employeeId)
+                                > 0
+                        || recipientLineMapper.countByApprovalIdAndReceiverId(
+                                        approvalId, employeeId)
+                                > 0;
+
+        if (!canAccess) {
+            throw new ForbiddenException("해당 기안을 조회할 권한이 없습니다.");
+        }
+
+        List<ApprovalDetailResponse.ApprovalLineItem> approvalLines =
+                approvalLineMapper.findLinesByApprovalId(approvalId).stream()
+                        .map(this::toApprovalLineItem)
+                        .toList();
+
+        List<ApprovalDetailResponse.ReferenceLineItem> referenceLines =
+                referenceLineMapper.findReferenceLinesByApprovalId(approvalId).stream()
+                        .map(this::toReferenceLineItem)
+                        .toList();
+
+        List<ApprovalDetailResponse.RecipientLineItem> recipientLines =
+                recipientLineMapper.findRecipientLinesByApprovalId(approvalId).stream()
+                        .map(this::toRecipientLineItem)
+                        .toList();
+
+        List<ApprovalDetailResponse.AttachmentItem> attachments =
+                approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId).stream()
+                        .map(this::toAttachmentItem)
+                        .toList();
+
+        ApprovalDetailResponse.VacationDetail vacationDetail = null;
+        ApprovalDetailResponse.OvertimeDetail overtimeDetail = null;
+        ApprovalDetailResponse.FlexibleWorkDetail flexibleWorkDetail = null;
+        ApprovalDetailResponse.BusinessTripDetail businessTripDetail = null;
+        ApprovalDetailResponse.LeaveDetail leaveDetail = null;
+        ApprovalDetailResponse.RTWDetail rtwDetail = null;
+
+        switch (header.docType()) {
+            case "VACATION" -> {
+                VacationDetailRow row =
+                        vacationMapper
+                                .findVacationDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                vacationDetail =
+                        new ApprovalDetailResponse.VacationDetail(
+                                row.vacationType(), row.startDate(), row.endDate(), row.reason());
+            }
+            case "OVERTIME" -> {
+                OvertimeDetailRow row =
+                        overtimeMapper
+                                .findOvertimeDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                overtimeDetail =
+                        new ApprovalDetailResponse.OvertimeDetail(
+                                row.workDate(), row.startTime(), row.endTime(), row.reason());
+            }
+            case "FLEXIBLE" -> {
+                FlexibleWorkDetailRow row =
+                        flexibleWorkMapper
+                                .findFlexibleWorkDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                flexibleWorkDetail =
+                        new ApprovalDetailResponse.FlexibleWorkDetail(
+                                row.startDate(), row.endDate(), row.reason());
+            }
+            case "TRIP" -> {
+                BusinessTripDetailRow row =
+                        businessTripMapper
+                                .findBusinessTripDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                businessTripDetail =
+                        new ApprovalDetailResponse.BusinessTripDetail(
+                                row.tripType(),
+                                row.destination(),
+                                row.startDate(),
+                                row.endDate(),
+                                row.reason());
+            }
+            case "LEAVE" -> {
+                LeaveDetailRow row =
+                        leaveMapper
+                                .findLeaveDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                leaveDetail =
+                        new ApprovalDetailResponse.LeaveDetail(
+                                row.startDate(), row.endDate(), row.leaveType(), row.reason());
+            }
+            case "RTW" -> {
+                RTWDetailRow row =
+                        rtwMapper
+                                .findRTWDetailByApprovalId(approvalId)
+                                .orElseThrow(
+                                        () -> new ApprovalNotFoundException("기안 상세를 찾을 수 없습니다."));
+                rtwDetail = new ApprovalDetailResponse.RTWDetail(row.rtwDate(), row.reason());
+            }
+            default -> throw new ApprovalNotFoundException("지원하지 않는 문서 타입입니다.");
+        }
+
+        return new ApprovalDetailResponse(
+                header.approvalId(),
+                header.docId(),
+                header.docType(),
+                header.title(),
+                header.approvalStatus(),
+                header.draftDate(),
+                header.approveDate(),
+                header.drafterId(),
+                header.drafterName(),
+                header.departmentName(),
+                approvalLines,
+                referenceLines,
+                recipientLines,
+                attachments,
+                vacationDetail,
+                overtimeDetail,
+                flexibleWorkDetail,
+                businessTripDetail,
+                leaveDetail,
+                rtwDetail);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {
@@ -387,6 +536,35 @@ public class ApprovalService implements ApprovalFacade {
         } catch (RuntimeException e) {
             log.warn("이메일 이벤트 발행 실패. to={}, subject={}", to, subject, e);
         }
+    }
+
+    private ApprovalDetailResponse.ApprovalLineItem toApprovalLineItem(ApprovalLineDetailRow row) {
+        return new ApprovalDetailResponse.ApprovalLineItem(
+                row.approvalSeq(),
+                row.approvalStatus(),
+                row.approverId(),
+                row.approverName(),
+                row.approverRank(),
+                row.reason(),
+                row.approvedDate(),
+                row.readDate());
+    }
+
+    private ApprovalDetailResponse.ReferenceLineItem toReferenceLineItem(
+            ReferenceLineDetailRow row) {
+        return new ApprovalDetailResponse.ReferenceLineItem(
+                row.referencerId(), row.referencerName(), row.referenceRank(), row.readDate());
+    }
+
+    private ApprovalDetailResponse.RecipientLineItem toRecipientLineItem(
+            RecipientLineDetailRow row) {
+        return new ApprovalDetailResponse.RecipientLineItem(
+                row.receiverId(), row.receiverName(), row.receiverRank(), row.readDate());
+    }
+
+    private ApprovalDetailResponse.AttachmentItem toAttachmentItem(ApprovalAttachmentRow row) {
+        return new ApprovalDetailResponse.AttachmentItem(
+                row.fileId(), row.filePath(), row.originalName(), row.createdDate());
     }
 
     private void publishReDraftMailEvents(

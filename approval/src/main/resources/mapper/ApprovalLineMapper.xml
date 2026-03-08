@@ -83,4 +83,26 @@
         ORDER BY approval_seq ASC
     </select>
 
+    <select id="findLinesByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow">
+        SELECT approval_seq AS approvalSeq,
+               approval_status AS approvalStatus,
+               approver_id AS approverId,
+               approver_name AS approverName,
+               approver_rank AS approverRank,
+               reason AS reason,
+               approved_dt AS approvedDate,
+               read_dt AS readDate
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY approval_seq ASC
+    </select>
+
+    <select id="countByApprovalIdAndApproverId" resultType="int">
+        SELECT COUNT(*)
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approver_id = #{approverId}
+    </select>
+
 </mapper>

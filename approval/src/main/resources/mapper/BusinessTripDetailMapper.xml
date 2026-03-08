@@ -25,4 +25,15 @@
         )
     </insert>
 
+    <select id="findBusinessTripDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.BusinessTripDetailRow">
+        SELECT trip_type AS tripType,
+               destination AS destination,
+               start_dt AS startDate,
+               end_dt AS endDate,
+               reason AS reason
+        FROM business_trip_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

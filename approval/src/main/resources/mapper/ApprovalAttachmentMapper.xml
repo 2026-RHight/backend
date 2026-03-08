@@ -11,6 +11,7 @@
             file_id       AS fileId,
             file_path     AS filePath,
             original_name AS originalName,
+            created_dt    AS createdDate,
             approval_id   AS approvalId
         FROM approval_attachment
         WHERE file_id = #{fileId}
@@ -24,6 +25,7 @@
             file_id       AS fileId,
             file_path     AS filePath,
             original_name AS originalName,
+            created_dt    AS createdDate,
             approval_id   AS approvalId
         FROM approval_attachment
         WHERE approval_id = #{approvalId}

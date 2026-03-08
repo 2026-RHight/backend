@@ -19,4 +19,12 @@
         )
     </insert>
 
+    <select id="findRTWDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.RTWDetailRow">
+        SELECT rtw_date AS rtwDate,
+               reason AS reason
+        FROM rtw_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

@@ -27,4 +27,22 @@
         WHERE approval_id = #{approvalId}
     </select>
 
+    <select id="findRecipientLinesByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.RecipientLineDetailRow">
+        SELECT receiver_id AS receiverId,
+               receiver_name AS receiverName,
+               receiver_rank AS receiverRank,
+               read_dt AS readDate
+        FROM recipient_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY recipient_id ASC
+    </select>
+
+    <select id="countByApprovalIdAndReceiverId" resultType="int">
+        SELECT COUNT(*)
+        FROM recipient_line
+        WHERE approval_id = #{approvalId}
+          AND receiver_id = #{receiverId}
+    </select>
+
 </mapper>

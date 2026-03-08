@@ -27,4 +27,22 @@
         WHERE approval_id = #{approvalId}
     </select>
 
+    <select id="findReferenceLinesByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ReferenceLineDetailRow">
+        SELECT referencer_id AS referencerId,
+               referencer_name AS referencerName,
+               reference_rank AS referenceRank,
+               read_dt AS readDate
+        FROM reference_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY reference_id ASC
+    </select>
+
+    <select id="countByApprovalIdAndReferencerId" resultType="int">
+        SELECT COUNT(*)
+        FROM reference_line
+        WHERE approval_id = #{approvalId}
+          AND referencer_id = #{referencerId}
+    </select>
+
 </mapper>
