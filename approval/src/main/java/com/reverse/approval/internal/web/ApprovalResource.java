@@ -1,5 +1,6 @@
 package com.reverse.approval.internal.web;
 
+import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
@@ -11,6 +12,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,4 +54,11 @@ public interface ApprovalResource {
     @SecurityRequirement(name = "JWT")
     ResponseEntity<byte[]> downloadAttachment(
             @PathVariable("approvalId") Long approvalId, @PathVariable("fileId") Long fileId);
+
+    @Operation(summary = "결재 처리 API")
+    @SecurityRequirement(name = "JWT")
+    ResponseEntity<ApiResponse<String>> processApproval(
+            @PathVariable("approvalId") Long approvalId,
+            @RequestBody ApprovalProcessRequest request,
+            @AuthenticationPrincipal CustomUser user);
 }

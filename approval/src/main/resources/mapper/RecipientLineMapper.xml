@@ -21,4 +21,10 @@
         )
     </insert>
 
+    <select id="findRecipientIdsByApprovalId" resultType="long">
+        SELECT receiver_id
+        FROM recipient_line
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

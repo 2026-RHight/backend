@@ -25,4 +25,62 @@
         )
     </insert>
 
+    <update id="updateApprovalLineStatusFromTempToPending">
+        UPDATE approval_line
+        SET approval_status = 'PENDING'
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'TEMP'
+    </update>
+
+    <select id="findFirstApproverIdByApprovalId" resultType="long">
+        SELECT approver_id
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY approval_seq ASC
+        LIMIT 1
+    </select>
+
+    <select id="findFirstPendingLineByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalLineRow">
+        SELECT approval_line_id AS approvalLineId,
+               approval_seq AS approvalSeq,
+               approver_id AS approverId
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+        ORDER BY approval_seq ASC
+        LIMIT 1
+    </select>
+
+    <update id="updateApprovalLineToComplete">
+        UPDATE approval_line
+        SET approval_status = 'COMPLETE',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+    </update>
+
+    <update id="updateApprovalLineToRejected">
+        UPDATE approval_line
+        SET approval_status = 'REJECTED',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+    </update>
+
+    <select id="countPendingLinesByApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+    </select>
+
+    <select id="findPendingApproverIdsByApprovalId" resultType="long">
+        SELECT approver_id
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+        ORDER BY approval_seq ASC
+    </select>
+
 </mapper>

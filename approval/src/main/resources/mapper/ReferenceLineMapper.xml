@@ -21,4 +21,10 @@
         )
     </insert>
 
+    <select id="findReferencerIdsByApprovalId" resultType="long">
+        SELECT referencer_id
+        FROM reference_line
+        WHERE approval_id = #{approvalId}
+    </select>
+
 </mapper>

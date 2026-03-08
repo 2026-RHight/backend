@@ -14,4 +14,17 @@ public interface ApprovalMapper {
             @Param("approvalId") Long approvalId, @Param("drafterId") Long drafterId);
 
     int deleteElectronicApprovalById(@Param("approvalId") Long approvalId);
+
+    int updateApprovalStatusFromTempToPending(
+            @Param("approvalId") Long approvalId, @Param("drafterId") Long drafterId);
+
+    String findTitleByApprovalId(@Param("approvalId") Long approvalId);
+
+    String findApprovalStatusByApprovalId(@Param("approvalId") Long approvalId);
+
+    Long findDrafterIdByApprovalId(@Param("approvalId") Long approvalId);
+
+    int updateApprovalToComplete(@Param("approvalId") Long approvalId);
+
+    int updateApprovalToRejected(@Param("approvalId") Long approvalId);
 }

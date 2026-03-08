@@ -3,6 +3,7 @@ package com.reverse.approval.internal.application;
 import com.reverse.approval.ApprovalFacade;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.dto.request.ApprovalLineRequest;
+import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
@@ -33,7 +34,9 @@ import com.reverse.approval.internal.persistence.param.RecipientLineParam;
 import com.reverse.approval.internal.persistence.param.ReferenceLineParam;
 import com.reverse.approval.internal.persistence.param.VacationDetailParam;
 import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
+import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
 import com.reverse.core.event.EmailSendEvent;
+import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
@@ -127,6 +130,58 @@ public class ApprovalService implements ApprovalFacade {
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
             throw new IllegalStateException("기안 삭제에 실패했습니다. approvalId=" + approvalId);
+        }
+    }
+
+    public void reDraftApproval(Long approvalId, Long employeeId) {
+        if (approvalMapper.countByApprovalId(approvalId) == 0) {
+            throw new ApprovalNotFoundException("존재하지 않는 기안입니다.");
+        }
+        if (approvalMapper.countByApprovalIdAndDrafterId(approvalId, employeeId) == 0) {
+            throw new ForbiddenException("본인이 기안한 문서만 재상신할 수 있습니다.");
+        }
+
+        int updated = approvalMapper.updateApprovalStatusFromTempToPending(approvalId, employeeId);
+        if (updated != 1) {
+            throw new BadRequestException("임시 저장 상태(TEMP) 문서만 재상신할 수 있습니다.");
+        }
+
+        approvalLineMapper.updateApprovalLineStatusFromTempToPending(approvalId);
+
+        String title = approvalMapper.findTitleByApprovalId(approvalId);
+        EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(employeeId);
+        publishReDraftMailEvents(approvalId, title, drafterProfile);
+    }
+
+    public void processApproval(Long approvalId, ApprovalProcessRequest request, Long approverId) {
+        if (approvalMapper.countByApprovalId(approvalId) == 0) {
+            throw new ApprovalNotFoundException("존재하지 않는 기안입니다.");
+        }
+
+        String approvalStatus = approvalMapper.findApprovalStatusByApprovalId(approvalId);
+        if (!ApprovalStatus.PENDING.name().equals(approvalStatus)) {
+            throw new BadRequestException("결재 진행 중(PENDING) 문서만 처리할 수 있습니다.");
+        }
+
+        ApprovalLineRow currentLine =
+                approvalLineMapper.findFirstPendingLineByApprovalId(approvalId);
+        if (currentLine == null) {
+            throw new BadRequestException("처리 가능한 결재선이 없습니다.");
+        }
+        if (!currentLine.approverId().equals(approverId)) {
+            throw new ForbiddenException("현재 결재 순서의 결재자만 처리할 수 있습니다.");
+        }
+
+        if (Boolean.TRUE.equals(request.approve())) {
+            processApprove(approvalId, currentLine, request.reason(), approverId);
+            return;
+        }
+
+        if (Boolean.FALSE.equals(request.approve()) && request.reason() != null) {
+
+            processReject(approvalId, currentLine, request.reason(), approverId);
+        } else {
+            throw new BadRequestException("반려시에 사유는 무조건 있어야 합니다.");
         }
     }
 
@@ -332,5 +387,122 @@ public class ApprovalService implements ApprovalFacade {
         } catch (RuntimeException e) {
             log.warn("이메일 이벤트 발행 실패. to={}, subject={}", to, subject, e);
         }
+    }
+
+    private void publishReDraftMailEvents(
+            Long approvalId, String title, EmployeeProfileDTO drafterProfile) {
+        String safeTitle = (title == null || title.isBlank()) ? "제목 없음" : title;
+        String drafterName =
+                drafterProfile.employeeName() == null ? "기안자" : drafterProfile.employeeName();
+
+        Long firstApproverId = approvalLineMapper.findFirstApproverIdByApprovalId(approvalId);
+        if (firstApproverId != null) {
+            EmployeeProfileDTO approver = hrFacade.getEmployeeProfile(firstApproverId);
+            if (approver.email() != null && !approver.email().isBlank()) {
+                safePublishEmailEvent(
+                        approver.email(),
+                        "[RHIGHT] 결재 요청(재상신): " + safeTitle,
+                        "<p>" + drafterName + "님이 문서를 재상신했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+            }
+        }
+
+        List<Long> referencerIds = referenceLineMapper.findReferencerIdsByApprovalId(approvalId);
+        if (referencerIds == null || referencerIds.isEmpty()) {
+            return;
+        }
+
+        Set<Long> uniqueReferencerIds = new LinkedHashSet<>(referencerIds);
+        uniqueReferencerIds.forEach(
+                referencerId -> {
+                    EmployeeProfileDTO referencer = hrFacade.getEmployeeProfile(referencerId);
+                    if (referencer.email() == null || referencer.email().isBlank()) {
+                        return;
+                    }
+                    safePublishEmailEvent(
+                            referencer.email(),
+                            "[RHIGHT] 참조 문서 도착(재상신): " + safeTitle,
+                            "<p>"
+                                    + drafterName
+                                    + "님이 참조 문서를 재상신했습니다.</p><p>문서 제목: "
+                                    + safeTitle
+                                    + "</p>");
+                });
+    }
+
+    private void processApprove(
+            Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
+        approvalLineMapper.updateApprovalLineToComplete(currentLine.approvalLineId(), reason);
+
+        int pendingCount = approvalLineMapper.countPendingLinesByApprovalId(approvalId);
+        Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
+        String title = approvalMapper.findTitleByApprovalId(approvalId);
+        EmployeeProfileDTO approverProfile = hrFacade.getEmployeeProfile(approverId);
+        String approverName =
+                approverProfile.employeeName() == null ? "결재자" : approverProfile.employeeName();
+        String safeTitle = (title == null || title.isBlank()) ? "제목 없음" : title;
+
+        Set<Long> recipients = new LinkedHashSet<>();
+        recipients.add(drafterId);
+        recipients.addAll(referenceLineMapper.findReferencerIdsByApprovalId(approvalId));
+
+        if (pendingCount == 0) {
+            approvalMapper.updateApprovalToComplete(approvalId);
+            recipients.addAll(recipientLineMapper.findRecipientIdsByApprovalId(approvalId));
+            publishMailToEmployeeIds(
+                    recipients,
+                    "[RHIGHT] 결재 완료: " + safeTitle,
+                    "<p>" + approverName + "님이 결재를 완료했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+            return;
+        }
+
+        recipients.addAll(approvalLineMapper.findPendingApproverIdsByApprovalId(approvalId));
+        publishMailToEmployeeIds(
+                recipients,
+                "[RHIGHT] 결재 진행 알림: " + safeTitle,
+                "<p>" + approverName + "님이 결재를 완료했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+    }
+
+    private void processReject(
+            Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
+        approvalLineMapper.updateApprovalLineToRejected(currentLine.approvalLineId(), reason);
+        approvalMapper.updateApprovalToRejected(approvalId);
+
+        Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
+        if (drafterId == null) {
+            return;
+        }
+
+        EmployeeProfileDTO approverProfile = hrFacade.getEmployeeProfile(approverId);
+        EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(drafterId);
+        if (drafterProfile.email() == null || drafterProfile.email().isBlank()) {
+            return;
+        }
+
+        String title = approvalMapper.findTitleByApprovalId(approvalId);
+        String safeTitle = (title == null || title.isBlank()) ? "제목 없음" : title;
+        String approverName =
+                approverProfile.employeeName() == null ? "결재자" : approverProfile.employeeName();
+
+        safePublishEmailEvent(
+                drafterProfile.email(),
+                "[RHIGHT] 결재 반려: " + safeTitle,
+                "<p>" + approverName + "님이 문서를 반려했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
+    }
+
+    private void publishMailToEmployeeIds(Set<Long> employeeIds, String subject, String body) {
+        if (employeeIds == null || employeeIds.isEmpty()) {
+            return;
+        }
+
+        employeeIds.stream()
+                .filter(id -> id != null)
+                .forEach(
+                        employeeId -> {
+                            EmployeeProfileDTO profile = hrFacade.getEmployeeProfile(employeeId);
+                            if (profile.email() == null || profile.email().isBlank()) {
+                                return;
+                            }
+                            safePublishEmailEvent(profile.email(), subject, body);
+                        });
     }
 }

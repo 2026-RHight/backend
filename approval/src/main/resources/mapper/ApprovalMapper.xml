@@ -49,4 +49,43 @@
         WHERE approval_id = #{approvalId}
     </delete>
 
+    <update id="updateApprovalStatusFromTempToPending">
+        UPDATE electronic_approval
+        SET approval_status = 'PENDING'
+        WHERE approval_id = #{approvalId}
+          AND drafter_id = #{drafterId}
+          AND approval_status = 'TEMP'
+    </update>
+
+    <select id="findTitleByApprovalId" resultType="string">
+        SELECT title
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="findApprovalStatusByApprovalId" resultType="string">
+        SELECT approval_status
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="findDrafterIdByApprovalId" resultType="long">
+        SELECT drafter_id
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <update id="updateApprovalToComplete">
+        UPDATE electronic_approval
+        SET approval_status = 'COMPLETE',
+            approve_dt = NOW()
+        WHERE approval_id = #{approvalId}
+    </update>
+
+    <update id="updateApprovalToRejected">
+        UPDATE electronic_approval
+        SET approval_status = 'REJECTED'
+        WHERE approval_id = #{approvalId}
+    </update>
+
 </mapper>
