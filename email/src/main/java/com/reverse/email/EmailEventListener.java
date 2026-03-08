@@ -6,10 +6,12 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -21,6 +23,14 @@ public class EmailEventListener {
     @Async
     @EventListener
     public void handleEmailEvent(EmailSendEvent event) {
+        if (event == null
+                || !StringUtils.hasText(event.to())
+                || !StringUtils.hasText(event.subject())
+                || !StringUtils.hasText(event.body())) {
+            log.warn("유효하지 않은 메일 이벤트를 무시합니다.");
+            return;
+        }
+
         log.info("메일 발송 시작: 수신자={}, 제목={}", event.to(), event.subject());
 
         try {
@@ -39,8 +49,8 @@ public class EmailEventListener {
             mailSender.send(message);
             log.info("메일 발송 완료: {}", event.to());
 
-        } catch (MessagingException e) {
-            log.error("메일 발송 중 오류 발생: {}", e.getMessage());
+        } catch (MessagingException | MailException e) {
+            log.error("메일 발송 중 오류 발생", e);
             // 비동기 로직이므로 여기서 예외 처리를 확실히 해주거나
             // 재시도(Retry) 로직을 추가하는 것이 좋습니다.
         }
