@@ -5,6 +5,19 @@
 
 <mapper namespace="com.reverse.approval.internal.persistence.ApprovalMapper">
 
+    <select id="countByApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="countByApprovalIdAndDrafterId" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+          AND drafter_id = #{drafterId}
+    </select>
+
     <insert id="insertElectronicApproval"
             parameterType="com.reverse.approval.internal.persistence.param.ElectronicApprovalParam"
             useGeneratedKeys="true"
@@ -29,5 +42,11 @@
             #{departmentName}
         )
     </insert>
+
+    <delete id="deleteElectronicApprovalById">
+        DELETE
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </delete>
 
 </mapper>

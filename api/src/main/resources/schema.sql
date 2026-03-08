@@ -301,7 +301,7 @@ CREATE TABLE IF NOT EXISTS approval_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (approval_line_id),
     KEY idx_approval_line_approval_id (approval_id),
-    CONSTRAINT fk_approval_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_approval_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS approval_attachment (
@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS approval_attachment (
     approval_id BIGINT NOT NULL,
     PRIMARY KEY (file_id),
     KEY idx_approval_attachment_approval_id (approval_id),
-    CONSTRAINT fk_approval_attachment_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_approval_attachment_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS recipient_line (
@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS recipient_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (recipient_id),
     KEY idx_recipient_line_approval_id (approval_id),
-    CONSTRAINT fk_recipient_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_recipient_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reference_line (
@@ -336,7 +336,7 @@ CREATE TABLE IF NOT EXISTS reference_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (reference_id),
     KEY idx_reference_line_approval_id (approval_id),
-    CONSTRAINT fk_reference_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_reference_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS vacation_detail (
@@ -346,7 +346,7 @@ CREATE TABLE IF NOT EXISTS vacation_detail (
     end_dt DATETIME NOT NULL,
     reason TEXT NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_vacation_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_vacation_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS overtime_detail (
@@ -356,7 +356,7 @@ CREATE TABLE IF NOT EXISTS overtime_detail (
     end_time TIME NOT NULL,
     reason TEXT NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_overtime_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_overtime_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS flexible_work_detail (
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS flexible_work_detail (
     end_dt DATETIME NOT NULL,
     reason VARCHAR(255) NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_flexible_work_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_flexible_work_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS business_trip_detail (
@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS business_trip_detail (
     end_dt DATETIME NOT NULL,
     reason VARCHAR(255) NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_business_trip_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_business_trip_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS leave_detail (
@@ -386,7 +386,7 @@ CREATE TABLE IF NOT EXISTS leave_detail (
     leave_type ENUM('PARENTAL_LEAVE','SICK_LEAVE','FAMILY_CARE_LEAVE') NOT NULL,
     reason TEXT NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_leave_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_leave_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS rtw_detail (
@@ -394,5 +394,5 @@ CREATE TABLE IF NOT EXISTS rtw_detail (
     rtw_date DATE NOT NULL,
     reason TEXT NOT NULL,
     PRIMARY KEY (approval_id),
-    CONSTRAINT fk_rtw_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id)
+    CONSTRAINT fk_rtw_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
