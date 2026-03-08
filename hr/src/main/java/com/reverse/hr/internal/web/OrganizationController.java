@@ -7,6 +7,7 @@ import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationTreeNodeResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,21 +28,25 @@ public class OrganizationController {
     private final OrganizationService organizationService;
 
     @GetMapping("/tree")
+    @Operation(summary = "조직 트리 조회")
     public ApiResponse<List<OrganizationTreeNodeResponseDTO>> getOrganizationTree(@AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(organizationService.getOrganizationTree());
     }
 
     @GetMapping("/{orgId}/members")
+    @Operation(summary = "조직 구성원 목록 조회")
     public ApiResponse<List<OrganizationMemberResponseDTO>> getOrganizationMembers(@AuthenticationPrincipal CustomUser user, @PathVariable Long orgId) {
         return ApiResponse.success(organizationService.getOrganizationMembers(orgId));
     }
 
     @GetMapping("/my/members")
+    @Operation(summary = "내 조직 구성원 목록 조회")
     public ApiResponse<List<OrganizationMemberResponseDTO>> getMyOrganizationMembers(@AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(organizationService.getMyOrganizationMembers(user.getEmployeeId()));
     }
 
     @GetMapping("/members/{targetEmployeeId}/detail")
+    @Operation(summary = "조직 구성원 상세 조회")
     @PreAuthorize("hasRole('EVALUATOR')")
     public ApiResponse<OrganizationMemberDetailResponseDTO> getOrganizationMemberDetail(
             @AuthenticationPrincipal CustomUser user,
@@ -51,6 +56,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/members/{targetEmployeeId}/skills/{skillId}/evidence")
+    @Operation(summary = "조직 구성원 역량 증빙 조회")
     @PreAuthorize("hasRole('EVALUATOR')")
     public ApiResponse<EvidenceFileResponseDTO> getOrganizationMemberSkillEvidence(
             @AuthenticationPrincipal CustomUser user,
@@ -61,6 +67,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/members/{targetEmployeeId}/careers/{careerId}/evidence")
+    @Operation(summary = "조직 구성원 경력 증빙 조회")
     @PreAuthorize("hasRole('EVALUATOR')")
     public ApiResponse<EvidenceFileResponseDTO> getOrganizationMemberCareerEvidence(
             @AuthenticationPrincipal CustomUser user,
