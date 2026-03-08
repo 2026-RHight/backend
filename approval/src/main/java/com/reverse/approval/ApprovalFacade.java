@@ -1,4 +1,3 @@
 package com.reverse.approval;
 
-public interface ApprovalFacade {
-}
+public interface ApprovalFacade {}

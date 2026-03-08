@@ -17,5 +17,4 @@ public class RhightApplication {
     public static void main(String[] args) {
         SpringApplication.run(RhightApplication.class, args);
     }
-
 }

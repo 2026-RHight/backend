@@ -1,14 +1,14 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
 import com.reverse.attendance.internal.domain.Overtime;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
+import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
 import com.reverse.attendance.internal.persistence.OvertimeMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +18,9 @@ public class OvertimeService {
 
     @Transactional
     public void applyOvertime(OvertimeApplyRequest request, Long employeeId) {
-        if (request == null || request.getWorkDate() == null || request.getStartTime() == null
+        if (request == null
+                || request.getWorkDate() == null
+                || request.getStartTime() == null
                 || request.getEndTime() == null) {
             throw new IllegalArgumentException("근무 일자와 시작/종료 시간은 필수입니다.");
         }
@@ -26,14 +28,15 @@ public class OvertimeService {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
-        Overtime overtime = Overtime.builder()
-                .employeeId(employeeId)
-                .workDate(request.getWorkDate())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .reason(request.getReason())
-                .approvalStatus(ApprovalStatus.PENDING)
-                .build();
+        Overtime overtime =
+                Overtime.builder()
+                        .employeeId(employeeId)
+                        .workDate(request.getWorkDate())
+                        .startTime(request.getStartTime())
+                        .endTime(request.getEndTime())
+                        .reason(request.getReason())
+                        .approvalStatus(ApprovalStatus.PENDING)
+                        .build();
 
         overtimeMapper.insertOvertime(overtime);
     }
@@ -45,8 +48,11 @@ public class OvertimeService {
 
     @Transactional
     public void cancelOvertime(Long overtimeId, Long employeeId) {
-        Overtime overtime = overtimeMapper.findById(overtimeId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 연장근무 신청 내역을 찾을 수 없습니다."));
+        Overtime overtime =
+                overtimeMapper
+                        .findById(overtimeId)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("해당 연장근무 신청 내역을 찾을 수 없습니다."));
 
         if (!overtime.getEmployeeId().equals(employeeId)) {
             throw new IllegalStateException("본인의 신청 건만 취소할 수 있습니다.");
@@ -55,10 +61,11 @@ public class OvertimeService {
             throw new IllegalStateException("결재 대기 상태인 건만 취소할 수 있습니다.");
         }
 
-        Overtime canceledOvertime = Overtime.builder()
-                .overtimeId(overtime.getOvertimeId())
-                .approvalStatus(ApprovalStatus.CANCELED)
-                .build();
+        Overtime canceledOvertime =
+                Overtime.builder()
+                        .overtimeId(overtime.getOvertimeId())
+                        .approvalStatus(ApprovalStatus.CANCELED)
+                        .build();
 
         int updatedRows = overtimeMapper.updateStatusIfPending(canceledOvertime);
         if (updatedRows == 0) {
@@ -73,8 +80,10 @@ public class OvertimeService {
 
     @Transactional
     public void processOvertime(OvertimeProcessRequest request) {
-        Overtime overtime = overtimeMapper.findById(request.getOvertimeId())
-                .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
+        Overtime overtime =
+                overtimeMapper
+                        .findById(request.getOvertimeId())
+                        .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
 
         if (overtime.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new IllegalStateException("대기 상태인 신청 건만 결재할 수 있습니다.");
@@ -93,11 +102,12 @@ public class OvertimeService {
             rejectReason = request.getRejectReason();
         }
 
-        Overtime processedOvertime = Overtime.builder()
-                .overtimeId(overtime.getOvertimeId())
-                .approvalStatus(newStatus)
-                .rejectReason(rejectReason)
-                .build();
+        Overtime processedOvertime =
+                Overtime.builder()
+                        .overtimeId(overtime.getOvertimeId())
+                        .approvalStatus(newStatus)
+                        .rejectReason(rejectReason)
+                        .build();
 
         int updatedRows = overtimeMapper.updateStatusIfPending(processedOvertime);
         if (updatedRows == 0) {

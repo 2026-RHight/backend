@@ -1,9 +1,8 @@
 package com.reverse.hr.internal.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Getter
@@ -25,5 +24,4 @@ public class PasswordHistory {
 
     @Column(name = "change_at", nullable = false)
     private LocalDateTime changeAt;
-
 }

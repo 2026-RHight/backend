@@ -13,9 +13,7 @@ public class SecurityHashPropertiesValidator {
     @PostConstruct
     public void validate() {
         if (pepper == null || pepper.trim().isEmpty()) {
-            throw new IllegalStateException(
-                    "Missing required env var: SECURITY_HASH_PEPPER"
-            );
+            throw new IllegalStateException("Missing required env var: SECURITY_HASH_PEPPER");
         }
     }
 }

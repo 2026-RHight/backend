@@ -14,6 +14,4 @@ public record OrgMemberRow(
         String areaName,
         EmployeeState employeeState,
         Integer leaderSort,
-        Long rankNo
-) {
-}
+        Long rankNo) {}

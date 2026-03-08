@@ -6,9 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Comment;
-
 import java.time.LocalDateTime;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Table(name = "recipient_line")

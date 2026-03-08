@@ -3,10 +3,9 @@ package com.reverse.attendance.internal.dto.response;
 import com.reverse.attendance.internal.domain.BusinessTrip;
 import com.reverse.attendance.internal.domain.LeaveRequest;
 import com.reverse.attendance.internal.domain.Overtime;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.util.List;
 
 @Getter
 @Builder

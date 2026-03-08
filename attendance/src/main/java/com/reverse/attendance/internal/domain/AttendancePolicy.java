@@ -1,11 +1,10 @@
 package com.reverse.attendance.internal.domain;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Getter
 @NoArgsConstructor
@@ -22,13 +21,17 @@ public class AttendancePolicy {
     private LocalDateTime updatedAt;
 
     @Builder
-    public AttendancePolicy(Long policyId
-            , Long employeeId, LocalTime stdStartTime
-            , LocalTime stdEndTime, LocalTime coreTimeStart
-            , LocalTime coreTimeEnd, LocalTime breakTimeStart
-            , LocalTime breakTimeEnd, LocalDateTime createdAt
-            , LocalDateTime updatedAt)
-    {
+    public AttendancePolicy(
+            Long policyId,
+            Long employeeId,
+            LocalTime stdStartTime,
+            LocalTime stdEndTime,
+            LocalTime coreTimeStart,
+            LocalTime coreTimeEnd,
+            LocalTime breakTimeStart,
+            LocalTime breakTimeEnd,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
         this.policyId = policyId;
         this.employeeId = employeeId;
         this.stdStartTime = stdStartTime;
@@ -39,7 +42,5 @@ public class AttendancePolicy {
         this.breakTimeEnd = breakTimeEnd;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-
     }
-
 }

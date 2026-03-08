@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 public class LeaveBalanceInitializeRequest {
 
     private Long employeeId;
-    private double defaultAnnualLeaveDays;  // 부여할 기본 연차 일수
-
+    private double defaultAnnualLeaveDays; // 부여할 기본 연차 일수
 }

@@ -1,13 +1,12 @@
 package com.reverse.core.exception;
 
-
 import com.reverse.core.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,10 +22,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnauthorizedException(UnauthorizedException ex) {
         log.error("UnauthorizedException 발생: code={}, message={}", ex.getCode(), ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .code(ex.getCode())
-                .message(ex.getMessage())
-                .build();
+        ErrorResponse error =
+                ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(error));
     }
@@ -35,10 +32,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleForbiddenException(ForbiddenException ex) {
         log.error("ForbiddenException 발생:  code={}, message: {}", ex.getCode(), ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .code(ex.getCode())
-                .message(ex.getMessage())
-                .build();
+        ErrorResponse error =
+                ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
@@ -47,10 +42,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNotFoundException(NotFoundException ex) {
         log.error("NotFoundException 발생: code={}, message={}", ex.getCode(), ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .code(ex.getCode())
-                .message(ex.getMessage())
-                .build();
+        ErrorResponse error =
+                ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(error));
     }
@@ -59,10 +52,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(Exception ex) {
         log.error("AccessDenied 발생: {}", ex.getMessage());
 
-        ErrorResponse error = ErrorResponse.builder()
-                .code("FORBIDDEN")
-                .message("접근 권한이 없습니다.")
-                .build();
+        ErrorResponse error =
+                ErrorResponse.builder().code("FORBIDDEN").message("접근 권한이 없습니다.").build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
@@ -87,46 +78,49 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult()
-                .getAllErrors()
-                .stream()
-                .findFirst()
-                .map(error -> {
-                    if (error instanceof FieldError fieldError) {
-                        String defaultMessage = fieldError.getDefaultMessage();
-                        return (defaultMessage == null || defaultMessage.isBlank())
-                                ? "요청 값이 올바르지 않습니다."
-                                : defaultMessage;
-                    }
-                    return "요청 값이 올바르지 않습니다.";
-                })
-                .orElse("요청 값이 올바르지 않습니다.");
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex) {
+        String message =
+                ex.getBindingResult().getAllErrors().stream()
+                        .findFirst()
+                        .map(
+                                error -> {
+                                    if (error instanceof FieldError fieldError) {
+                                        String defaultMessage = fieldError.getDefaultMessage();
+                                        return (defaultMessage == null || defaultMessage.isBlank())
+                                                ? "요청 값이 올바르지 않습니다."
+                                                : defaultMessage;
+                                    }
+                                    return "요청 값이 올바르지 않습니다.";
+                                })
+                        .orElse("요청 값이 올바르지 않습니다.");
 
-        ErrorResponse error = ErrorResponse.builder()
-                .code("INVALID_REQUEST")
-                .message(message)
-                .build();
+        ErrorResponse error =
+                ErrorResponse.builder().code("INVALID_REQUEST").message(message).build();
 
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMissingRequestPart(MissingServletRequestPartException ex) {
-        ErrorResponse error = ErrorResponse.builder()
-                .code("INVALID_REQUEST")
-                .message("필수 요청 파트가 누락되었습니다: " + ex.getRequestPartName())
-                .build();
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestPart(
+            MissingServletRequestPartException ex) {
+        ErrorResponse error =
+                ErrorResponse.builder()
+                        .code("INVALID_REQUEST")
+                        .message("필수 요청 파트가 누락되었습니다: " + ex.getRequestPartName())
+                        .build();
 
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
-        ErrorResponse error = ErrorResponse.builder()
-                .code("FILE_TOO_LARGE")
-                .message("업로드 파일 용량이 제한을 초과했습니다. 최대 50MB까지 업로드할 수 있습니다.")
-                .build();
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException ex) {
+        ErrorResponse error =
+                ErrorResponse.builder()
+                        .code("FILE_TOO_LARGE")
+                        .message("업로드 파일 용량이 제한을 초과했습니다. 최대 50MB까지 업로드할 수 있습니다.")
+                        .build();
 
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ApiResponse.fail(error));
     }

@@ -1,11 +1,10 @@
 package com.reverse.hr.internal.persistence.param;
 
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -20,4 +19,3 @@ public class CareerCreateParam {
     private LocalDate endDate;
     private Long hrFileId;
 }
-

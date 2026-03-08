@@ -8,5 +8,4 @@ import lombok.NoArgsConstructor;
 public class ClockOutRequest {
 
     private String earlyLeaveReason;
-
 }

@@ -21,7 +21,7 @@ public class AuthController {
 
     @Operation(summary = "로그인")
     @PostMapping("/login")
-    public ApiResponse<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request){
+    public ApiResponse<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         LoginResponseDTO token = authService.login(request);
         return ApiResponse.success(token);
     }
@@ -30,8 +30,7 @@ public class AuthController {
     @PatchMapping("/password")
     public ApiResponse<LoginResponseDTO> changeInitialPassword(
             @RequestHeader(value = "Authorization", required = false) String authorization,
-            @Valid @RequestBody ChangePasswordRequestDTO request)
-    {
+            @Valid @RequestBody ChangePasswordRequestDTO request) {
         String ticket = extractBearerToken(authorization);
         LoginResponseDTO token = authService.changeInitialPassword(ticket, request);
         return ApiResponse.success(token);
@@ -39,7 +38,7 @@ public class AuthController {
 
     @Operation(summary = "비밀번호 초기화")
     @PatchMapping("/initialize/password")
-    public ApiResponse<Void> initializePassword(@Valid @RequestBody InitializeRequestDTO dto){
+    public ApiResponse<Void> initializePassword(@Valid @RequestBody InitializeRequestDTO dto) {
         authService.initializePassword(dto);
         return ApiResponse.success();
     }

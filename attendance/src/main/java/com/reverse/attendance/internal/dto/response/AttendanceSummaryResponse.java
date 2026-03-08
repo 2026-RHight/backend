@@ -12,5 +12,4 @@ public class AttendanceSummaryResponse {
     private int earlyLeaveCount;
     private int absentCount;
     private int vacationCount;
-
 }

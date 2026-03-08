@@ -12,6 +12,4 @@ public record OrganizationMemberResponseDTO(
         String jobName,
         String rankName,
         String areaName,
-        EmployeeState employeeState
-) {
-}
+        EmployeeState employeeState) {}

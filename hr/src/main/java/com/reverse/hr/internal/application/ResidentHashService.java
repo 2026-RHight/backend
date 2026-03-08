@@ -1,11 +1,10 @@
 package com.reverse.hr.internal.application;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ResidentHashService {
@@ -18,7 +17,7 @@ public class ResidentHashService {
             throw new IllegalArgumentException("주민등록번호를 입력해주세요.");
         }
         String normalized = residentNum.replaceAll("[^0-9]", "");
-        if( normalized.isEmpty() ) {
+        if (normalized.isEmpty()) {
             throw new IllegalArgumentException("주민등록번호를 입력해주세요");
         }
         String input = normalized + pepper;

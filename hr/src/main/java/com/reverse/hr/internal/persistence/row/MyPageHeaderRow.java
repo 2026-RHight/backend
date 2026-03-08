@@ -12,6 +12,4 @@ public record MyPageHeaderRow(
         String phone,
         String extensionNum,
         String areaName,
-        String profileFileUrl
-) {
-}
+        String profileFileUrl) {}

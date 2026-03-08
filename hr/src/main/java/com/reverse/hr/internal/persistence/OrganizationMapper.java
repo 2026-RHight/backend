@@ -2,10 +2,9 @@ package com.reverse.hr.internal.persistence;
 
 import com.reverse.hr.internal.persistence.row.OrgMemberRow;
 import com.reverse.hr.internal.persistence.row.OrgTreeNodeRow;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 public interface OrganizationMapper {

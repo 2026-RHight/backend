@@ -39,5 +39,4 @@ public class AttendanceFacadeImpl implements AttendanceFacade {
     public void initializeLeaveBalance(LeaveBalanceInitializeRequest request) {
         // TODO: 나중에 신규 입사자 연차 세팅하는 로직 작성!
     }
-
 }

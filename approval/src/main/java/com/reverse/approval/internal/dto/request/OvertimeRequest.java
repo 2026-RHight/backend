@@ -2,10 +2,9 @@ package com.reverse.approval.internal.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
+import lombok.Getter;
 
 @Getter
 public class OvertimeRequest {
@@ -21,5 +20,4 @@ public class OvertimeRequest {
 
     @NotBlank(message = "사유가 없을 수는 없습니다.")
     String reason;
-
 }

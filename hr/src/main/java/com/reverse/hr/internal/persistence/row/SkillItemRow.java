@@ -8,6 +8,4 @@ public record SkillItemRow(
         String skillName,
         String acquisitionDate,
         String licenseNumber,
-        Long hrFileId
-) {
-}
+        Long hrFileId) {}

@@ -4,11 +4,10 @@ import com.reverse.hr.internal.persistence.param.CareerCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface MyPageMapper {
@@ -38,17 +37,19 @@ public interface MyPageMapper {
 
     int updateProfileId(@Param("employeeId") Long employeeId, @Param("profileId") Long profileId);
 
-    Optional<HrFileRow> findSkillFileByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
+    Optional<HrFileRow> findSkillFileByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
 
-    int deleteSkillByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
+    int deleteSkillByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("skillId") Long skillId);
 
-    Optional<HrFileRow> findCareerFileByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
+    Optional<HrFileRow> findCareerFileByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
 
-    int deleteCareerByIdAndEmployeeId(@Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
+    int deleteCareerByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
 
     int countHrFileReferences(@Param("hrFileId") Long hrFileId);
 
     int deleteHrFileById(@Param("hrFileId") Long hrFileId);
-
-
 }

@@ -6,9 +6,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Comment;
-
 import java.time.LocalDateTime;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Table(name = "vacation_detail")
@@ -30,5 +29,4 @@ public class VacationDetail extends ElectronicApproval {
     @Column(name = "reason", nullable = false, columnDefinition = "TEXT")
     @Comment("사유")
     private String reason;
-
 }

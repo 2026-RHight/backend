@@ -1,13 +1,12 @@
 package com.reverse.core.service;
 
 import com.reverse.core.mapper.SequenceMapper;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +22,7 @@ public class NumberingService {
         if (affectedRows == 0) {
             try {
                 sequenceMapper.insertInitialSequence(prefix, year);
-            } catch (DuplicateKeyException e){
+            } catch (DuplicateKeyException e) {
                 sequenceMapper.updateSequenceNumber(prefix, year);
             }
         }

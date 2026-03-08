@@ -1,19 +1,18 @@
 package com.reverse.attendance.internal.web;
 
 import com.reverse.attendance.internal.application.LeaveService;
+import com.reverse.attendance.internal.domain.LeaveRequest;
 import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
-import com.reverse.attendance.internal.domain.LeaveRequest;
+import com.reverse.core.security.CustomUser;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.reverse.core.security.CustomUser;
 import org.springframework.security.access.prepost.PreAuthorize;
-
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/leaves")
@@ -24,19 +23,22 @@ public class LeaveController {
 
     // 나의 휴가 현황 요약 조회 (잔여, 사용, 대기)
     @GetMapping("/balance")
-    public ResponseEntity<LeaveBalanceResponse> getMyLeaveBalance(@AuthenticationPrincipal CustomUser user) {
+    public ResponseEntity<LeaveBalanceResponse> getMyLeaveBalance(
+            @AuthenticationPrincipal CustomUser user) {
         return ResponseEntity.ok(leaveService.getLeaveBalance(user.getEmployeeId()));
     }
 
     // 내 휴가 신청 내역 리스트 조회
     @GetMapping("/my-requests")
-    public ResponseEntity<List<LeaveRequest>> getMyLeaveRequests(@AuthenticationPrincipal CustomUser user) {
+    public ResponseEntity<List<LeaveRequest>> getMyLeaveRequests(
+            @AuthenticationPrincipal CustomUser user) {
         return ResponseEntity.ok(leaveService.getMyLeaveRequests(user.getEmployeeId()));
     }
 
     // 휴가 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyLeave(@Valid @RequestBody LeaveApplyRequest request,
+    public ResponseEntity<String> applyLeave(
+            @Valid @RequestBody LeaveApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             leaveService.applyLeave(request, user.getEmployeeId());
@@ -51,8 +53,7 @@ public class LeaveController {
     // 휴가 취소 (결재 대기 상태일 때만 가능)
     @PutMapping("/{leaveRequestId}/cancel")
     public ResponseEntity<String> cancelLeave(
-            @PathVariable Long leaveRequestId,
-            @AuthenticationPrincipal CustomUser user) {
+            @PathVariable Long leaveRequestId, @AuthenticationPrincipal CustomUser user) {
         try {
             leaveService.cancelLeave(leaveRequestId, user.getEmployeeId());
             return ResponseEntity.ok("휴가 신청이 취소되었습니다.");

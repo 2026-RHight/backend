@@ -1,11 +1,10 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.Overtime;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface OvertimeMapper {
@@ -19,5 +18,4 @@ public interface OvertimeMapper {
     int updateStatusIfPending(Overtime overtime);
 
     List<Overtime> findAll(@Param("approvalStatus") String approvalStatus);
-
 }

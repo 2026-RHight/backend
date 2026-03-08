@@ -3,9 +3,8 @@ package com.reverse.approval.internal.dto.request;
 import com.reverse.approval.internal.domain.enums.DocType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-
 import java.util.List;
+import lombok.Getter;
 
 @Getter
 public class DraftApproval {
@@ -14,7 +13,6 @@ public class DraftApproval {
 
     @NotNull(message = "신청서 양식이 없을 수는 없습니다.")
     DocType docType;
-
 
     VacationRequest vacationRequest;
 

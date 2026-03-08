@@ -26,7 +26,7 @@ ext {
 spotless {
     java {
         // 적용할 파일 범위 지정
-        target 'src/*/java/**/*.java'
+        target '**/src/*/java/**/*.java'
 
         // 1. 구글 자바 포맷 적용 (AOSP 스타일은 4스페이스를 사용해 윈도우/맥 가독성이 좋습니다)
         googleJavaFormat().aosp()

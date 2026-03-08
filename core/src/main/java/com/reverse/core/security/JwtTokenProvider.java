@@ -5,12 +5,11 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * @author sekong11
@@ -99,13 +98,13 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String createPasswordChangeTicket(Long employeeId, String employeeNum){
+    public String createPasswordChangeTicket(Long employeeId, String employeeNum) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + 5 * 60 * 1000);
         return Jwts.builder()
                 .subject(String.valueOf(employeeId))
-                .claim("employeeNum",employeeNum)
-                .claim("purpose","PASSWORD_CHANGE")
+                .claim("employeeNum", employeeNum)
+                .claim("purpose", "PASSWORD_CHANGE")
                 .issuedAt(now)
                 .expiration(exp)
                 .signWith(secretKey)
@@ -130,8 +129,8 @@ public class JwtTokenProvider {
         return Long.valueOf(parseClaims(token).getSubject());
     }
 
-    public String getTokenType(String token){
-        return parseClaims(token).get("tokenType",String.class);
+    public String getTokenType(String token) {
+        return parseClaims(token).get("tokenType", String.class);
     }
 
     /**
@@ -186,9 +185,9 @@ public class JwtTokenProvider {
             Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token);
 
         } catch (SecurityException
-                 | MalformedJwtException
-                 | UnsupportedJwtException
-                 | IllegalArgumentException e) {
+                | MalformedJwtException
+                | UnsupportedJwtException
+                | IllegalArgumentException e) {
             throw new UnauthorizedException("Invalid token");
         } catch (ExpiredJwtException e) {
             throw new UnauthorizedException("Token is expired");
