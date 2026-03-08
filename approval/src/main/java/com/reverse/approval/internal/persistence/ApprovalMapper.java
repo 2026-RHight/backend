@@ -5,6 +5,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
+import com.reverse.approval.internal.persistence.row.ApprovalReviewRow;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -58,6 +59,13 @@ public interface ApprovalMapper {
             @Param("employeeId") Long employeeId,
             @Param("tabType") String tabType,
             @Param("keyword") String keyword,
+            @Param("offset") int offset,
+            @Param("size") int size);
+
+    Integer countApprovalReviews(@Param("employeeId") Long employeeId);
+
+    List<ApprovalReviewRow> findApprovalReviews(
+            @Param("employeeId") Long employeeId,
             @Param("offset") int offset,
             @Param("size") int size);
 

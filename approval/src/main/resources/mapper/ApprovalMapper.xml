@@ -365,6 +365,51 @@
         LIMIT #{size} OFFSET #{offset}
     </select>
 
+    <select id="countApprovalReviews" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+    </select>
+
+    <select id="findApprovalReviews"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalReviewRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.drafter_name AS drafterName,
+            ea.department_name AS departmentName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
     <select id="findApprovalHeaderByApprovalId"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
         SELECT

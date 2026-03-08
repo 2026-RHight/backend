@@ -13,6 +13,7 @@ import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.approval.internal.exception.ApprovalNotFoundException;
 import com.reverse.approval.internal.exception.AttachmentNotFoundException;
@@ -46,6 +47,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
+import com.reverse.approval.internal.persistence.row.ApprovalReviewRow;
 import com.reverse.approval.internal.persistence.row.BusinessTripDetailRow;
 import com.reverse.approval.internal.persistence.row.FlexibleWorkDetailRow;
 import com.reverse.approval.internal.persistence.row.LeaveDetailRow;
@@ -301,6 +303,29 @@ public class ApprovalService implements ApprovalFacade {
     public ApprovalProgressPageResponse searchApprovalProgress(
             Long employeeId, ProgressTabType tabType, String keyword, int page, int size) {
         return getApprovalProgressPage(employeeId, tabType, keyword, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalReviewPageResponse getApprovalReviews(Long employeeId, int page, int size) {
+        if (page < 0) {
+            throw new BadRequestException("page는 0 이상이어야 합니다.");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("size는 1 이상이어야 합니다.");
+        }
+
+        int totalElements = nvl(approvalMapper.countApprovalReviews(employeeId));
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        int offset = page * size;
+
+        List<ApprovalReviewPageResponse.ApprovalReviewItem> content =
+                approvalMapper.findApprovalReviews(employeeId, offset, size).stream()
+                        .map(this::toApprovalReviewItem)
+                        .toList();
+
+        boolean hasNext = page + 1 < totalPages;
+        return new ApprovalReviewPageResponse(
+                content, page, size, totalElements, totalPages, hasNext);
     }
 
     public void deleteApproval(Long approvalId, Long employeeId) {
@@ -684,6 +709,19 @@ public class ApprovalService implements ApprovalFacade {
 
     private int nvl(Number value) {
         return value == null ? 0 : value.intValue();
+    }
+
+    private ApprovalReviewPageResponse.ApprovalReviewItem toApprovalReviewItem(
+            ApprovalReviewRow row) {
+        return new ApprovalReviewPageResponse.ApprovalReviewItem(
+                row.approvalId(),
+                row.docId(),
+                row.docType(),
+                row.title(),
+                row.approvalStatus(),
+                row.drafterName(),
+                row.departmentName(),
+                row.draftDate());
     }
 
     private void updateReadDateIfNull(Long approvalId, Long employeeId) {

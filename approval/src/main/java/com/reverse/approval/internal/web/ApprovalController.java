@@ -10,6 +10,7 @@ import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.response.ApiResponse;
@@ -187,6 +188,18 @@ public class ApprovalController implements ApprovalResource {
         ApprovalProgressPageResponse response =
                 approvalService.searchApprovalProgress(
                         user.getEmployeeId(), parsedTabType, keyword, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/review")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalReviewPageResponse>> getApprovalReviews(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalReviewPageResponse response =
+                approvalService.getApprovalReviews(user.getEmployeeId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
