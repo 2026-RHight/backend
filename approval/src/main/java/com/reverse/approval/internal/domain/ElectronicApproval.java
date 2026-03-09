@@ -12,11 +12,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.Comment;
 
 @Entity
-@Table(name = "electronic_approval")
+@Table(
+        name = "electronic_approval",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_electronic_approval_doc_id",
+                        columnNames = {"doc_id"}))
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "doc_type")
 @Comment("전자 결재 테이블")
@@ -28,7 +34,7 @@ public abstract class ElectronicApproval {
     @Comment("전자결재 아이디")
     private Long approvalId;
 
-    @Column(name = "doc_id", length = 1000)
+    @Column(name = "doc_id", length = 13)
     @Comment("문서 번호")
     private String docId;
 

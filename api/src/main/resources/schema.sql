@@ -276,7 +276,7 @@ CREATE TABLE IF NOT EXISTS sequence_doc (
 CREATE TABLE IF NOT EXISTS electronic_approval (
     approval_id BIGINT NOT NULL AUTO_INCREMENT,
     doc_type VARCHAR(31) NULL,
-    doc_id VARCHAR(1000) NULL,
+    doc_id CHAR(13) NULL,
     title VARCHAR(1000) NOT NULL,
     approval_status ENUM('TEMP','PENDING','HOLD','DELEGATED','COMPLETE','REJECTED','WITHDRAWN') NOT NULL,
     draft_dt DATETIME NOT NULL,
@@ -285,7 +285,8 @@ CREATE TABLE IF NOT EXISTS electronic_approval (
     department_name VARCHAR(255) NOT NULL,
     approve_dt DATETIME NULL,
     read_dt DATETIME NULL,
-    PRIMARY KEY (approval_id)
+    PRIMARY KEY (approval_id),
+    UNIQUE KEY uk_electronic_approval_doc_id (doc_id)
 );
 
 CREATE TABLE IF NOT EXISTS approval_line (
