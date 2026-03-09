@@ -430,14 +430,30 @@ public class ApprovalService implements ApprovalFacade {
             throw new ForbiddenException("본인이 기안한 문서만 삭제할 수 있습니다.");
         }
 
+        String approvalStatus = approvalMapper.findApprovalStatusByApprovalId(approvalId);
+        if (!ApprovalStatus.TEMP.name().equals(approvalStatus)) {
+            throw new BadRequestException("임시 저장 상태(TEMP) 문서만 삭제할 수 있습니다.");
+        }
+
         List<ApprovalAttachmentRow> attachments =
                 approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId);
-        attachments.forEach(attachment -> approvalFileService.deleteByKey(attachment.fileKey()));
 
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
             throw new IllegalStateException("기안 삭제에 실패했습니다. approvalId=" + approvalId);
         }
+
+        attachments.forEach(
+                attachment -> {
+                    if (!StringUtils.hasText(attachment.fileKey())) {
+                        return;
+                    }
+                    try {
+                        approvalFileService.deleteByKey(attachment.fileKey());
+                    } catch (RuntimeException e) {
+                        log.warn("첨부파일 후처리 삭제 실패. key={}", attachment.fileKey(), e);
+                    }
+                });
     }
 
     public void reDraftApproval(
