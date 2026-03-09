@@ -1,11 +1,11 @@
 package com.reverse.attendance.internal.domain;
 
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Getter
 @NoArgsConstructor
@@ -21,12 +21,15 @@ public class Attendance {
     private String modifyReason;
 
     @Builder
-    public Attendance(Long attendanceId
-            , Long employeeId, LocalDate workDate
-            , LocalTime checkInTime, LocalTime checkOutTime
-            , AttendanceStatus status, String tardyReason
-            , String modifyReason)
-    {
+    public Attendance(
+            Long attendanceId,
+            Long employeeId,
+            LocalDate workDate,
+            LocalTime checkInTime,
+            LocalTime checkOutTime,
+            AttendanceStatus status,
+            String tardyReason,
+            String modifyReason) {
         this.attendanceId = attendanceId;
         this.employeeId = employeeId;
         this.workDate = workDate;

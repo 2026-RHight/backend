@@ -14,9 +14,11 @@ public class ModulithDocumentationTest {
                 .writeModulesAsPlantUml(
                         Documenter.DiagramOptions.defaults()
                                 .withDependencyDepth(DependencyDepth.ALL)
-                                .withElementsWithoutRelationships(Documenter.DiagramOptions.ElementsWithoutRelationships.VISIBLE) // ⭐ 고립 모듈도 표시
+                                .withElementsWithoutRelationships(
+                                        Documenter.DiagramOptions.ElementsWithoutRelationships
+                                                .VISIBLE) // ⭐ 고립 모듈도 표시
                         // .withStyle(Documenter.DiagramOptions.DiagramStyle.UML) // uml style
-                )
+                        )
                 .writeIndividualModulesAsPlantUml();
     }
 

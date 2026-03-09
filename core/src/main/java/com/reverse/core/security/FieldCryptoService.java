@@ -1,17 +1,16 @@
 package com.reverse.core.security;
 
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Component
 public class FieldCryptoService {
@@ -27,7 +26,8 @@ public class FieldCryptoService {
     @PostConstruct
     void init() {
         byte[] raw = Base64.getDecoder().decode(keyBase64);
-        if (raw.length != 32) throw new IllegalStateException("SECURITY_ENC_KEY_BASE64 must be 32-byte key");
+        if (raw.length != 32)
+            throw new IllegalStateException("SECURITY_ENC_KEY_BASE64 must be 32-byte key");
         this.key = new SecretKeySpec(raw, "AES");
     }
 
@@ -63,7 +63,7 @@ public class FieldCryptoService {
             Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
             c.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
             return new String(c.doFinal(cipher), StandardCharsets.UTF_8);
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("decrypt failed", e);

@@ -1,9 +1,8 @@
 package com.reverse.core.exception;
 
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 @Getter
 public class ErrorResponse {
@@ -20,22 +19,17 @@ public class ErrorResponse {
 
     public static ErrorResponse of(Exception exception) {
         if (exception instanceof UnauthorizedException ex) {
-            return ErrorResponse.builder()
-                    .code(ex.getCode())
-                    .message(ex.getMessage())
-                    .build();
+            return ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
         }
 
         if (exception instanceof ForbiddenException ex) {
-            return ErrorResponse.builder()
-                    .code(ex.getCode())
-                    .message(ex.getMessage())
-                    .build();
+            return ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
         }
 
-        return ErrorResponse.builder()
-                .code("INTERNAL_ERROR")
-                .message("서버 내부 오류가 발생했습니다.")
-                .build();
+        if (exception instanceof NotFoundException ex) {
+            return ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
+        }
+
+        return ErrorResponse.builder().code("INTERNAL_ERROR").message("서버 내부 오류가 발생했습니다.").build();
     }
 }

@@ -2,11 +2,10 @@ package com.reverse.attendance.internal.domain;
 
 import com.reverse.attendance.internal.domain.enums.LeaveStatus;
 import com.reverse.attendance.internal.domain.enums.LeaveType;
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor
@@ -22,12 +21,16 @@ public class LeaveRequest {
     private String rejectReason;
 
     @Builder
-    public LeaveRequest(Long leaveRequestId
-            , Long employeeId, LocalDate startDate
-            , LocalDate endDate, LeaveType leaveType
-            , LeaveStatus leaveStatus, double usedDays
-            , String reason, String rejectReason)
-    {
+    public LeaveRequest(
+            Long leaveRequestId,
+            Long employeeId,
+            LocalDate startDate,
+            LocalDate endDate,
+            LeaveType leaveType,
+            LeaveStatus leaveStatus,
+            double usedDays,
+            String reason,
+            String rejectReason) {
         this.leaveRequestId = leaveRequestId;
         this.employeeId = employeeId;
         this.startDate = startDate;

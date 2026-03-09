@@ -1,11 +1,10 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface WeeklyWorkScheduleMapper {
@@ -19,5 +18,4 @@ public interface WeeklyWorkScheduleMapper {
     List<WeeklyWorkSchedule> findAll(@Param("status") String status);
 
     int updateStatusIfPending(WeeklyWorkSchedule schedule);
-
 }

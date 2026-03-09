@@ -12,9 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.Comment;
-
 import java.time.LocalDateTime;
+import org.hibernate.annotations.Comment;
 
 @Entity
 @Table(name = "electronic_approval")
@@ -29,7 +28,7 @@ public abstract class ElectronicApproval {
     @Comment("전자결재 아이디")
     private Long approvalId;
 
-    @Column(name = "doc_id",length = 1000)
+    @Column(name = "doc_id", length = 1000)
     @Comment("문서 번호")
     private String docId;
 
@@ -65,6 +64,4 @@ public abstract class ElectronicApproval {
     @Column(name = "read_dt")
     @Comment("조회 날짜")
     private LocalDateTime readDate;
-
 }
-

@@ -3,9 +3,8 @@ package com.reverse.approval.internal.dto.request;
 import com.reverse.approval.internal.domain.enums.LeaveType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 @Getter
 public class LeaveRequest {

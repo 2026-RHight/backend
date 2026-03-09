@@ -8,5 +8,4 @@ import lombok.NoArgsConstructor;
 public class ClockInRequest {
 
     private String tardyReason;
-
 }

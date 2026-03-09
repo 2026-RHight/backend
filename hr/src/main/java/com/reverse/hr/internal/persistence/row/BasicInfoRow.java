@@ -13,6 +13,4 @@ public record BasicInfoRow(
         String residentNumberEnc,
         String bankName,
         String accountNumberEnc,
-        String profileFileUrl
-) {
-}
+        String profileFileUrl) {}

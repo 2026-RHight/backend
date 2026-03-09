@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum RecruitType {
-
     NEW("신입"),
     EXPERIENCED("경력");
 

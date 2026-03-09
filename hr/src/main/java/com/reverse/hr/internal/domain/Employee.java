@@ -2,16 +2,19 @@ package com.reverse.hr.internal.domain;
 
 import com.reverse.hr.internal.domain.enums.EmployeeState;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Table(uniqueConstraints = @UniqueConstraint(name = "UK_USER_EMPLOYEE_NUM", columnNames = {"employee_num"}))
+@Table(
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "UK_USER_EMPLOYEE_NUM",
+                        columnNames = {"employee_num"}))
 public class Employee {
 
     @Id
@@ -71,7 +74,7 @@ public class Employee {
     @Column(nullable = false)
     private EmployeeState employState;
 
-    //TODO(클로이): fk 인사파일 테이블 조인
+    // TODO(클로이): fk 인사파일 테이블 조인
     @Column(nullable = false)
     private Long profileId;
 
@@ -79,7 +82,6 @@ public class Employee {
     @JoinTable(
             name = "employee_role",
             joinColumns = @JoinColumn(name = "employee_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private java.util.Set<Role> roles = new java.util.HashSet<>();
 }

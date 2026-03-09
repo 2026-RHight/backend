@@ -1,12 +1,11 @@
 package com.reverse.attendance.internal.domain;
 
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -22,11 +21,15 @@ public class Overtime {
     private String rejectReason;
 
     @Builder
-    public Overtime(Long overtimeId, Long employeeId
-            , LocalDate workDate, LocalDateTime startTime
-            , LocalDateTime endTime, String reason
-            , ApprovalStatus approvalStatus, String rejectReason)
-    {
+    public Overtime(
+            Long overtimeId,
+            Long employeeId,
+            LocalDate workDate,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            String reason,
+            ApprovalStatus approvalStatus,
+            String rejectReason) {
         this.overtimeId = overtimeId;
         this.employeeId = employeeId;
         this.workDate = workDate;

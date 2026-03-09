@@ -3,11 +3,10 @@ package com.reverse.hr.internal.persistence;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;
 import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Optional;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface AuthMapper {
@@ -50,7 +49,8 @@ public interface AuthMapper {
      * @param employeeNum 사번
      * @return 초기화 대상 사용자 정보
      */
-    Optional<InitializeUserRow> findInitializeUserByEmployeeNum(@Param("employeeNum") String employeeNum);
+    Optional<InitializeUserRow> findInitializeUserByEmployeeNum(
+            @Param("employeeNum") String employeeNum);
 
     /**
      * 사용자 비밀번호와 초기 상태 값을 업데이트한다.
@@ -63,8 +63,7 @@ public interface AuthMapper {
     int updatePasswordAndInitialState(
             @Param("employeeId") Long employeeId,
             @Param("password") String password,
-            @Param("initialState") boolean initialState
-    );
+            @Param("initialState") boolean initialState);
 
     /**
      * 비밀번호 변경 이력을 저장한다.
@@ -74,7 +73,5 @@ public interface AuthMapper {
      * @return 반영된 row 수
      */
     int insertPasswordHistory(
-            @Param("employeeId") Long employeeId,
-            @Param("passwordHash") String passwordHash
-    );
+            @Param("employeeId") Long employeeId, @Param("passwordHash") String passwordHash);
 }

@@ -9,5 +9,4 @@ public class WeeklyWorkScheduleProcessRequest {
 
     private Long weeklyId;
     private boolean approve;
-
 }

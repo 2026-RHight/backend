@@ -1,19 +1,17 @@
 package com.reverse.attendance.internal.web;
 
 import com.reverse.attendance.internal.application.OvertimeService;
-import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
 import com.reverse.attendance.internal.domain.Overtime;
 import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
+import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
+import com.reverse.core.security.CustomUser;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.reverse.core.security.CustomUser;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/overtimes")
@@ -30,7 +28,8 @@ public class OvertimeController {
 
     // 사용자 : 연장근무 신청
     @PostMapping("/apply")
-    public ResponseEntity<String> applyOvertime(@Valid @RequestBody OvertimeApplyRequest request,
+    public ResponseEntity<String> applyOvertime(
+            @Valid @RequestBody OvertimeApplyRequest request,
             @AuthenticationPrincipal CustomUser user) {
         try {
             overtimeService.applyOvertime(request, user.getEmployeeId());
@@ -45,8 +44,7 @@ public class OvertimeController {
     // 사용자 : 신청 취소
     @PutMapping("/{overtimeId}/cancel")
     public ResponseEntity<String> cancelOvertime(
-            @PathVariable Long overtimeId,
-            @AuthenticationPrincipal CustomUser user) {
+            @PathVariable Long overtimeId, @AuthenticationPrincipal CustomUser user) {
         try {
             overtimeService.cancelOvertime(overtimeId, user.getEmployeeId());
             return ResponseEntity.ok("신청이 취소되었습니다.");

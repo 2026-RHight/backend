@@ -14,5 +14,4 @@ public enum ApprovalStatus {
     WITHDRAWN("회수");
 
     private final String description;
-
 }

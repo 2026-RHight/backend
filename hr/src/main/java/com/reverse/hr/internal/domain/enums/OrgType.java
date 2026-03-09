@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum OrgType {
-
     COMPANY("회사"),
     HEADQUARTER("본부"),
     CENTER("센터"),

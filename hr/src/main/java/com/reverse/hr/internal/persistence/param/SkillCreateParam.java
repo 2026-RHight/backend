@@ -1,12 +1,11 @@
 package com.reverse.hr.internal.persistence.param;
 
 import com.reverse.hr.internal.domain.enums.SkillCategory;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter
