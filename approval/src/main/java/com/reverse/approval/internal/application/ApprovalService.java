@@ -478,15 +478,12 @@ public class ApprovalService implements ApprovalFacade {
             throw new BadRequestException("임시 저장 상태(TEMP) 문서만 재상신할 수 있습니다.");
         }
 
-        List<ApprovalAttachmentRow> attachments =
-                approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId);
-        attachments.forEach(
-                attachment -> {
-                    if (!StringUtils.hasText(attachment.fileKey())) {
-                        return;
-                    }
-                    approvalFileService.deleteByKey(attachment.fileKey());
-                });
+        List<String> oldAttachmentKeys =
+                approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId).stream()
+                        .map(ApprovalAttachmentRow::fileKey)
+                        .filter(StringUtils::hasText)
+                        .toList();
+        registerAfterCommitCleanup(oldAttachmentKeys);
 
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
@@ -687,6 +684,39 @@ public class ApprovalService implements ApprovalFacade {
                                         approvalFileService.delete(key);
                                     } catch (RuntimeException e) {
                                         log.warn("롤백 보상 삭제 실패. key={}", key, e);
+                                    }
+                                });
+                    }
+                });
+    }
+
+    private void registerAfterCommitCleanup(List<String> fileKeys) {
+        if (fileKeys == null || fileKeys.isEmpty()) {
+            return;
+        }
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            fileKeys.forEach(
+                    key -> {
+                        try {
+                            approvalFileService.deleteByKey(key);
+                        } catch (RuntimeException e) {
+                            log.warn("커밋 후 첨부파일 삭제 실패. key={}", key, e);
+                        }
+                    });
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        fileKeys.forEach(
+                                key -> {
+                                    try {
+                                        approvalFileService.deleteByKey(key);
+                                    } catch (RuntimeException e) {
+                                        log.warn("커밋 후 첨부파일 삭제 실패. key={}", key, e);
                                     }
                                 });
                     }
