@@ -58,6 +58,7 @@
             reason = #{reason},
             approved_dt = NOW()
         WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
     </update>
 
     <update id="updateApprovalLineToRejected">
@@ -66,6 +67,7 @@
             reason = #{reason},
             approved_dt = NOW()
         WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
     </update>
 
     <update id="updateApprovalLineToHold">
@@ -74,6 +76,7 @@
             reason = #{reason},
             approved_dt = NOW()
         WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
     </update>
 
     <select id="countPendingLinesByApprovalId" resultType="int">

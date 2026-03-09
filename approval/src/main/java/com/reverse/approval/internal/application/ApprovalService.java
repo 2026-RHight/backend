@@ -933,7 +933,12 @@ public class ApprovalService implements ApprovalFacade {
 
     private void processApprove(
             Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
-        approvalLineMapper.updateApprovalLineToComplete(currentLine.approvalLineId(), reason);
+        int updatedLineCount =
+                approvalLineMapper.updateApprovalLineToComplete(
+                        currentLine.approvalLineId(), reason);
+        if (updatedLineCount != 1) {
+            throw new BadRequestException("이미 처리된 결재선입니다.");
+        }
 
         int pendingCount = approvalLineMapper.countPendingLinesByApprovalId(approvalId);
         Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
@@ -948,7 +953,10 @@ public class ApprovalService implements ApprovalFacade {
         recipients.addAll(referenceLineMapper.findReferencerIdsByApprovalId(approvalId));
 
         if (pendingCount == 0) {
-            approvalMapper.updateApprovalToComplete(approvalId);
+            int updatedApprovalCount = approvalMapper.updateApprovalToComplete(approvalId);
+            if (updatedApprovalCount != 1) {
+                throw new BadRequestException("이미 처리된 문서입니다.");
+            }
             publishFinalApprovedEvent(approvalId);
             recipients.addAll(recipientLineMapper.findRecipientIdsByApprovalId(approvalId));
             publishMailToEmployeeIds(
@@ -967,8 +975,16 @@ public class ApprovalService implements ApprovalFacade {
 
     private void processReject(
             Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
-        approvalLineMapper.updateApprovalLineToRejected(currentLine.approvalLineId(), reason);
-        approvalMapper.updateApprovalToRejected(approvalId);
+        int updatedLineCount =
+                approvalLineMapper.updateApprovalLineToRejected(
+                        currentLine.approvalLineId(), reason);
+        if (updatedLineCount != 1) {
+            throw new BadRequestException("이미 처리된 결재선입니다.");
+        }
+        int updatedApprovalCount = approvalMapper.updateApprovalToRejected(approvalId);
+        if (updatedApprovalCount != 1) {
+            throw new BadRequestException("이미 처리된 문서입니다.");
+        }
 
         Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
         if (drafterId == null) {
@@ -994,8 +1010,15 @@ public class ApprovalService implements ApprovalFacade {
 
     private void processHold(
             Long approvalId, ApprovalLineRow currentLine, String reason, Long approverId) {
-        approvalLineMapper.updateApprovalLineToHold(currentLine.approvalLineId(), reason);
-        approvalMapper.updateApprovalToHold(approvalId);
+        int updatedLineCount =
+                approvalLineMapper.updateApprovalLineToHold(currentLine.approvalLineId(), reason);
+        if (updatedLineCount != 1) {
+            throw new BadRequestException("이미 처리된 결재선입니다.");
+        }
+        int updatedApprovalCount = approvalMapper.updateApprovalToHold(approvalId);
+        if (updatedApprovalCount != 1) {
+            throw new BadRequestException("이미 처리된 문서입니다.");
+        }
 
         Long drafterId = approvalMapper.findDrafterIdByApprovalId(approvalId);
         if (drafterId == null) {

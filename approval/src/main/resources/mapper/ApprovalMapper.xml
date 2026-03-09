@@ -78,18 +78,21 @@
         SET approval_status = 'COMPLETE',
             approve_dt = NOW()
         WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
     </update>
 
     <update id="updateApprovalToRejected">
         UPDATE electronic_approval
         SET approval_status = 'REJECTED'
         WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
     </update>
 
     <update id="updateApprovalToHold">
         UPDATE electronic_approval
         SET approval_status = 'HOLD'
         WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
     </update>
 
     <update id="updateReadDateIfNull">
