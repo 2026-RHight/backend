@@ -32,6 +32,12 @@ public class PayrollService {
     // 월 급여 계산 및 대장 생성
     @Transactional
     public PayrollLedger calculateAndSavePayroll(Long employeeId, int year, int month) {
+        if (month < 1 || month > 12) {
+            throw new IllegalArgumentException("월은 1-12 사이여야 합니다.");
+        }
+        if (year < 1900 || year > 2100) {
+            throw new IllegalArgumentException("유효하지 않은 연도입니다.");
+        }
         String yearMonth = String.format("%04d-%02d", year, month);
 
         // 이미 정산된 내역이 있는지 확인
@@ -57,6 +63,9 @@ public class PayrollService {
         // 근태에서 근무 기록 가져오기
         PayrollAttendanceResponse attendanceInfo =
                 attendanceFacade.getAttendanceForPayroll(employeeId, year, month);
+        if (attendanceInfo == null) {
+            throw new IllegalStateException("근태 정보를 조회할 수 없습니다.");
+        }
 
         // 급여 및 수당 계산
         BigDecimal baseSalary = salarySetting.getBaseSalary();
@@ -65,12 +74,19 @@ public class PayrollService {
         // 통상 임금 기준으로 시급 계산
         BigDecimal hourlyWage = baseSalary.divide(new BigDecimal("209"), 2, RoundingMode.HALF_UP);
 
-        // 연장근무 수당
+        // 연장, 야간, 휴일근무 수당 합산 (통상 1.5배 가산)
+        double extraWorkHours =
+                attendanceInfo.getTotalOvertimeHours()
+                        + attendanceInfo.getNightWorkHours()
+                        + attendanceInfo.getHolidayWorkHours();
+
         BigDecimal overtimeAmount =
                 hourlyWage
-                        .multiply(BigDecimal.valueOf(attendanceInfo.getTotalOvertimeHours()))
+                        .multiply(BigDecimal.valueOf(extraWorkHours))
                         .multiply(new BigDecimal("1.5"))
                         .setScale(0, RoundingMode.HALF_UP);
+
+        // TODO: 출장(businessTripDays) 등에 대한 특수 정액 수당 필요시 확장 가능
 
         BigDecimal totalPayment = baseSalary.add(overtimeAmount).add(mealAllowance);
         BigDecimal taxableIncome = baseSalary.add(overtimeAmount); // 식대를 뺀 과세 기준액
@@ -78,19 +94,19 @@ public class PayrollService {
         // 공제 금액(4대보험) 계산
         BigDecimal nationalPension =
                 taxableIncome
-                        .multiply(BigDecimal.valueOf(insuranceRate.getNationalPensionRate()))
+                        .multiply(insuranceRate.getNationalPensionRate())
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal healthInsurance =
                 taxableIncome
-                        .multiply(BigDecimal.valueOf(insuranceRate.getHealthInsuranceRate()))
+                        .multiply(insuranceRate.getHealthInsuranceRate())
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal longTermCare =
                 healthInsurance
-                        .multiply(BigDecimal.valueOf(insuranceRate.getLongTermCareRate()))
+                        .multiply(insuranceRate.getLongTermCareRate())
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal empInsurance =
                 taxableIncome
-                        .multiply(BigDecimal.valueOf(insuranceRate.getEmpInsuranceRate()))
+                        .multiply(insuranceRate.getEmpInsuranceRate())
                         .setScale(0, RoundingMode.HALF_UP);
 
         // 소득세
@@ -154,6 +170,7 @@ public class PayrollService {
 
     // 최근 6개월 급여 목록 조회
     public List<PayrollListResponse> getRecentPayrollLedgers(Long employeeId, int limit) {
+        limit = Math.min(limit, 100); // 상한 검증 추가
         List<PayrollLedger> ledgers =
                 payrollMapper.findRecentPayrollLedgersByEmployeeId(employeeId, limit);
         return ledgers.stream().map(PayrollListResponse::from).collect(Collectors.toList());
@@ -166,11 +183,16 @@ public class PayrollService {
     }
 
     // 급여 명세서 상세 조회
-    public PayrollDetailResponse getPayrollDetail(Long ledgerId) {
+    public PayrollDetailResponse getPayrollDetail(Long employeeId, Long ledgerId) {
         PayrollLedger ledger =
                 payrollMapper
                         .findPayrollLedgerById(ledgerId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 급여 명세서입니다."));
+
+        if (!ledger.getEmployeeId().equals(employeeId)) {
+            throw new UnauthorizedException("FORBIDDEN", "본인의 급여 명세서만 조회할 수 있습니다.");
+        }
+
         return PayrollDetailResponse.from(ledger);
     }
 }

@@ -1,5 +1,6 @@
 package com.reverse.payroll.internal.domain;
 
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,18 +12,18 @@ public class InsuranceRate {
 
     private Long insuranceId;
     private int applyYear;
-    private double nationalPensionRate;
-    private double healthInsuranceRate;
-    private double longTermCareRate;
-    private double empInsuranceRate;
+    private BigDecimal nationalPensionRate;
+    private BigDecimal healthInsuranceRate;
+    private BigDecimal longTermCareRate;
+    private BigDecimal empInsuranceRate;
 
     @Builder
     public InsuranceRate(
             int applyYear,
-            double nationalPensionRate,
-            double healthInsuranceRate,
-            double longTermCareRate,
-            double empInsuranceRate) {
+            BigDecimal nationalPensionRate,
+            BigDecimal healthInsuranceRate,
+            BigDecimal longTermCareRate,
+            BigDecimal empInsuranceRate) {
         this.applyYear = applyYear;
         this.nationalPensionRate = nationalPensionRate;
         this.healthInsuranceRate = healthInsuranceRate;

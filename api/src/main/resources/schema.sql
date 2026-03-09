@@ -273,9 +273,6 @@ CREATE TABLE IF NOT EXISTS salary_setting (
     employee_id BIGINT NOT NULL,
     base_salary DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     meal_allowance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
-    bank_name VARCHAR(50),
-    account_number VARCHAR(100),
-    account_holder VARCHAR(50),
     apply_start_date DATE,
     apply_end_date DATE,
     CONSTRAINT fk_salary_setting_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
@@ -284,10 +281,11 @@ CREATE TABLE IF NOT EXISTS salary_setting (
 CREATE TABLE IF NOT EXISTS insurance_rate (
     insurance_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     apply_year INT NOT NULL,
-    national_pension_rate DOUBLE NOT NULL DEFAULT 0.045,
-    health_insurance_rate DOUBLE NOT NULL DEFAULT 0.03545,
-    long_term_care_rate DOUBLE NOT NULL DEFAULT 0.00459,
-    emp_insurance_rate DOUBLE NOT NULL DEFAULT 0.009
+    national_pension_rate DECIMAL(7,5) NOT NULL DEFAULT 0.04500,
+    health_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.03545,
+    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00459,
+    emp_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00900,
+    UNIQUE KEY uk_insurance_rate_year (apply_year)
 );
 
 CREATE TABLE IF NOT EXISTS payroll_ledger (
@@ -308,7 +306,11 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     emp_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
     income_tax_amount DECIMAL(15,2) DEFAULT 0.00,
     local_tax_amount DECIMAL(15,2) DEFAULT 0.00,
-    CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, year_month),
+    KEY idx_payroll_ledger_year_month (year_month),
+    CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_payroll_ledger_insurance FOREIGN KEY (insurance_id) REFERENCES insurance_rate(insurance_id)
+);
 
 CREATE TABLE IF NOT EXISTS sequence_doc (
     id BIGINT NOT NULL AUTO_INCREMENT,

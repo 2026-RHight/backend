@@ -5,9 +5,11 @@ import com.reverse.payroll.internal.application.PayrollService;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,7 +24,7 @@ public class PayrollController {
     @PostMapping("/verify-password")
     public ResponseEntity<Boolean> verifySalaryPassword(
             @AuthenticationPrincipal CustomUser authUser,
-            @RequestBody SalaryPasswordCheckRequest request) {
+            @Valid @RequestBody SalaryPasswordCheckRequest request) {
         boolean isVerified = payrollService.verifySalaryPassword(authUser.getEmployeeId(), request);
         return ResponseEntity.ok(isVerified);
     }
@@ -48,13 +50,16 @@ public class PayrollController {
 
     // 급여 명세서 상세 조회
     @GetMapping("/details/{ledgerId}")
-    public ResponseEntity<PayrollDetailResponse> getPayrollDetail(@PathVariable Long ledgerId) {
-        PayrollDetailResponse response = payrollService.getPayrollDetail(ledgerId);
+    public ResponseEntity<PayrollDetailResponse> getPayrollDetail(
+            @AuthenticationPrincipal CustomUser authUser, @PathVariable Long ledgerId) {
+        PayrollDetailResponse response =
+                payrollService.getPayrollDetail(authUser.getEmployeeId(), ledgerId);
         return ResponseEntity.ok(response);
     }
 
     // 급여 대장 생성 (Admin)
     @PostMapping("/calculate/{employeeId}")
+    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
     public ResponseEntity<Long> calculateAndSavePayroll(
             @PathVariable Long employeeId, @RequestParam int year, @RequestParam int month) {
         var ledger = payrollService.calculateAndSavePayroll(employeeId, year, month);
