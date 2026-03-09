@@ -312,6 +312,7 @@ CREATE TABLE IF NOT EXISTS approval_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (approval_line_id),
     KEY idx_approval_line_approval_id (approval_id),
+    UNIQUE KEY uk_approval_line_approval_seq (approval_id, approval_seq),
     CONSTRAINT fk_approval_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
@@ -349,6 +350,7 @@ CREATE TABLE IF NOT EXISTS reference_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (reference_id),
     KEY idx_reference_line_approval_id (approval_id),
+    UNIQUE KEY uk_reference_line_approval_referencer (approval_id, referencer_id),
     CONSTRAINT fk_reference_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 

@@ -103,15 +103,15 @@ public class ApprovalController implements ApprovalResource {
     @Override
     @PatchMapping(path = "/{approvalId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
-    public ResponseEntity<ApiResponse<String>> reDraftApproval(
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> reDraftApproval(
             @PathVariable("approvalId") Long approvalId,
-            @RequestPart(value = "dto") DraftApproval dto,
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
 
-        approvalService.reDraftApproval(approvalId, dto, files, user.getEmployeeId());
-
-        return ResponseEntity.ok(ApiResponse.success("기안이 재상신되었습니다."));
+        ApprovalCreatedResponse response =
+                approvalService.reDraftApproval(approvalId, dto, files, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @Override

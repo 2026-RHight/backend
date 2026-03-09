@@ -63,7 +63,7 @@ public interface ApprovalResource {
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             content =
                     @Content(encoding = @Encoding(name = "dto", contentType = "application/json")))
-    ResponseEntity<ApiResponse<String>> reDraftApproval(
+    ResponseEntity<ApiResponse<ApprovalCreatedResponse>> reDraftApproval(
             @PathVariable("approvalId") Long approvalId,
             @RequestPart(value = "dto") DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,

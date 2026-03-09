@@ -113,7 +113,8 @@ public class ApprovalService implements ApprovalFacade {
 
     public ApprovalCreatedResponse draftApproval(
             DraftApproval dto, List<MultipartFile> files, Long employeeId, ApprovalStatus status) {
-        if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
+        if (ApprovalStatus.PENDING.equals(status)
+                && (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty())) {
             throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
         }
 
@@ -461,7 +462,7 @@ public class ApprovalService implements ApprovalFacade {
                 });
     }
 
-    public void reDraftApproval(
+    public ApprovalCreatedResponse reDraftApproval(
             Long approvalId, DraftApproval dto, List<MultipartFile> files, Long employeeId) {
         if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
             throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
@@ -490,7 +491,7 @@ public class ApprovalService implements ApprovalFacade {
             throw new IllegalStateException("재상신을 위한 기존 기안 삭제에 실패했습니다. approvalId=" + approvalId);
         }
 
-        draftApproval(dto, files, employeeId, ApprovalStatus.PENDING);
+        return draftApproval(dto, files, employeeId, ApprovalStatus.PENDING);
     }
 
     public void processApproval(Long approvalId, ApprovalProcessRequest request, Long approverId) {
