@@ -100,27 +100,7 @@
         SET read_dt = NOW()
         WHERE approval_id = #{approvalId}
           AND read_dt IS NULL
-          AND (
-            drafter_id = #{employeeId}
-            OR EXISTS (
-                SELECT 1
-                FROM approval_line al
-                WHERE al.approval_id = #{approvalId}
-                  AND al.approver_id = #{employeeId}
-            )
-            OR EXISTS (
-                SELECT 1
-                FROM reference_line rf
-                WHERE rf.approval_id = #{approvalId}
-                  AND rf.referencer_id = #{employeeId}
-            )
-            OR EXISTS (
-                SELECT 1
-                FROM recipient_line rc
-                WHERE rc.approval_id = #{approvalId}
-                  AND rc.receiver_id = #{employeeId}
-            )
-          )
+          AND drafter_id = #{employeeId}
     </update>
 
     <sql id="documentBoxWhere">
