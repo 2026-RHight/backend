@@ -264,6 +264,54 @@ CREATE TABLE IF NOT EXISTS hr_event (
     CONSTRAINT fk_hr_event_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
+-- ==========================================
+-- 급여(Payroll) 모듈 테이블
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS salary_setting (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    base_salary DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    meal_allowance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    apply_start_date DATE,
+    apply_end_date DATE,
+    CONSTRAINT fk_salary_setting_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS insurance_rate (
+    insurance_id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    apply_year INT NOT NULL,
+    national_pension_rate DECIMAL(7,5) NOT NULL DEFAULT 0.04500,
+    health_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.03545,
+    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00459,
+    emp_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00900,
+    UNIQUE KEY uk_insurance_rate_year (apply_year)
+);
+
+CREATE TABLE IF NOT EXISTS payroll_ledger (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    insurance_id BIGINT,
+    year_month VARCHAR(7) NOT NULL, -- e.g., '2024-03'
+    salary_amount DECIMAL(15,2) DEFAULT 0.00,
+    overtime_amount DECIMAL(15,2) DEFAULT 0.00,
+    meal_amount DECIMAL(15,2) DEFAULT 0.00,
+    total_payment DECIMAL(15,2) DEFAULT 0.00,
+    net_pay DECIMAL(15,2) DEFAULT 0.00,
+    is_finalized CHAR(1) DEFAULT 'N',
+    is_sent CHAR(1) DEFAULT 'N',
+    national_pension_amount DECIMAL(15,2) DEFAULT 0.00,
+    health_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
+    long_term_care_amount DECIMAL(15,2) DEFAULT 0.00,
+    emp_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
+    income_tax_amount DECIMAL(15,2) DEFAULT 0.00,
+    local_tax_amount DECIMAL(15,2) DEFAULT 0.00,
+    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, year_month),
+    KEY idx_payroll_ledger_year_month (year_month),
+    CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_payroll_ledger_insurance FOREIGN KEY (insurance_id) REFERENCES insurance_rate(insurance_id)
+);
+
 CREATE TABLE IF NOT EXISTS sequence_doc (
     id BIGINT NOT NULL AUTO_INCREMENT,
     prefix VARCHAR(3) NOT NULL,

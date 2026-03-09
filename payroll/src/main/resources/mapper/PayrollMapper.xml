@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.payroll.internal.persistence.PayrollMapper">
+
+    <select id="findSalarySettingByEmployeeId" resultType="com.reverse.payroll.internal.domain.SalarySetting">
+        SELECT
+            id, employee_id, base_salary, meal_allowance, apply_start_date, apply_end_date
+        FROM salary_setting
+        WHERE employee_id = #{employeeId}
+            AND apply_start_date &lt;= #{targetDate}
+            AND (apply_end_date IS NULL OR apply_end_date &gt;= #{targetDate})
+        ORDER BY apply_start_date DESC LIMIT 1
+    </select>
+
+    <select id="findInsuranceRateByApplyYear" resultType="com.reverse.payroll.internal.domain.InsuranceRate">
+        SELECT
+            insurance_id, apply_year, national_pension_rate, health_insurance_rate,
+            long_term_care_rate, emp_insurance_rate
+        FROM insurance_rate
+        WHERE apply_year = #{applyYear}
+    </select>
+
+    <select id="findRecentPayrollLedgersByEmployeeId" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
+        WHERE employee_id = #{employeeId}
+        ORDER BY year_month DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findPayrollLedgersByYear" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
+        WHERE employee_id = #{employeeId}
+            AND year_month LIKE CONCAT(#{year}, '%')
+        ORDER BY year_month DESC
+    </select>
+
+    <select id="findPayrollLedgerById" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
+        WHERE id = #{id}
+    </select>
+
+    <select id="findPayrollLedgerByYearMonth" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
+        WHERE employee_id = #{employeeId}
+            AND year_month = #{yearMonth}
+    </select>
+
+    <insert id="insertPayrollLedger" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO payroll_ledger (
+            employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        ) VALUES (
+            #{employeeId}, #{insuranceId}, #{yearMonth}, #{salaryAmount}, #{overtimeAmount},
+            #{mealAmount}, #{totalPayment}, #{netPay}, #{isFinalized}, #{isSent},
+            #{nationalPensionAmount}, #{healthInsuranceAmount}, #{longTermCareAmount},
+            #{empInsuranceAmount}, #{incomeTaxAmount}, #{localTaxAmount}
+        )
+    </insert>
+
+    <!-- 사원 비밀번호 단일 조회 -->
+    <select id="findEmployeePasswordById" resultType="java.lang.String">
+        SELECT employee_password
+        FROM employee
+        WHERE employee_id = #{employeeId}
+    </select>
+
+</mapper>
