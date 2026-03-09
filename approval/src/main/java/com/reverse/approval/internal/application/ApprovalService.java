@@ -909,6 +909,11 @@ public class ApprovalService implements ApprovalFacade {
                         .findApprovalHeaderByApprovalId(approvalId)
                         .orElseThrow(() -> new ApprovalNotFoundException("존재하지 않는 기안입니다."));
 
+        if (ApprovalStatus.TEMP.name().equals(header.approvalStatus())
+                && !header.drafterId().equals(employeeId)) {
+            throw new ForbiddenException("임시 저장 문서는 기안자만 조회할 수 있습니다.");
+        }
+
         boolean canAccess =
                 header.drafterId().equals(employeeId)
                         || approvalLineMapper.countByApprovalIdAndApproverId(approvalId, employeeId)
