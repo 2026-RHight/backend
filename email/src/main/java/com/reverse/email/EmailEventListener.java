@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -19,6 +20,9 @@ import org.springframework.util.StringUtils;
 public class EmailEventListener {
 
     private final JavaMailSender mailSender;
+
+    @Value("${app.mail.from}")
+    private String fromAddress;
 
     @Async
     @EventListener
@@ -43,8 +47,7 @@ public class EmailEventListener {
             // event.body()에 HTML 태그가 포함될 수 있으므로 true로 설정합니다.
             helper.setText(event.body(), true);
 
-            // 발신자 이름 설정 (구글 계정 이메일을 입력하세요)
-            helper.setFrom("noreply.rhight@gmail.com");
+            helper.setFrom(fromAddress);
 
             mailSender.send(message);
             log.info("메일 발송 완료: {}", event.to());
