@@ -526,12 +526,15 @@ public class ApprovalService implements ApprovalFacade {
             return;
         }
 
-        if (Boolean.FALSE.equals(request.approve()) && normalizedReason != null) {
+        if (Boolean.FALSE.equals(request.approve())) {
+            if (normalizedReason == null) {
+                throw new BadRequestException("반려 시 사유는 필수입니다.");
+            }
             processReject(approvalId, currentLine, normalizedReason, approverId);
             return;
         }
 
-        processHold(approvalId, currentLine, normalizedReason, approverId);
+        throw new BadRequestException("유효하지 않은 결재 처리 요청입니다.");
     }
 
     private void insertDetailByDocType(DraftApproval dto, Long approvalId) {
