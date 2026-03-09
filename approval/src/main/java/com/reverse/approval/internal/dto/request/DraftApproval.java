@@ -1,6 +1,7 @@
 package com.reverse.approval.internal.dto.request;
 
 import com.reverse.approval.internal.domain.enums.DocType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ public class DraftApproval {
     RTWRequest rtwRequest;
 
     @NotEmpty(message = "결재선은 최소 1명 이상이어야 합니다.")
+    @Valid
     List<ApprovalLineRequest> approvalLine;
 
     List<ReferenceLineRequest> referenceLine;
