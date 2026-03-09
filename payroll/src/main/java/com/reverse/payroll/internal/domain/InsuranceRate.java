@@ -17,10 +17,12 @@ public class InsuranceRate {
     private double empInsuranceRate;
 
     @Builder
-    public InsuranceRate(int applyYear
-            , double nationalPensionRate, double healthInsuranceRate
-            , double longTermCareRate, double empInsuranceRate)
-    {
+    public InsuranceRate(
+            int applyYear,
+            double nationalPensionRate,
+            double healthInsuranceRate,
+            double longTermCareRate,
+            double empInsuranceRate) {
         this.applyYear = applyYear;
         this.nationalPensionRate = nationalPensionRate;
         this.healthInsuranceRate = healthInsuranceRate;

@@ -1,12 +1,11 @@
 package com.reverse.payroll.internal.domain;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -23,11 +22,15 @@ public class SalarySetting {
     private LocalDate applyEndDate; // 적용종료일
 
     @Builder
-    public SalarySetting(Long employeeId, BigDecimal baseSalary
-            , BigDecimal mealAllowance, String bankName,
-            String accountNumber, String accountHolder
-            , LocalDate applyStartDate, LocalDate applyEndDate)
-    {
+    public SalarySetting(
+            Long employeeId,
+            BigDecimal baseSalary,
+            BigDecimal mealAllowance,
+            String bankName,
+            String accountNumber,
+            String accountHolder,
+            LocalDate applyStartDate,
+            LocalDate applyEndDate) {
         this.employeeId = employeeId;
         this.baseSalary = baseSalary;
         this.mealAllowance = mealAllowance;
@@ -37,5 +40,4 @@ public class SalarySetting {
         this.applyStartDate = applyStartDate;
         this.applyEndDate = applyEndDate;
     }
-
 }

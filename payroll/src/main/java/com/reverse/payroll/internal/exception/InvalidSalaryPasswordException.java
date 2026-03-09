@@ -6,8 +6,5 @@ public class InvalidSalaryPasswordException extends UnauthorizedException {
 
     public InvalidSalaryPasswordException(String message) {
         super(PayrollErrorCode.INVALID_PASSWORD.getCode(), message);
-
     }
-
-
 }

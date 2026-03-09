@@ -1,11 +1,10 @@
 package com.reverse.payroll.internal.domain;
 
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,14 +28,23 @@ public class PayrollLedger {
     private BigDecimal localTaxAmount; // 지방소득세금액
 
     @Builder
-    public PayrollLedger(Long employeeId, Long insuranceId, String yearMonth,
-                        BigDecimal salaryAmount, BigDecimal overtimeAmount
-                        , BigDecimal mealAmount, BigDecimal totalPayment
-                        , BigDecimal netPay, String isFinalized, String isSent
-                        , BigDecimal nationalPensionAmount, BigDecimal healthInsuranceAmount
-                        , BigDecimal longTermCareAmount, BigDecimal empInsuranceAmount
-                        , BigDecimal incomeTaxAmount, BigDecimal localTaxAmount)
-    {
+    public PayrollLedger(
+            Long employeeId,
+            Long insuranceId,
+            String yearMonth,
+            BigDecimal salaryAmount,
+            BigDecimal overtimeAmount,
+            BigDecimal mealAmount,
+            BigDecimal totalPayment,
+            BigDecimal netPay,
+            String isFinalized,
+            String isSent,
+            BigDecimal nationalPensionAmount,
+            BigDecimal healthInsuranceAmount,
+            BigDecimal longTermCareAmount,
+            BigDecimal empInsuranceAmount,
+            BigDecimal incomeTaxAmount,
+            BigDecimal localTaxAmount) {
         this.employeeId = employeeId;
         this.insuranceId = insuranceId;
         this.yearMonth = yearMonth;
@@ -54,5 +62,4 @@ public class PayrollLedger {
         this.incomeTaxAmount = incomeTaxAmount;
         this.localTaxAmount = localTaxAmount;
     }
-
 }

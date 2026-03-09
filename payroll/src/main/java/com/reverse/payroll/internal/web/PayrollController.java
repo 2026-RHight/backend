@@ -5,12 +5,11 @@ import com.reverse.payroll.internal.application.PayrollService;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/payroll")
@@ -31,26 +30,25 @@ public class PayrollController {
     // 최근 급여 목록 6개월 조회
     @GetMapping("/recent")
     public ResponseEntity<List<PayrollListResponse>> getRecentPayrolls(
-
             @AuthenticationPrincipal CustomUser authUser,
             @RequestParam(defaultValue = "6") int limit) {
-        List<PayrollListResponse> response = payrollService.getRecentPayrollLedgers(authUser.getEmployeeId(), limit);
+        List<PayrollListResponse> response =
+                payrollService.getRecentPayrollLedgers(authUser.getEmployeeId(), limit);
         return ResponseEntity.ok(response);
     }
 
     // 연도별 급여 목록 조회
     @GetMapping("/year/{year}")
     public ResponseEntity<List<PayrollListResponse>> getPayrollsByYear(
-            @AuthenticationPrincipal CustomUser authUser,
-            @PathVariable String year) {
-        List<PayrollListResponse> response = payrollService.getPayrollLedgersByYear(authUser.getEmployeeId(), year);
+            @AuthenticationPrincipal CustomUser authUser, @PathVariable String year) {
+        List<PayrollListResponse> response =
+                payrollService.getPayrollLedgersByYear(authUser.getEmployeeId(), year);
         return ResponseEntity.ok(response);
     }
 
     // 급여 명세서 상세 조회
     @GetMapping("/details/{ledgerId}")
-    public ResponseEntity<PayrollDetailResponse> getPayrollDetail(
-            @PathVariable Long ledgerId) {
+    public ResponseEntity<PayrollDetailResponse> getPayrollDetail(@PathVariable Long ledgerId) {
         PayrollDetailResponse response = payrollService.getPayrollDetail(ledgerId);
         return ResponseEntity.ok(response);
     }
@@ -58,11 +56,8 @@ public class PayrollController {
     // 급여 대장 생성 (Admin)
     @PostMapping("/calculate/{employeeId}")
     public ResponseEntity<Long> calculateAndSavePayroll(
-            @PathVariable Long employeeId,
-            @RequestParam int year,
-            @RequestParam int month) {
+            @PathVariable Long employeeId, @RequestParam int year, @RequestParam int month) {
         var ledger = payrollService.calculateAndSavePayroll(employeeId, year, month);
         return ResponseEntity.ok(ledger.getId());
     }
-
 }

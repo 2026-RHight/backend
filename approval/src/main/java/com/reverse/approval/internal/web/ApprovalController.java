@@ -1,20 +1,37 @@
 package com.reverse.approval.internal.web;
 
 import com.reverse.approval.internal.application.ApprovalService;
+import com.reverse.approval.internal.domain.enums.ApprovalStatus;
+import com.reverse.approval.internal.domain.enums.DocumentBoxType;
+import com.reverse.approval.internal.domain.enums.ProgressTabType;
+import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
+import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalCreatedResponse;
+import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
+import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
+import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
+import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
+import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -27,20 +44,191 @@ public class ApprovalController implements ApprovalResource {
     @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
-    public ResponseEntity<ApiResponse<String>> draftApproval(
-            @RequestPart(value = "dto") DraftApproval dto,
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> draftApproval(
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
-        return (ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.success(
+                                approvalService.draftApproval(
+                                        dto, files, user.getEmployeeId(), ApprovalStatus.PENDING)));
     }
 
     @Override
     @PostMapping(path = "/temp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
-    public ResponseEntity<ApiResponse<String>> tempApproval(
-            @RequestPart(value = "dto") DraftApproval dto,
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> tempApproval(
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
-        return (ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.success(
+                                approvalService.draftApproval(
+                                        dto, files, user.getEmployeeId(), ApprovalStatus.TEMP)));
+    }
+
+    @Override
+    @GetMapping("/{approvalId}/attachments/{fileId}/download")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<byte[]> downloadAttachment(
+            @PathVariable("approvalId") Long approvalId,
+            @PathVariable("fileId") Long fileId,
+            @AuthenticationPrincipal CustomUser user) {
+        DownloadedApprovalFile downloaded =
+                approvalService.downloadAttachment(approvalId, fileId, user.getEmployeeId());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDisposition(
+                ContentDisposition.attachment()
+                        .filename(downloaded.originalName(), StandardCharsets.UTF_8)
+                        .build());
+
+        return new ResponseEntity<>(downloaded.content(), headers, HttpStatus.OK);
+    }
+
+    @Operation(summary = "기안 취소 API")
+    @DeleteMapping(path = "/{approvalId}")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<?> deleteApproval(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+
+        approvalService.deleteApproval(approvalId, user.getEmployeeId());
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @Override
+    @PatchMapping(path = "/{approvalId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> reDraftApproval(
+            @PathVariable("approvalId") Long approvalId,
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal CustomUser user) {
+
+        ApprovalCreatedResponse response =
+                approvalService.reDraftApproval(approvalId, dto, files, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @Operation(summary = "기안 결재 API")
+    @PatchMapping(path = "/{approvalId}/process")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<String>> processApproval(
+            @PathVariable("approvalId") Long approvalId,
+            @Valid @RequestBody ApprovalProcessRequest request,
+            @AuthenticationPrincipal CustomUser user) {
+        approvalService.processApproval(approvalId, request, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success("결재 처리 완료"));
+    }
+
+    @Override
+    @GetMapping(path = "/{approvalId}")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalDetailResponse>> getApprovalDetail(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+        ApprovalDetailResponse response =
+                approvalService.getApprovalDetail(approvalId, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @PatchMapping(path = "/{approvalId}/read")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<String>> markApprovalAsRead(
+            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+        approvalService.markApprovalAsRead(approvalId, user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success("읽음 처리 완료"));
+    }
+
+    @Override
+    @GetMapping(path = "/boxes")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalBoxPageResponse>> getApprovalBoxes(
+            @RequestParam(value = "boxType", defaultValue = "ALL") String boxType,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        DocumentBoxType documentBoxType;
+        try {
+            documentBoxType = DocumentBoxType.valueOf(boxType.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("지원하지 않는 문서함 타입입니다.");
+        }
+
+        ApprovalBoxPageResponse response =
+                approvalService.getApprovalBoxes(user.getEmployeeId(), documentBoxType, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/progress")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalProgressOverviewResponse>>
+            getApprovalProgressOverview(
+                    @RequestParam(value = "page", defaultValue = "0") int page,
+                    @RequestParam(value = "size", defaultValue = "10") int size,
+                    @AuthenticationPrincipal CustomUser user) {
+        ApprovalProgressOverviewResponse response =
+                approvalService.getApprovalProgressOverview(user.getEmployeeId(), page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/progress/search")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalProgressPageResponse>> searchApprovalProgress(
+            @RequestParam(value = "tabType", defaultValue = "ALL") String tabType,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        ProgressTabType parsedTabType;
+        try {
+            parsedTabType = ProgressTabType.valueOf(tabType.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("지원하지 않는 전자결재 현황 탭 타입입니다.");
+        }
+
+        ApprovalProgressPageResponse response =
+                approvalService.searchApprovalProgress(
+                        user.getEmployeeId(), parsedTabType, keyword, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/review")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalReviewPageResponse>> getApprovalReviews(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalReviewPageResponse response =
+                approvalService.getApprovalReviews(user.getEmployeeId(), page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/dashboard")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalDashboardResponse>> getApprovalDashboard(
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalDashboardResponse response =
+                approvalService.getApprovalDashboard(user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Override
+    @GetMapping(path = "/main")
+    @SecurityRequirement(name = "JWT")
+    public ResponseEntity<ApiResponse<ApprovalMainSummaryResponse>> getApprovalMainSummary(
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalMainSummaryResponse response =
+                approvalService.getApprovalMainSummary(user.getEmployeeId());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

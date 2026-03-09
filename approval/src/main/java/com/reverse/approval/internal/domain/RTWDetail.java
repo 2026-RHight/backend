@@ -11,7 +11,7 @@ import org.hibernate.annotations.Comment;
 public class RTWDetail extends ElectronicApproval {
     @Column(name = "rtw_date", nullable = false)
     @Comment("종료일")
-    private LocalDate RTWDate;
+    private LocalDate rtwDate;
 
     @Column(name = "reason", nullable = false, columnDefinition = "TEXT")
     @Comment("사유")

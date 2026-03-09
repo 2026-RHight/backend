@@ -1,10 +1,9 @@
 package com.reverse.payroll.internal.dto.response;
 
 import com.reverse.payroll.internal.domain.PayrollLedger;
+import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.math.BigDecimal;
 
 @Getter
 public class PayrollDetailResponse {
@@ -31,10 +30,21 @@ public class PayrollDetailResponse {
     private BigDecimal netPay;
 
     @Builder
-    public PayrollDetailResponse(Long id, String yearMonth, BigDecimal salaryAmount, BigDecimal overtimeAmount,
-            BigDecimal mealAmount, BigDecimal totalPayment, BigDecimal nationalPensionAmount,
-            BigDecimal healthInsuranceAmount, BigDecimal longTermCareAmount, BigDecimal empInsuranceAmount,
-            BigDecimal incomeTaxAmount, BigDecimal localTaxAmount, BigDecimal totalDeductionAmount, BigDecimal netPay) {
+    public PayrollDetailResponse(
+            Long id,
+            String yearMonth,
+            BigDecimal salaryAmount,
+            BigDecimal overtimeAmount,
+            BigDecimal mealAmount,
+            BigDecimal totalPayment,
+            BigDecimal nationalPensionAmount,
+            BigDecimal healthInsuranceAmount,
+            BigDecimal longTermCareAmount,
+            BigDecimal empInsuranceAmount,
+            BigDecimal incomeTaxAmount,
+            BigDecimal localTaxAmount,
+            BigDecimal totalDeductionAmount,
+            BigDecimal netPay) {
         this.id = id;
         this.yearMonth = yearMonth;
         this.salaryAmount = salaryAmount;
@@ -52,13 +62,14 @@ public class PayrollDetailResponse {
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
-        BigDecimal totalDeduction = safeAdd(
-                ledger.getNationalPensionAmount(),
-                ledger.getHealthInsuranceAmount(),
-                ledger.getLongTermCareAmount(),
-                ledger.getEmpInsuranceAmount(),
-                ledger.getIncomeTaxAmount(),
-                ledger.getLocalTaxAmount());
+        BigDecimal totalDeduction =
+                safeAdd(
+                        ledger.getNationalPensionAmount(),
+                        ledger.getHealthInsuranceAmount(),
+                        ledger.getLongTermCareAmount(),
+                        ledger.getEmpInsuranceAmount(),
+                        ledger.getIncomeTaxAmount(),
+                        ledger.getLocalTaxAmount());
 
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
@@ -87,5 +98,4 @@ public class PayrollDetailResponse {
         }
         return sum;
     }
-
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.OvertimeDetailMapper">
+
+    <insert id="insertOvertimeDetail"
+            parameterType="com.reverse.approval.internal.persistence.param.OvertimeDetailParam">
+        INSERT INTO overtime_detail (
+            approval_id,
+            work_date,
+            start_time,
+            end_time,
+            reason
+        )
+        VALUES (
+            #{approvalId},
+            #{workDate},
+            #{startTime},
+            #{endTime},
+            #{reason}
+        )
+    </insert>
+
+    <select id="findOvertimeDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.OvertimeDetailRow">
+        SELECT work_date AS workDate,
+               start_time AS startTime,
+               end_time AS endTime,
+               reason AS reason
+        FROM overtime_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
+</mapper>

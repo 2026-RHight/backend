@@ -1,8 +1,8 @@
 package com.reverse.payroll.internal.dto.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Getter
 @NoArgsConstructor
@@ -10,5 +10,4 @@ import lombok.AllArgsConstructor;
 public class SalaryPasswordCheckRequest {
 
     private String password;
-
 }

@@ -1,7 +1,3 @@
 package com.reverse.payroll;
 
-public interface PayrollFacade {
-
-
-
-}
+public interface PayrollFacade {}

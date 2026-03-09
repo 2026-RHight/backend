@@ -15,7 +15,7 @@ import org.hibernate.annotations.Comment;
         uniqueConstraints =
                 @UniqueConstraint(
                         name = "uk_sequence_doc_prefix_year",
-                        columnNames = {"prefix", "year"}))
+                        columnNames = {"prefix", "doc_year"}))
 @Comment("채번 테이블")
 public class SequenceDoc {
 
@@ -26,8 +26,8 @@ public class SequenceDoc {
     @Column(name = "prefix", nullable = false, length = 3)
     private String prefix;
 
-    @Column(name = "year", nullable = false, length = 4)
-    private String year;
+    @Column(name = "doc_year", nullable = false, length = 4)
+    private String docYear;
 
     @Column(name = "last_doc", nullable = false)
     private int lastDoc = 0;

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.ApprovalLineMapper">
+
+    <insert id="insertApprovalLine"
+            parameterType="com.reverse.approval.internal.persistence.param.ApprovalLineParam">
+        INSERT INTO approval_line (
+            approval_seq,
+            approval_status,
+            approval_id,
+            approver_id,
+            approver_name,
+            approver_rank
+        )
+        VALUES (
+            #{approvalSeq},
+            #{approvalStatus},
+            #{approvalId},
+            #{approverId},
+            #{approverName},
+            #{approverRank}
+        )
+    </insert>
+
+    <update id="updateApprovalLineStatusFromTempToPending">
+        UPDATE approval_line
+        SET approval_status = 'PENDING'
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'TEMP'
+    </update>
+
+    <select id="findFirstApproverIdByApprovalId" resultType="long">
+        SELECT approver_id
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY approval_seq ASC
+        LIMIT 1
+    </select>
+
+    <select id="findFirstPendingLineByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalLineRow">
+        SELECT approval_line_id AS approvalLineId,
+               approval_seq AS approvalSeq,
+               approver_id AS approverId
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+        ORDER BY approval_seq ASC
+        LIMIT 1
+    </select>
+
+    <update id="updateApprovalLineToComplete">
+        UPDATE approval_line
+        SET approval_status = 'COMPLETE',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <update id="updateApprovalLineToRejected">
+        UPDATE approval_line
+        SET approval_status = 'REJECTED',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <update id="updateApprovalLineToHold">
+        UPDATE approval_line
+        SET approval_status = 'HOLD',
+            reason = #{reason},
+            approved_dt = NOW()
+        WHERE approval_line_id = #{approvalLineId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <select id="countPendingLinesByApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+    </select>
+
+    <select id="findPendingApproverIdsByApprovalId" resultType="long">
+        SELECT approver_id
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+        ORDER BY approval_seq ASC
+    </select>
+
+    <select id="findLinesByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow">
+        SELECT approval_seq AS approvalSeq,
+               approval_status AS approvalStatus,
+               approver_id AS approverId,
+               approver_name AS approverName,
+               approver_rank AS approverRank,
+               reason AS reason,
+               approved_dt AS approvedDate,
+               read_dt AS readDate
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+        ORDER BY approval_seq ASC
+    </select>
+
+    <select id="countByApprovalIdAndApproverId" resultType="int">
+        SELECT COUNT(*)
+        FROM approval_line
+        WHERE approval_id = #{approvalId}
+          AND approver_id = #{approverId}
+    </select>
+
+    <update id="updateReadDateIfNull">
+        UPDATE approval_line
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND approver_id = #{approverId}
+          AND read_dt IS NULL
+    </update>
+
+</mapper>

@@ -1,10 +1,9 @@
 package com.reverse.payroll.internal.dto.response;
 
 import com.reverse.payroll.internal.domain.PayrollLedger;
+import java.math.BigDecimal;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.math.BigDecimal;
 
 @Getter
 public class PayrollListResponse {
@@ -15,7 +14,8 @@ public class PayrollListResponse {
     private BigDecimal netPay; // 세후
 
     @Builder
-    public PayrollListResponse(Long id, String yearMonth, BigDecimal totalPayment, BigDecimal netPay) {
+    public PayrollListResponse(
+            Long id, String yearMonth, BigDecimal totalPayment, BigDecimal netPay) {
         this.id = id;
         this.yearMonth = yearMonth;
         this.totalPayment = totalPayment;
@@ -30,5 +30,4 @@ public class PayrollListResponse {
                 .netPay(ledger.getNetPay())
                 .build();
     }
-
 }

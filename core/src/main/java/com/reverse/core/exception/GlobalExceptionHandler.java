@@ -58,6 +58,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(error));
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBadRequestException(BadRequestException ex) {
+        log.error("BadRequestException 발생: message: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder().message(ex.getMessage()).build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(error));
+    }
+
     // JSON 파싱/바인딩 실패
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(
