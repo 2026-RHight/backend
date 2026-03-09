@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.PerformanceMapper">
+    <insert id="savePerformance"
+            parameterType="com.reverse.performance.internal.dto.request.PerformanceRequest">
+        INSERT INTO performance(
+        employee_id, title, work_item,
+        start_date, expected_end_date, work_detail, status,
+        achievement_rate, difficulty_score, comment, feedback, created_at
+        ) VALUES (
+        #{employeeId}, #{title}, #{workItem, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        #{startDate}, #{expectedEndDate}, #{workDetail}, #{status, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        #{achievementRate}, #{difficultyScore}, #{comment}, #{feedback}, NOW()
+        )
+    </insert>
+    <insert id="savePerformancePersonal"
+            parameterType="com.reverse.performance.internal.dto.request.PerformancePersonalRequest">
+        INSERT INTO performance_personal (performance_id, expected_value, result_summary,
+        growth_point, improvement
+        ) VALUES ( LAST_INSERT_ID(),
+        #{expectedValue}, #{resultSummary},
+        #{growthPoint}, #{improvement}
+        )
+    </insert>
+    <insert id="savePerformanceTeam"
+            parameterType="com.reverse.performance.internal.dto.request.PerformanceTeamRequest">
+        INSERT INTO performance_team (performance_id, weight, team_result_summary, special_point
+        ) VALUES (
+        LAST_INSERT_ID(), #{weight},
+        #{teamResultSummary}, #{specialPoint}
+        )
+    </insert>
+</mapper>

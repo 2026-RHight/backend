@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.TeamEvalMapper">
+    <insert id="saveTeamEval"
+            parameterType="com.reverse.performance.internal.dto.request.TeamEvalRequest">
+        INSERT INTO team_evaluation (
+            evaluator_id,
+            appraisee_id,
+            performance_eval,
+            work_attitude_eval,
+            teamwork_eval,
+            solving_eval,
+            performance_score,
+            performance_comment,
+            attitude_score,
+            attitude_comment,
+            collaboration_score,
+            collaboration_comment,
+            creativity_score,
+            creativity_comment,
+            created_at
+        )
+        VALUES (
+            #{evaluatorId, jdbcType=BIGINT},
+            #{appraiseeId, jdbcType=BIGINT},
+            #{performanceEval, jdbcType=VARCHAR},
+            #{workAttitudeEval, jdbcType=VARCHAR},
+            #{teamworkEval, jdbcType=VARCHAR},
+            #{solvingEval, jdbcType=VARCHAR},
+            #{performanceScore, jdbcType=INTEGER},
+            #{performanceComment, jdbcType=VARCHAR},
+            #{attitudeScore, jdbcType=INTEGER},
+            #{attitudeComment, jdbcType=VARCHAR},
+            #{collaborationScore, jdbcType=INTEGER},
+            #{collaborationComment, jdbcType=VARCHAR},
+            #{creativityScore, jdbcType=INTEGER},
+            #{creativityComment, jdbcType=VARCHAR},
+            NOW()
+        )
+    </insert>
+
+    <select id="findTeamEval"
+            parameterType="long"
+            resultType="long">
+        SELECT
+    </select>
+</mapper>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.InquiryMapper">
+    <select id="findInquiry"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.MyPerformanceResponse">
+        SELECT p.work_item, p.title, p.start_date, p.end_date, p.status, p.achievement_rate, p.`comment`
+        FROM performance p
+        WHERE p.employee_id = #{id}
+        ORDER BY p.created_at DESC
+    </select>
+
+    <select id="findEvaluatorPerformances"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.dto.response.EvaluatorPerformanceResponse">
+        SELECT DISTINCT p.performance_id,
+               p.employee_id,
+               p.work_item,
+               p.title,
+               p.start_date,
+               p.end_date,
+               p.status,
+               p.achievement_rate,
+               p.`comment`
+        FROM performance p
+        INNER JOIN evaluation e
+                ON e.employee_id = p.employee_id
+               AND e.approval_id = #{employeeId}
+        <where>
+            <if test="appraiseeId != null">
+                p.employee_id = #{appraiseeId}
+            </if>
+            <if test="status != null">
+                <if test="appraiseeId != null">
+                    AND
+                </if>
+                p.status = #{status, typeHandler=org.apache.ibatis.type.EnumTypeHandler}
+            </if>
+        </where>
+        ORDER BY p.created_at DESC
+    </select>
+</mapper>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.AttachmentMapper">
+    <insert id="saveAttachment"
+            parameterType="com.reverse.performance.internal.dto.request.AttachmentRequest">
+        INSERT INTO performance_attachment(
+        performance_id, file_name, file_url, created_at
+        ) VALUES (
+        #{performanceId}, #{fileName}, #{fileUrl}, NOW()
+        )
+    </insert>
+</mapper>

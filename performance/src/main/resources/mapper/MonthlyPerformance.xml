@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.MonthlyPerformanceMapper">
+    <select id="findMonthlyPerformance"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.dto.response.MonthlyResponse">
+        SELECT p.employee_id,
+               p.performance_id,
+               p.start_date,
+               p.end_date,
+               p.work_item,
+               p.achievement_rate,
+               p.title,
+               COALESCE(ms.total_score, 0) AS score
+        FROM performance p
+        LEFT JOIN (
+            SELECT p2.employee_id,
+                   YEAR(p2.end_date) AS score_year,
+                   MONTH(p2.end_date) AS score_month,
+                   SUM(
+                       ROUND((
+                           (
+                               CASE
+                                   WHEN p2.achievement_rate >= 95 THEN 10
+                                   WHEN p2.achievement_rate >= 85 THEN 9
+                                   WHEN p2.achievement_rate >= 75 THEN 8
+                                   WHEN p2.achievement_rate >= 65 THEN 7
+                                   ELSE 5
+                               END
+                               +
+                               CASE
+                                   WHEN p2.expected_end_date IS NULL THEN 7
+                                   WHEN p2.end_date &lt;= p2.expected_end_date THEN 10
+                                   WHEN DATEDIFF(p2.end_date, p2.expected_end_date) &lt;= 3 THEN 8
+                                   WHEN DATEDIFF(p2.end_date, p2.expected_end_date) &lt;= 7 THEN 6
+                                   ELSE 5
+                               END
+                               +
+                               LEAST(GREATEST(COALESCE(p2.difficulty_score, 5), 1), 10)
+                           ) / 3
+                       ) + CASE
+                               WHEN p2.work_item = 'TEAM'
+                                   THEN ROUND(LEAST(GREATEST(COALESCE(pt2.weight, 0), 0), 100) / 20)
+                               ELSE 0
+                           END
+                   ) AS total_score
+            FROM performance p2
+            LEFT JOIN performance_team pt2
+                   ON pt2.performance_id = p2.performance_id
+            WHERE p2.end_date IS NOT NULL
+              AND p2.status = 'ENDED'
+            GROUP BY p2.employee_id, YEAR(p2.end_date), MONTH(p2.end_date)
+        ) ms
+               ON ms.employee_id = p.employee_id
+              AND ms.score_year = #{targetYear}
+              AND ms.score_month = #{targetMonth}
+        <where>
+            p.employee_id = #{employeeId}
+            AND p.end_date IS NOT NULL
+            AND p.status = 'ENDED'
+            AND YEAR(p.end_date) = #{targetYear}
+            AND MONTH(p.end_date) = #{targetMonth}
+        </where>
+        ORDER BY p.end_date DESC
+    </select>
+
+    <select id="calculateMonthlyScore"
+            parameterType="map"
+            resultType="int">
+        SELECT SUM(
+                   ROUND((
+                       (
+                           CASE
+                               WHEN p.achievement_rate >= 95 THEN 10
+                               WHEN p.achievement_rate >= 85 THEN 9
+                               WHEN p.achievement_rate >= 75 THEN 8
+                               WHEN p.achievement_rate >= 65 THEN 7
+                               ELSE 5
+                           END
+                           +
+                           CASE
+                               WHEN p.expected_end_date IS NULL THEN 7
+                               WHEN p.end_date &lt;= p.expected_end_date THEN 10
+                               WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 3 THEN 8
+                               WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 7 THEN 6
+                               ELSE 5
+                           END
+                           +
+                           LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
+                       ) / 3
+                   ) + CASE
+                           WHEN p.work_item = 'TEAM'
+                               THEN ROUND(LEAST(GREATEST(COALESCE(pt.weight, 0), 0), 100) / 20)
+                           ELSE 0
+                       END
+               )
+        FROM performance p
+        LEFT JOIN performance_team pt
+               ON pt.performance_id = p.performance_id
+        WHERE p.employee_id = #{employeeId}
+          AND p.end_date IS NOT NULL
+          AND p.status = 'ENDED'
+          AND YEAR(p.end_date) = #{targetYear}
+          AND MONTH(p.end_date) = #{targetMonth}
+    </select>
+
+    <insert id="upsertMonthlyScore"
+            parameterType="map">
+        INSERT INTO monthly_performance(
+            employee_id, year, month, score, calculated_at
+        ) VALUES (
+            #{employeeId}, #{targetYear}, #{targetMonth}, #{score}, NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            score = VALUES(score),
+            calculated_at = NOW()
+    </insert>
+</mapper>
