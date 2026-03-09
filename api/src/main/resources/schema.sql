@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS approval_line (
 
 CREATE TABLE IF NOT EXISTS approval_attachment (
     file_id BIGINT NOT NULL AUTO_INCREMENT,
-    file_key VARCHAR(512) NULL,
+    file_key VARCHAR(512) NOT NULL,
     file_path VARCHAR(1024) NOT NULL,
     original_name VARCHAR(512) NOT NULL,
     created_dt DATETIME NOT NULL,
