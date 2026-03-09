@@ -7,7 +7,7 @@
         SELECT
             id, employee_id, base_salary, meal_allowance, bank_name,
             account_number, account_holder, apply_start_date, apply_end_date
-        FROM SalarySetting
+        FROM salary_setting
         WHERE employee_id = #{employeeId}
             AND (apply_end_date IS NULL OR apply_end_date >= CURRENT_DATE)
         ORDER BY apply_start_date DESC LIMIT 1
@@ -17,41 +17,57 @@
         SELECT
             insurance_id, apply_year, national_pension_rate, health_insurance_rate,
             long_term_care_rate, emp_insurance_rate
-        FROM insuranceRate
+        FROM insurance_rate
         WHERE apply_year = #{applyYear}
     </select>
 
     <select id="findRecentPayrollLedgersByEmployeeId" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
-        SELECT *
-        FROM PayrollLedger
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
         WHERE employee_id = #{employeeId}
         ORDER BY year_month DESC
         LIMIT #{limit}
     </select>
 
     <select id="findPayrollLedgersByYear" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
-        SELECT *
-        FROM PayrollLedger
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
         WHERE employee_id = #{employeeId}
             AND year_month LIKE CONCAT(#{year}, '%')
         ORDER BY year_month DESC
     </select>
 
     <select id="findPayrollLedgerById" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
-        SELECT *
-        FROM PayrollLedger
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
         WHERE id = #{id}
     </select>
 
     <select id="findPayrollLedgerByYearMonth" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
-        SELECT *
-        FROM PayrollLedger
+        SELECT 
+            id, employee_id, insurance_id, year_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount
+        FROM payroll_ledger
         WHERE employee_id = #{employeeId}
             AND year_month = #{yearMonth}
     </select>
 
     <insert id="insertPayrollLedger" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO PayrollLedger (
+        INSERT INTO payroll_ledger (
             employee_id, insurance_id, year_month, salary_amount, overtime_amount,
             meal_amount, total_payment, net_pay, is_finalized, is_sent,
             national_pension_amount, health_insurance_amount, long_term_care_amount,
