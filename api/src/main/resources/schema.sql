@@ -273,6 +273,16 @@ CREATE TABLE IF NOT EXISTS sequence_doc (
     UNIQUE KEY uk_sequence_doc_prefix_year (prefix, doc_year)
 );
 
+CREATE TABLE IF NOT EXISTS event_publication (
+    id CHAR(36) NOT NULL,
+    event_type VARCHAR(512) NOT NULL,
+    listener_id VARCHAR(512) NOT NULL,
+    publication_date DATETIME(6) NOT NULL,
+    completion_date DATETIME(6) NULL,
+    serialized_event TEXT NOT NULL,
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS electronic_approval (
     approval_id BIGINT NOT NULL AUTO_INCREMENT,
     doc_type VARCHAR(31) NULL,

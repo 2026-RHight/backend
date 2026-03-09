@@ -13,7 +13,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @ComponentScan(basePackages = "com.reverse")
 @MapperScan(basePackages = "com.reverse", annotationClass = Mapper.class)
 @EnableJpaRepositories(basePackages = "com.reverse")
-@EntityScan(basePackages = "com.reverse")
+@EntityScan(basePackages = {"com.reverse", "org.springframework.modulith.events.jpa"})
 @EnableAsync
 public class RhightApplication {
 

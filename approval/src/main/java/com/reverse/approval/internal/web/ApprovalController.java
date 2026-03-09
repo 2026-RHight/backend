@@ -7,6 +7,7 @@ import com.reverse.approval.internal.domain.enums.ProgressTabType;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalCreatedResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
@@ -43,7 +44,7 @@ public class ApprovalController implements ApprovalResource {
     @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
-    public ResponseEntity<ApiResponse<String>> draftApproval(
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> draftApproval(
             @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
@@ -57,7 +58,7 @@ public class ApprovalController implements ApprovalResource {
     @Override
     @PostMapping(path = "/temp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
-    public ResponseEntity<ApiResponse<String>> tempApproval(
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> tempApproval(
             @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {

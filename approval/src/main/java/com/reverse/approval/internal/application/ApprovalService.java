@@ -10,6 +10,7 @@ import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.request.RecipientLineRequest;
 import com.reverse.approval.internal.dto.request.ReferenceLineRequest;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalCreatedResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
@@ -110,7 +111,7 @@ public class ApprovalService implements ApprovalFacade {
     private final NumberingService numberingService;
     private final ApplicationEventPublisher eventPublisher;
 
-    public String draftApproval(
+    public ApprovalCreatedResponse draftApproval(
             DraftApproval dto, List<MultipartFile> files, Long employeeId, ApprovalStatus status) {
         if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
             throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
@@ -139,9 +140,10 @@ public class ApprovalService implements ApprovalFacade {
         if (status.equals(ApprovalStatus.PENDING)) {
             publishSubmissionMailEvents(dto, drafterProfile);
 
-            return dto.getTitle() + " 기안이 상신되었습니다.";
+            return new ApprovalCreatedResponse(
+                    approval.getApprovalId(), dto.getTitle() + " 기안이 상신되었습니다.");
         } else {
-            return "기안이 임시 저장 되었습니다.";
+            return new ApprovalCreatedResponse(approval.getApprovalId(), "기안이 임시 저장 되었습니다.");
         }
     }
 
@@ -974,7 +976,11 @@ public class ApprovalService implements ApprovalFacade {
             return;
         }
 
-        recipients.addAll(approvalLineMapper.findPendingApproverIdsByApprovalId(approvalId));
+        ApprovalLineRow nextPendingLine =
+                approvalLineMapper.findFirstPendingLineByApprovalId(approvalId);
+        if (nextPendingLine != null) {
+            recipients.add(nextPendingLine.approverId());
+        }
         publishMailToEmployeeIds(
                 recipients,
                 "[RHIGHT] 결재 진행 알림: " + safeTitle,

@@ -3,6 +3,7 @@ package com.reverse.approval.internal.web;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
 import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalCreatedResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
 import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
@@ -37,7 +38,7 @@ public interface ApprovalResource {
                                                     "application/json") // application/json으로 안가서 따로
                             // 설정해준것.
                             ))
-    public ResponseEntity<ApiResponse<String>> draftApproval(
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> draftApproval(
             @RequestPart(value = "dto") DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user);
@@ -53,7 +54,7 @@ public interface ApprovalResource {
                                                     "application/json") // application/json으로 안가서 따로
                             // 설정해준것.
                             ))
-    public ResponseEntity<ApiResponse<String>> tempApproval(
+    public ResponseEntity<ApiResponse<ApprovalCreatedResponse>> tempApproval(
             @RequestPart(value = "dto") DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user);
