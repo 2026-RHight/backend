@@ -16,19 +16,19 @@ public class NumberingService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateSequence(String prefix) {
-        String year = String.valueOf(LocalDateTime.now().getYear());
-        int affectedRows = sequenceMapper.updateSequenceNumber(prefix, year);
+        String docYear = String.valueOf(LocalDateTime.now().getYear());
+        int affectedRows = sequenceMapper.updateSequenceNumber(prefix, docYear);
 
         if (affectedRows == 0) {
             try {
-                sequenceMapper.insertInitialSequence(prefix, year);
+                sequenceMapper.insertInitialSequence(prefix, docYear);
             } catch (DuplicateKeyException e) {
-                sequenceMapper.updateSequenceNumber(prefix, year);
+                sequenceMapper.updateSequenceNumber(prefix, docYear);
             }
         }
 
-        int sequenceNumber = sequenceMapper.getSequenceNumber(prefix, year);
+        int sequenceNumber = sequenceMapper.getSequenceNumber(prefix, docYear);
 
-        return String.format("%s-%s-%04d", prefix, year, sequenceNumber);
+        return String.format("%s-%s-%04d", prefix, docYear, sequenceNumber);
     }
 }

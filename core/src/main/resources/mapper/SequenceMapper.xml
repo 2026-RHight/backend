@@ -7,21 +7,21 @@
         UPDATE sequence_doc
         SET last_doc = last_doc + 1
         WHERE prefix = #{prefix, jdbcType=CHAR}
-                  AND year = #{year, jdbcType=CHAR}
+                  AND doc_year = #{doc_year, jdbcType=CHAR}
     </update>
 
     <select id="getSequenceNumber" resultType="int">
         SELECT last_doc
         FROM sequence_doc
         WHERE prefix = #{prefix, jdbcType=CHAR}
-                  AND year = #{year, jdbcType=CHAR}
+                  AND doc_year = #{doc_year, jdbcType=CHAR}
     </select>
 
     <insert id="insertInitialSequence">
-        INSERT INTO sequence_doc (prefix, year, last_doc)
+        INSERT INTO sequence_doc (prefix, doc_year, last_doc)
         VALUES (
                    #{prefix, jdbcType=CHAR},
-                   #{year, jdbcType=CHAR},
+                   #{doc_year, jdbcType=CHAR},
                    1
                )
     </insert>

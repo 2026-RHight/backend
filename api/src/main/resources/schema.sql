@@ -267,10 +267,10 @@ CREATE TABLE IF NOT EXISTS hr_event (
 CREATE TABLE IF NOT EXISTS sequence_doc (
     id BIGINT NOT NULL AUTO_INCREMENT,
     prefix VARCHAR(3) NOT NULL,
-    `year` VARCHAR(4) NOT NULL,
+    doc_year VARCHAR(4) NOT NULL,
     last_doc INT NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_sequence_doc_prefix_year (prefix, `year`)
+    UNIQUE KEY uk_sequence_doc_prefix_year (prefix, doc_year)
 );
 
 CREATE TABLE IF NOT EXISTS electronic_approval (

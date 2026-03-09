@@ -5,9 +5,9 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface SequenceMapper {
-    int getSequenceNumber(@Param("prefix") String prefix, @Param("year") String year);
+    int getSequenceNumber(@Param("prefix") String prefix, @Param("doc_year") String docYear);
 
-    int updateSequenceNumber(@Param("prefix") String prefix, @Param("year") String year);
+    int updateSequenceNumber(@Param("prefix") String prefix, @Param("doc_year") String docYear);
 
-    void insertInitialSequence(@Param("prefix") String prefix, @Param("year") String year);
+    void insertInitialSequence(@Param("prefix") String prefix, @Param("doc_year") String docYear);
 }
