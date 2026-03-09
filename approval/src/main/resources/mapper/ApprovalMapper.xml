@@ -127,6 +127,8 @@
                 AND ea.drafter_id = #{employeeId}
             </when>
             <when test="boxType == 'REFERENCE'">
+                ea.approval_status &lt;&gt; 'TEMP'
+                AND
                 EXISTS (
                     SELECT 1
                     FROM reference_line rfi
@@ -173,6 +175,7 @@
                     FROM reference_line rfi
                     WHERE rfi.approval_id = ea.approval_id
                       AND rfi.referencer_id = #{employeeId}
+                      AND ea.approval_status &lt;&gt; 'TEMP'
                 )
                 OR (
                     ea.approval_status = 'HOLD'
