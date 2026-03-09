@@ -83,6 +83,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -109,6 +110,10 @@ public class ApprovalService implements ApprovalFacade {
 
     public String draftApproval(
             DraftApproval dto, List<MultipartFile> files, Long employeeId, ApprovalStatus status) {
+        if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
+            throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
+        }
+
         // HR 모듈에서 기안자(사원) 정보 조회
         EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(employeeId);
 
@@ -430,24 +435,39 @@ public class ApprovalService implements ApprovalFacade {
         }
     }
 
-    public void reDraftApproval(Long approvalId, Long employeeId) {
+    public void reDraftApproval(
+            Long approvalId, DraftApproval dto, List<MultipartFile> files, Long employeeId) {
+        if (dto.getApprovalLine() == null || dto.getApprovalLine().isEmpty()) {
+            throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
+        }
+
         if (approvalMapper.countByApprovalId(approvalId) == 0) {
             throw new ApprovalNotFoundException("존재하지 않는 기안입니다.");
         }
         if (approvalMapper.countByApprovalIdAndDrafterId(approvalId, employeeId) == 0) {
             throw new ForbiddenException("본인이 기안한 문서만 재상신할 수 있습니다.");
         }
-
-        int updated = approvalMapper.updateApprovalStatusFromTempToPending(approvalId, employeeId);
-        if (updated != 1) {
+        String status = approvalMapper.findApprovalStatusByApprovalId(approvalId);
+        if (!ApprovalStatus.TEMP.name().equals(status)) {
             throw new BadRequestException("임시 저장 상태(TEMP) 문서만 재상신할 수 있습니다.");
         }
 
-        approvalLineMapper.updateApprovalLineStatusFromTempToPending(approvalId);
+        List<ApprovalAttachmentRow> attachments =
+                approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId);
+        attachments.forEach(
+                attachment -> {
+                    if (!StringUtils.hasText(attachment.fileKey())) {
+                        return;
+                    }
+                    approvalFileService.deleteByKey(attachment.fileKey());
+                });
 
-        String title = approvalMapper.findTitleByApprovalId(approvalId);
-        EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(employeeId);
-        publishReDraftMailEvents(approvalId, title, drafterProfile);
+        int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
+        if (deleted != 1) {
+            throw new IllegalStateException("재상신을 위한 기존 기안 삭제에 실패했습니다. approvalId=" + approvalId);
+        }
+
+        draftApproval(dto, files, employeeId, ApprovalStatus.PENDING);
     }
 
     public void processApproval(Long approvalId, ApprovalProcessRequest request, Long approverId) {
@@ -869,46 +889,6 @@ public class ApprovalService implements ApprovalFacade {
             throw new ForbiddenException("해당 기안을 조회할 권한이 없습니다.");
         }
         return header;
-    }
-
-    private void publishReDraftMailEvents(
-            Long approvalId, String title, EmployeeProfileDTO drafterProfile) {
-        String safeTitle = (title == null || title.isBlank()) ? "제목 없음" : title;
-        String drafterName =
-                drafterProfile.employeeName() == null ? "기안자" : drafterProfile.employeeName();
-
-        Long firstApproverId = approvalLineMapper.findFirstApproverIdByApprovalId(approvalId);
-        if (firstApproverId != null) {
-            EmployeeProfileDTO approver = hrFacade.getEmployeeProfile(firstApproverId);
-            if (approver.email() != null && !approver.email().isBlank()) {
-                safePublishEmailEvent(
-                        approver.email(),
-                        "[RHIGHT] 결재 요청(재상신): " + safeTitle,
-                        "<p>" + drafterName + "님이 문서를 재상신했습니다.</p><p>문서 제목: " + safeTitle + "</p>");
-            }
-        }
-
-        List<Long> referencerIds = referenceLineMapper.findReferencerIdsByApprovalId(approvalId);
-        if (referencerIds == null || referencerIds.isEmpty()) {
-            return;
-        }
-
-        Set<Long> uniqueReferencerIds = new LinkedHashSet<>(referencerIds);
-        uniqueReferencerIds.forEach(
-                referencerId -> {
-                    EmployeeProfileDTO referencer = hrFacade.getEmployeeProfile(referencerId);
-                    if (referencer.email() == null || referencer.email().isBlank()) {
-                        return;
-                    }
-                    safePublishEmailEvent(
-                            referencer.email(),
-                            "[RHIGHT] 참조 문서 도착(재상신): " + safeTitle,
-                            "<p>"
-                                    + drafterName
-                                    + "님이 참조 문서를 재상신했습니다.</p><p>문서 제목: "
-                                    + safeTitle
-                                    + "</p>");
-                });
     }
 
     private void processApprove(

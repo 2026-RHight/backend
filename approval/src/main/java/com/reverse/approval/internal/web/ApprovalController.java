@@ -44,7 +44,7 @@ public class ApprovalController implements ApprovalResource {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResponse<String>> draftApproval(
-            @RequestPart(value = "dto") DraftApproval dto,
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -58,7 +58,7 @@ public class ApprovalController implements ApprovalResource {
     @PostMapping(path = "/temp", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResponse<String>> tempApproval(
-            @RequestPart(value = "dto") DraftApproval dto,
+            @RequestPart(value = "dto") @Valid DraftApproval dto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -96,13 +96,16 @@ public class ApprovalController implements ApprovalResource {
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    @Operation(summary = "기안 재상신 API")
-    @PatchMapping(path = "/{approvalId}")
+    @Override
+    @PatchMapping(path = "/{approvalId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<ApiResponse<String>> reDraftApproval(
-            @PathVariable("approvalId") Long approvalId, @AuthenticationPrincipal CustomUser user) {
+            @PathVariable("approvalId") Long approvalId,
+            @RequestPart(value = "dto") DraftApproval dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal CustomUser user) {
 
-        approvalService.reDraftApproval(approvalId, user.getEmployeeId());
+        approvalService.reDraftApproval(approvalId, dto, files, user.getEmployeeId());
 
         return ResponseEntity.ok(ApiResponse.success("기안이 재상신되었습니다."));
     }

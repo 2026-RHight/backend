@@ -49,14 +49,6 @@
         WHERE approval_id = #{approvalId}
     </delete>
 
-    <update id="updateApprovalStatusFromTempToPending">
-        UPDATE electronic_approval
-        SET approval_status = 'PENDING'
-        WHERE approval_id = #{approvalId}
-          AND drafter_id = #{drafterId}
-          AND approval_status = 'TEMP'
-    </update>
-
     <update id="updateDocId">
         UPDATE electronic_approval
         SET doc_id = #{docId}

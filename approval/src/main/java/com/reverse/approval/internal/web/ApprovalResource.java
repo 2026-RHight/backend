@@ -58,6 +58,16 @@ public interface ApprovalResource {
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal CustomUser user);
 
+    @Operation(summary = "기안 재상신 API")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            content =
+                    @Content(encoding = @Encoding(name = "dto", contentType = "application/json")))
+    ResponseEntity<ApiResponse<String>> reDraftApproval(
+            @PathVariable("approvalId") Long approvalId,
+            @RequestPart(value = "dto") DraftApproval dto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal CustomUser user);
+
     @Operation(summary = "첨부파일 다운로드 API")
     @SecurityRequirement(name = "JWT")
     ResponseEntity<byte[]> downloadAttachment(
