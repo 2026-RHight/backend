@@ -20,7 +20,7 @@ public class RecipientLineParam {
     }
 
     public static RecipientLineParam from(
-            Long receiverId, Long approvalId, String receiverName, String receiverRank) {
+            Long approvalId, Long receiverId, String receiverName, String receiverRank) {
         return RecipientLineParam.builder()
                 .approvalId(approvalId)
                 .receiverId(receiverId)

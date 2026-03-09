@@ -8,20 +8,20 @@ import lombok.Getter;
 @Getter
 public class RTWDetailParam {
     private final Long approvalId;
-    private final LocalDate RTWDate;
+    private final LocalDate rtwDate;
     private final String reason;
 
     @Builder
-    public RTWDetailParam(Long approvalId, LocalDate RTWDate, String reason) {
+    public RTWDetailParam(Long approvalId, LocalDate rtwDate, String reason) {
         this.approvalId = approvalId;
-        this.RTWDate = RTWDate;
+        this.rtwDate = rtwDate;
         this.reason = reason;
     }
 
     public static RTWDetailParam from(RTWRequest dto, Long approvalId) {
         return RTWDetailParam.builder()
                 .approvalId(approvalId)
-                .RTWDate(dto.getRtwDate())
+                .rtwDate(dto.getRtwDate())
                 .reason(dto.getReason())
                 .build();
     }

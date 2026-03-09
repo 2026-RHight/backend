@@ -14,7 +14,7 @@
         )
         VALUES (
             #{approvalId},
-            #{RTWDate},
+            #{rtwDate},
             #{reason}
         )
     </insert>

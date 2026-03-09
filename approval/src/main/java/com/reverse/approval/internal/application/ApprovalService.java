@@ -606,8 +606,8 @@ public class ApprovalService implements ApprovalFacade {
                                 hrFacade.getEmployeeProfile(line.getReferencerId());
                         referenceLineMapper.insertReferenceLine(
                                 ReferenceLineParam.from(
-                                        line.getReferencerId(),
                                         approvalId,
+                                        line.getReferencerId(),
                                         profile.employeeName() == null
                                                 ? "미지정"
                                                 : profile.employeeName(),
@@ -622,8 +622,8 @@ public class ApprovalService implements ApprovalFacade {
                                 hrFacade.getEmployeeProfile(line.getReceipientId());
                         recipientLineMapper.insertRecipientLine(
                                 RecipientLineParam.from(
-                                        line.getReceipientId(),
                                         approvalId,
+                                        line.getReceipientId(),
                                         profile.employeeName() == null
                                                 ? "미지정"
                                                 : profile.employeeName(),

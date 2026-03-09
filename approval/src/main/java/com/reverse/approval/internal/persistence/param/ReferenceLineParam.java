@@ -20,7 +20,7 @@ public class ReferenceLineParam {
     }
 
     public static ReferenceLineParam from(
-            Long referencerId, Long approvalId, String referencerName, String referenceRank) {
+            Long approvalId, Long referencerId, String referencerName, String referenceRank) {
         return ReferenceLineParam.builder()
                 .approvalId(approvalId)
                 .referencerId(referencerId)
