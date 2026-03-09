@@ -31,7 +31,7 @@ spring:
 
 app:
   mail:
-    from: ${PROD_MAIL_FROM:no-reply@rhight.local}
+    from: ${PROD_MAIL_FROM:no-reply@rhight.kro.kr}
 
 cloud:
   s3:
