@@ -132,8 +132,10 @@ public class JwtTokenProvider {
             if (!String.valueOf(employeeId).equals(c.getSubject())) {
                 throw new UnauthorizedException("FORBIDDEN", "본인의 급여 조회 티켓만 사용할 수 있습니다.");
             }
-        } catch (Exception e) {
+        } catch (ExpiredJwtException e) {
             throw new UnauthorizedException("INVALID_TICKET", "만료되었거나 유효하지 않은 급여 조회 티켓입니다.");
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new UnauthorizedException("INVALID_TICKET", "유효하지 않은 급여 조회 티켓입니다.");
         }
     }
 
