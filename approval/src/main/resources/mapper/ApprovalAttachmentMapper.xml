@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.ApprovalAttachmentMapper">
+
+    <select id="findAttachmentByFileIdAndApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow">
+        SELECT
+            file_id       AS fileId,
+            file_key      AS fileKey,
+            file_path     AS filePath,
+            original_name AS originalName,
+            created_dt    AS createdDate,
+            approval_id   AS approvalId
+        FROM approval_attachment
+        WHERE file_id = #{fileId}
+          AND approval_id = #{approvalId}
+        LIMIT 1
+    </select>
+
+    <select id="findAttachmentsByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow">
+        SELECT
+            file_id       AS fileId,
+            file_key      AS fileKey,
+            file_path     AS filePath,
+            original_name AS originalName,
+            created_dt    AS createdDate,
+            approval_id   AS approvalId
+        FROM approval_attachment
+        WHERE approval_id = #{approvalId}
+        ORDER BY file_id ASC
+    </select>
+
+    <insert id="insertApprovalAttachment"
+            parameterType="com.reverse.approval.internal.persistence.param.ApprovalAttachmentParam">
+        INSERT INTO approval_attachment (
+            file_key,
+            file_path,
+            original_name,
+            created_dt,
+            approval_id
+        )
+        VALUES (
+            #{fileKey},
+            #{filePath},
+            #{originalName},
+            #{createdDt},
+            #{approvalId}
+        )
+    </insert>
+
+</mapper>

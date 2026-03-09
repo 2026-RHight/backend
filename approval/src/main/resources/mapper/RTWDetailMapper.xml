@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.RTWDetailMapper">
+
+    <insert id="insertRtwDetail"
+            parameterType="com.reverse.approval.internal.persistence.param.RTWDetailParam">
+        INSERT INTO rtw_detail (
+            approval_id,
+            rtw_date,
+            reason
+        )
+        VALUES (
+            #{approvalId},
+            #{rtwDate},
+            #{reason}
+        )
+    </insert>
+
+    <select id="findRTWDetailByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.RTWDetailRow">
+        SELECT rtw_date AS rtwDate,
+               reason AS reason
+        FROM rtw_detail
+        WHERE approval_id = #{approvalId}
+    </select>
+
+</mapper>

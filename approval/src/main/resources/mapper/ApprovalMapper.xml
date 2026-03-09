@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.approval.internal.persistence.ApprovalMapper">
+
+    <select id="countByApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="countByApprovalIdAndDrafterId" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+          AND drafter_id = #{drafterId}
+    </select>
+
+    <insert id="insertElectronicApproval"
+            parameterType="com.reverse.approval.internal.persistence.param.ElectronicApprovalParam"
+            useGeneratedKeys="true"
+            keyProperty="approvalId"
+            keyColumn="approval_id">
+        INSERT INTO electronic_approval (
+            title,
+            doc_type,
+            approval_status,
+            draft_dt,
+            drafter_id,
+            drafter_name,
+            department_name
+        )
+        VALUES (
+            #{title},
+            #{docType},
+            #{approvalStatus},
+            #{draftDate},
+            #{drafterId},
+            #{drafterName},
+            #{departmentName}
+        )
+    </insert>
+
+    <delete id="deleteElectronicApprovalById">
+        DELETE
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </delete>
+
+    <update id="updateDocId">
+        UPDATE electronic_approval
+        SET doc_id = #{docId}
+        WHERE approval_id = #{approvalId}
+    </update>
+
+    <select id="findTitleByApprovalId" resultType="string">
+        SELECT title
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="findApprovalStatusByApprovalId" resultType="string">
+        SELECT approval_status
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <select id="findDrafterIdByApprovalId" resultType="long">
+        SELECT drafter_id
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+    <update id="updateApprovalToComplete">
+        UPDATE electronic_approval
+        SET approval_status = 'COMPLETE',
+            approve_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <update id="updateApprovalToRejected">
+        UPDATE electronic_approval
+        SET approval_status = 'REJECTED'
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <update id="updateApprovalToHold">
+        UPDATE electronic_approval
+        SET approval_status = 'HOLD'
+        WHERE approval_id = #{approvalId}
+          AND approval_status = 'PENDING'
+    </update>
+
+    <update id="updateReadDateIfNull">
+        UPDATE electronic_approval
+        SET read_dt = NOW()
+        WHERE approval_id = #{approvalId}
+          AND read_dt IS NULL
+          AND drafter_id = #{employeeId}
+    </update>
+
+    <sql id="documentBoxWhere">
+        <choose>
+            <when test="boxType == 'INBOX'">
+                ea.approval_status = 'COMPLETE'
+                AND EXISTS (
+                    SELECT 1
+                    FROM recipient_line rli
+                    WHERE rli.approval_id = ea.approval_id
+                      AND rli.receiver_id = #{employeeId}
+                )
+            </when>
+            <when test="boxType == 'REJECTED'">
+                ea.approval_status = 'REJECTED'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'COMPLETED'">
+                ea.approval_status = 'COMPLETE'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'TEMP'">
+                ea.approval_status = 'TEMP'
+                AND ea.drafter_id = #{employeeId}
+            </when>
+            <when test="boxType == 'REFERENCE'">
+                ea.approval_status &lt;&gt; 'TEMP'
+                AND
+                EXISTS (
+                    SELECT 1
+                    FROM reference_line rfi
+                    WHERE rfi.approval_id = ea.approval_id
+                      AND rfi.referencer_id = #{employeeId}
+                )
+            </when>
+            <when test="boxType == 'HOLD'">
+                ea.approval_status = 'HOLD'
+                AND (
+                    ea.drafter_id = #{employeeId}
+                    OR EXISTS (
+                        SELECT 1
+                        FROM approval_line ali
+                        WHERE ali.approval_id = ea.approval_id
+                          AND ali.approver_id = #{employeeId}
+                    )
+                )
+            </when>
+            <otherwise>
+                (
+                    ea.approval_status = 'COMPLETE'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM recipient_line rli
+                        WHERE rli.approval_id = ea.approval_id
+                          AND rli.receiver_id = #{employeeId}
+                    )
+                )
+                OR (
+                    ea.approval_status = 'REJECTED'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR (
+                    ea.approval_status = 'COMPLETE'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR (
+                    ea.approval_status = 'TEMP'
+                    AND ea.drafter_id = #{employeeId}
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM reference_line rfi
+                    WHERE rfi.approval_id = ea.approval_id
+                      AND rfi.referencer_id = #{employeeId}
+                      AND ea.approval_status &lt;&gt; 'TEMP'
+                )
+                OR (
+                    ea.approval_status = 'HOLD'
+                    AND (
+                        ea.drafter_id = #{employeeId}
+                        OR EXISTS (
+                            SELECT 1
+                            FROM approval_line ali
+                            WHERE ali.approval_id = ea.approval_id
+                              AND ali.approver_id = #{employeeId}
+                        )
+                    )
+                )
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="countApprovalsByBox" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval ea
+        WHERE
+        <include refid="documentBoxWhere"/>
+    </select>
+
+    <select id="findApprovalsByBox"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalBoxRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.draft_dt AS draftDate,
+            ea.approve_dt AS approveDate,
+            ea.drafter_id AS drafterId,
+            ea.drafter_name AS drafterName,
+            ea.department_name AS departmentName,
+            COALESCE(
+                (
+                    SELECT al.read_dt
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approver_id = #{employeeId}
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                (
+                    SELECT rf.read_dt
+                    FROM reference_line rf
+                    WHERE rf.approval_id = ea.approval_id
+                      AND rf.referencer_id = #{employeeId}
+                    ORDER BY rf.reference_id ASC
+                    LIMIT 1
+                ),
+                (
+                    SELECT rc.read_dt
+                    FROM recipient_line rc
+                    WHERE rc.approval_id = ea.approval_id
+                      AND rc.receiver_id = #{employeeId}
+                    ORDER BY rc.recipient_id ASC
+                    LIMIT 1
+                )
+            ) AS readDate
+        FROM electronic_approval ea
+        WHERE
+        <include refid="documentBoxWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="findApprovalProgressCounts"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow">
+        SELECT
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status &lt;&gt; 'COMPLETE' THEN 1 ELSE 0 END), 0) AS SIGNED) AS allCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'TEMP' THEN 1 ELSE 0 END), 0) AS SIGNED) AS draftCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status IN ('PENDING', 'HOLD') THEN 1 ELSE 0 END), 0) AS SIGNED) AS inProgressCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'REJECTED' THEN 1 ELSE 0 END), 0) AS SIGNED) AS rejectedCount
+        FROM electronic_approval ea
+        WHERE ea.drafter_id = #{employeeId}
+    </select>
+
+    <sql id="approvalProgressWhere">
+        ea.drafter_id = #{employeeId}
+        AND ea.approval_status &lt;&gt; 'COMPLETE'
+        <choose>
+            <when test="tabType == 'DRAFT'">
+                AND ea.approval_status = 'TEMP'
+            </when>
+            <when test="tabType == 'IN_PROGRESS'">
+                AND ea.approval_status IN ('PENDING', 'HOLD')
+            </when>
+            <when test="tabType == 'REJECTED'">
+                AND ea.approval_status = 'REJECTED'
+            </when>
+            <otherwise>
+            </otherwise>
+        </choose>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                ea.doc_id LIKE CONCAT('%', #{keyword}, '%')
+                OR ea.title LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </sql>
+
+    <select id="countApprovalProgress" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval ea
+        WHERE
+        <include refid="approvalProgressWhere"/>
+    </select>
+
+    <select id="findApprovalProgress"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalProgressRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.draft_dt AS draftDate,
+            ea.read_dt AS readDate,
+            COALESCE(
+                (
+                    SELECT al.approver_name
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approval_status = 'PENDING'
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                '-'
+            ) AS currentApproverName,
+            CAST((
+                SELECT COUNT(*)
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+            ) AS SIGNED) AS totalApproverCount,
+            CAST((
+                SELECT COUNT(*)
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+                  AND al.approval_status &lt;&gt; 'PENDING'
+            ) AS SIGNED) AS doneApproverCount,
+            CAST((CASE
+                WHEN (
+                    SELECT COUNT(*)
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                ) = 0 THEN 0
+                ELSE ROUND(
+                    (
+                        (
+                            SELECT COUNT(*)
+                            FROM approval_line al
+                            WHERE al.approval_id = ea.approval_id
+                              AND al.approval_status &lt;&gt; 'PENDING'
+                        ) * 100.0
+                    ) / (
+                        SELECT COUNT(*)
+                        FROM approval_line al
+                        WHERE al.approval_id = ea.approval_id
+                    ),
+                    0
+                )
+            END) AS SIGNED) AS progressPercent
+        FROM electronic_approval ea
+        WHERE
+        <include refid="approvalProgressWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countApprovalReviews" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+    </select>
+
+    <select id="findApprovalReviews"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalReviewRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.approval_status AS approvalStatus,
+            ea.drafter_name AS drafterName,
+            ea.department_name AS departmentName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="findApprovalDashboardCounts"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalDashboardCountsRow">
+        SELECT
+            (
+                SELECT CAST(COUNT(DISTINCT ea1.approval_id) AS SIGNED)
+                FROM electronic_approval ea1
+                JOIN approval_line al1
+                  ON al1.approval_id = ea1.approval_id
+                WHERE ea1.approval_status = 'PENDING'
+                  AND al1.approver_id = #{employeeId}
+                  AND al1.approval_status = 'PENDING'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM approval_line al2
+                      WHERE al2.approval_id = ea1.approval_id
+                        AND al2.approval_status = 'PENDING'
+                        AND al2.approval_seq &lt; al1.approval_seq
+                  )
+            ) AS pendingReviewCount,
+            (
+                SELECT CAST(COUNT(*) AS SIGNED)
+                FROM electronic_approval ea2
+                WHERE ea2.drafter_id = #{employeeId}
+                  AND ea2.approval_status IN ('PENDING', 'HOLD')
+            ) AS inProgressCount,
+            (
+                SELECT CAST(COUNT(*) AS SIGNED)
+                FROM electronic_approval ea3
+                WHERE ea3.drafter_id = #{employeeId}
+                  AND ea3.approval_status = 'COMPLETE'
+                  AND ea3.approve_dt &gt;= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                  AND ea3.approve_dt &lt; DATE_ADD(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
+            ) AS completedThisMonthCount
+    </select>
+
+    <select id="countDashboardPendingReviews" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+    </select>
+
+    <select id="countDashboardInProgress" resultType="int">
+        SELECT CAST(COUNT(*) AS SIGNED)
+        FROM electronic_approval
+        WHERE drafter_id = #{employeeId}
+          AND approval_status IN ('PENDING', 'HOLD')
+    </select>
+
+    <select id="countDashboardCompletedThisMonth" resultType="int">
+        SELECT CAST(COUNT(*) AS SIGNED)
+        FROM electronic_approval
+        WHERE drafter_id = #{employeeId}
+          AND approval_status = 'COMPLETE'
+          AND approve_dt &gt;= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+          AND approve_dt &lt; DATE_ADD(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
+    </select>
+
+    <select id="findApprovalDashboardPendingReviews"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            ea.drafter_name AS drafterName,
+            ea.draft_dt AS draftDate,
+            al.read_dt AS readDate
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        WHERE ea.approval_status = 'PENDING'
+          AND al.approver_id = #{employeeId}
+          AND al.approval_status = 'PENDING'
+          AND NOT EXISTS (
+              SELECT 1
+              FROM approval_line al2
+              WHERE al2.approval_id = ea.approval_id
+                AND al2.approval_status = 'PENDING'
+                AND al2.approval_seq &lt; al.approval_seq
+          )
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
+    <select id="findApprovalDashboardMyDrafts"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_type AS docType,
+            ea.title AS title,
+            COALESCE(
+                (
+                    SELECT al.approver_name
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approval_status = 'PENDING'
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                '-'
+            ) AS currentApproverName,
+            ea.approval_status AS approvalStatus
+        FROM electronic_approval ea
+        WHERE ea.drafter_id = #{employeeId}
+          AND ea.approval_status &lt;&gt; 'WITHDRAWN'
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
+    <sql id="mainPendingReviewWhere">
+        ea.approval_status = 'PENDING'
+        AND al.approver_id = #{employeeId}
+        AND al.approval_status = 'PENDING'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM approval_line al2
+            WHERE al2.approval_id = ea.approval_id
+              AND al2.approval_status = 'PENDING'
+              AND al2.approval_seq &lt; al.approval_seq
+        )
+    </sql>
+
+    <sql id="mainInProgressWhere">
+        ea.approval_status = 'PENDING'
+        AND al.approver_id = #{employeeId}
+        AND (
+            al.approval_status = 'COMPLETE'
+            OR (
+                al.approval_status = 'PENDING'
+                AND EXISTS (
+                    SELECT 1
+                    FROM approval_line al2
+                    WHERE al2.approval_id = ea.approval_id
+                      AND al2.approval_status = 'PENDING'
+                      AND al2.approval_seq &lt; al.approval_seq
+                )
+            )
+        )
+    </sql>
+
+    <select id="countMainPendingReviews" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainPendingReviewWhere"/>
+    </select>
+
+    <select id="countMainInProgressApprovals" resultType="int">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainInProgressWhere"/>
+    </select>
+
+    <select id="findMainPendingReviews"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalMainItemRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.title AS title,
+            ea.drafter_name AS drafterName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainPendingReviewWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
+    <select id="findMainInProgressApprovals"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalMainItemRow">
+        SELECT DISTINCT
+            ea.approval_id AS approvalId,
+            ea.title AS title,
+            ea.drafter_name AS drafterName,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN approval_line al ON al.approval_id = ea.approval_id
+        WHERE
+        <include refid="mainInProgressWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size}
+    </select>
+
+    <select id="findApprovalHeaderByApprovalId"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
+        SELECT
+            approval_id      AS approvalId,
+            doc_type         AS docType,
+            doc_id           AS docId,
+            title            AS title,
+            approval_status  AS approvalStatus,
+            draft_dt         AS draftDate,
+            drafter_id       AS drafterId,
+            drafter_name     AS drafterName,
+            department_name  AS departmentName,
+            approve_dt       AS approveDate
+        FROM electronic_approval
+        WHERE approval_id = #{approvalId}
+    </select>
+
+</mapper>

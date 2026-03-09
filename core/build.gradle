@@ -33,6 +33,7 @@ dependencies {
     compileOnly 'org.springframework:spring-web'
     api 'org.springdoc:springdoc-openapi-starter-common:2.8.14'
     api 'software.amazon.awssdk:s3:2.42.4'
+    api 'org.springframework:spring-tx'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
