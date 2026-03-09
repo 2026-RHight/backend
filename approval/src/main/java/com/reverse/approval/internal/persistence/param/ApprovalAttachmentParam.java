@@ -6,6 +6,7 @@ import lombok.Getter;
 
 @Getter
 public class ApprovalAttachmentParam {
+    private final String fileKey;
     private final String filePath;
     private final String originalName;
     private final LocalDateTime createdDt;
@@ -13,7 +14,12 @@ public class ApprovalAttachmentParam {
 
     @Builder
     public ApprovalAttachmentParam(
-            String filePath, String originalName, LocalDateTime createdDt, Long approvalId) {
+            String fileKey,
+            String filePath,
+            String originalName,
+            LocalDateTime createdDt,
+            Long approvalId) {
+        this.fileKey = fileKey;
         this.filePath = filePath;
         this.originalName = originalName;
         this.createdDt = createdDt;
@@ -21,8 +27,9 @@ public class ApprovalAttachmentParam {
     }
 
     public static ApprovalAttachmentParam from(
-            String filePath, String originalName, Long approvalId) {
+            String fileKey, String filePath, String originalName, Long approvalId) {
         return ApprovalAttachmentParam.builder()
+                .fileKey(fileKey)
                 .filePath(filePath)
                 .originalName(originalName)
                 .createdDt(LocalDateTime.now())

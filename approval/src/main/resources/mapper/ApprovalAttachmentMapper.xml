@@ -9,6 +9,7 @@
             resultType="com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow">
         SELECT
             file_id       AS fileId,
+            file_key      AS fileKey,
             file_path     AS filePath,
             original_name AS originalName,
             created_dt    AS createdDate,
@@ -23,6 +24,7 @@
             resultType="com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow">
         SELECT
             file_id       AS fileId,
+            file_key      AS fileKey,
             file_path     AS filePath,
             original_name AS originalName,
             created_dt    AS createdDate,
@@ -35,12 +37,14 @@
     <insert id="insertApprovalAttachment"
             parameterType="com.reverse.approval.internal.persistence.param.ApprovalAttachmentParam">
         INSERT INTO approval_attachment (
+            file_key,
             file_path,
             original_name,
             created_dt,
             approval_id
         )
         VALUES (
+            #{fileKey},
             #{filePath},
             #{originalName},
             #{createdDt},

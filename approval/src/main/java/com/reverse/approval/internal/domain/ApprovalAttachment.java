@@ -23,6 +23,10 @@ public class ApprovalAttachment {
     @Comment("파일 경로")
     private String filePath;
 
+    @Column(name = "file_key", length = 512)
+    @Comment("S3 객체 키")
+    private String fileKey;
+
     @Column(name = "original_name", length = 512, nullable = false)
     @Comment("원 파일 이름")
     private String originalName;

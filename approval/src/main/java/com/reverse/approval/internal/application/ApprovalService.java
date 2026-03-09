@@ -148,7 +148,7 @@ public class ApprovalService implements ApprovalFacade {
                                                         + ", fileId="
                                                         + fileId));
 
-        byte[] content = approvalFileService.downloadByFileUrl(attachment.filePath());
+        byte[] content = approvalFileService.downloadByKey(attachment.fileKey());
         return new DownloadedApprovalFile(attachment.originalName(), content);
     }
 
@@ -422,8 +422,7 @@ public class ApprovalService implements ApprovalFacade {
 
         List<ApprovalAttachmentRow> attachments =
                 approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId);
-        attachments.forEach(
-                attachment -> approvalFileService.deleteByFileUrl(attachment.filePath()));
+        attachments.forEach(attachment -> approvalFileService.deleteByKey(attachment.fileKey()));
 
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
@@ -611,7 +610,10 @@ public class ApprovalService implements ApprovalFacade {
 
                 approvalAttachmentMapper.insertApprovalAttachment(
                         ApprovalAttachmentParam.from(
-                                uploaded.fileUrl(), uploaded.originalName(), approvalId));
+                                uploaded.key(),
+                                uploaded.fileUrl(),
+                                uploaded.originalName(),
+                                approvalId));
             }
         } catch (RuntimeException e) {
             uploadedKeys.forEach(

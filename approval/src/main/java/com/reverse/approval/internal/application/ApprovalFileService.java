@@ -1,11 +1,11 @@
 package com.reverse.approval.internal.application;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -64,8 +64,11 @@ public class ApprovalFileService {
         }
     }
 
-    public byte[] downloadByFileUrl(String fileUrl) {
-        return download(extractKeyFromFileUrl(fileUrl));
+    public byte[] downloadByKey(String fileKey) {
+        if (!StringUtils.hasText(fileKey)) {
+            throw new IllegalStateException("Missing file_key");
+        }
+        return download(fileKey.trim());
     }
 
     public void delete(String key) {
@@ -78,29 +81,11 @@ public class ApprovalFileService {
         }
     }
 
-    public void deleteByFileUrl(String fileUrl) {
-        if (fileUrl == null || fileUrl.isBlank()) {
-            return;
+    public void deleteByKey(String fileKey) {
+        if (!StringUtils.hasText(fileKey)) {
+            throw new IllegalStateException("Missing file_key");
         }
-        delete(extractKeyFromFileUrl(fileUrl));
-    }
-
-    private String extractKeyFromFileUrl(String fileUrl) {
-        try {
-            String path = URI.create(fileUrl).getPath();
-            if (path == null || path.isBlank()) {
-                throw new IllegalArgumentException("Invalid file URL");
-            }
-
-            String normalized = path.startsWith("/") ? path.substring(1) : path;
-            String bucketPrefix = bucket + "/";
-            if (!normalized.startsWith(bucketPrefix)) {
-                throw new IllegalArgumentException("Bucket path mismatch");
-            }
-            return normalized.substring(bucketPrefix.length());
-        } catch (RuntimeException e) {
-            throw new IllegalStateException("Failed to parse key from file URL", e);
-        }
+        delete(fileKey.trim());
     }
 
     private String getExtension(String name) {
