@@ -83,6 +83,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -114,6 +116,9 @@ public class ApprovalService implements ApprovalFacade {
             throw new BadRequestException("결재선은 최소 1명 이상 지정해야 합니다.");
         }
 
+        List<String> uploadedKeys = new ArrayList<>();
+        registerRollbackCleanup(uploadedKeys);
+
         // HR 모듈에서 기안자(사원) 정보 조회
         EmployeeProfileDTO drafterProfile = hrFacade.getEmployeeProfile(employeeId);
 
@@ -125,7 +130,7 @@ public class ApprovalService implements ApprovalFacade {
         insertApprovalLines(dto.getApprovalLine(), approval.getApprovalId(), status);
         insertReferenceAndRecipientLines(
                 dto.getReferenceLine(), dto.getReceipientLine(), approval.getApprovalId());
-        insertAttachments(files, approval.getApprovalId());
+        insertAttachments(files, approval.getApprovalId(), uploadedKeys);
         if (ApprovalStatus.PENDING.equals(status)) {
             String docId = numberingService.generateSequence("DOC");
             approvalMapper.updateDocId(approval.getApprovalId(), docId);
@@ -611,41 +616,55 @@ public class ApprovalService implements ApprovalFacade {
         }
     }
 
-    private void insertAttachments(List<MultipartFile> files, Long approvalId) {
+    private void insertAttachments(
+            List<MultipartFile> files, Long approvalId, List<String> uploadedKeys) {
         if (files == null || files.isEmpty()) {
             return;
         }
 
-        List<String> uploadedKeys = new ArrayList<>();
         String dir = "approval/" + approvalId;
 
-        try {
-            for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) {
-                    continue;
-                }
-
-                ApprovalFileService.UploadResult uploaded = approvalFileService.upload(file, dir);
-                uploadedKeys.add(uploaded.key());
-
-                approvalAttachmentMapper.insertApprovalAttachment(
-                        ApprovalAttachmentParam.from(
-                                uploaded.key(),
-                                uploaded.fileUrl(),
-                                uploaded.originalName(),
-                                approvalId));
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
             }
-        } catch (RuntimeException e) {
-            uploadedKeys.forEach(
-                    key -> {
-                        try {
-                            approvalFileService.delete(key);
-                        } catch (RuntimeException deleteEx) {
-                            log.warn("첨부파일 보상 삭제 실패. key={}", key, deleteEx);
-                        }
-                    });
-            throw e;
+
+            ApprovalFileService.UploadResult uploaded = approvalFileService.upload(file, dir);
+            uploadedKeys.add(uploaded.key());
+
+            approvalAttachmentMapper.insertApprovalAttachment(
+                    ApprovalAttachmentParam.from(
+                            uploaded.key(),
+                            uploaded.fileUrl(),
+                            uploaded.originalName(),
+                            approvalId));
         }
+    }
+
+    private void registerRollbackCleanup(List<String> uploadedKeys) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != TransactionSynchronization.STATUS_ROLLED_BACK
+                                || uploadedKeys.isEmpty()) {
+                            return;
+                        }
+
+                        uploadedKeys.forEach(
+                                key -> {
+                                    try {
+                                        approvalFileService.delete(key);
+                                    } catch (RuntimeException e) {
+                                        log.warn("롤백 보상 삭제 실패. key={}", key, e);
+                                    }
+                                });
+                    }
+                });
     }
 
     private void publishSubmissionMailEvents(DraftApproval dto, EmployeeProfileDTO drafterProfile) {
