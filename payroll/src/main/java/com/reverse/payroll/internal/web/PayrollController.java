@@ -1,6 +1,8 @@
 package com.reverse.payroll.internal.web;
 
+import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.CustomUser;
+import com.reverse.core.security.JwtTokenProvider;
 import com.reverse.payroll.internal.application.PayrollService;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
@@ -8,6 +10,8 @@ import com.reverse.payroll.internal.dto.response.PayrollListResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class PayrollController {
 
     private final PayrollService payrollService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 급여 명세서 조회 전 비밀번호 검증
     @PostMapping("/verify-password")
@@ -26,6 +31,21 @@ public class PayrollController {
             @AuthenticationPrincipal CustomUser authUser,
             @Valid @RequestBody SalaryPasswordCheckRequest request) {
         boolean isVerified = payrollService.verifySalaryPassword(authUser.getEmployeeId(), request);
+
+        if (isVerified) {
+            String token = jwtTokenProvider.createSalaryDetailTicket(authUser.getEmployeeId());
+            ResponseCookie cookie =
+                    ResponseCookie.from("SALARY_AUTH_TOKEN", token)
+                            .httpOnly(true)
+                            .path("/api/payroll")
+                            .maxAge(300) // 5 minutes
+                            .sameSite("Lax")
+                            .build();
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(isVerified);
+        }
+
         return ResponseEntity.ok(isVerified);
     }
 
@@ -51,7 +71,17 @@ public class PayrollController {
     // 급여 명세서 상세 조회
     @GetMapping("/details/{ledgerId}")
     public ResponseEntity<PayrollDetailResponse> getPayrollDetail(
-            @AuthenticationPrincipal CustomUser authUser, @PathVariable Long ledgerId) {
+            @AuthenticationPrincipal CustomUser authUser,
+            @PathVariable Long ledgerId,
+            @CookieValue(value = "SALARY_AUTH_TOKEN", required = false) String salaryAuthToken) {
+
+        if (salaryAuthToken == null) {
+            throw new UnauthorizedException("FORBIDDEN", "급여 명세서 조회를 위한 비밀번호 인증이 필요합니다.");
+        }
+
+        // 토큰 유효성 및 소유자 검증
+        jwtTokenProvider.validateSalaryDetailTicket(salaryAuthToken, authUser.getEmployeeId());
+
         PayrollDetailResponse response =
                 payrollService.getPayrollDetail(authUser.getEmployeeId(), ledgerId);
         return ResponseEntity.ok(response);

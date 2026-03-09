@@ -111,6 +111,32 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public String createSalaryDetailTicket(Long employeeId) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
+        return Jwts.builder()
+                .subject(String.valueOf(employeeId))
+                .claim("purpose", "SALARY_DETAIL")
+                .issuedAt(now)
+                .expiration(exp)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    public void validateSalaryDetailTicket(String token, Long employeeId) {
+        try {
+            Claims c = parseClaims(token);
+            if (!"SALARY_DETAIL".equals(c.get("purpose"))) {
+                throw new UnauthorizedException("INVALID_TICKET", "유효하지 않은 급여 조회 티켓입니다.");
+            }
+            if (!String.valueOf(employeeId).equals(c.getSubject())) {
+                throw new UnauthorizedException("FORBIDDEN", "본인의 급여 조회 티켓만 사용할 수 있습니다.");
+            }
+        } catch (Exception e) {
+            throw new UnauthorizedException("INVALID_TICKET", "만료되었거나 유효하지 않은 급여 조회 티켓입니다.");
+        }
+    }
+
     public void validatePasswordChangeTicket(String token) {
         try {
             Claims c = parseClaims(token);

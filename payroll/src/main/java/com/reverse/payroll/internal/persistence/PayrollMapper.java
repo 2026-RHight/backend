@@ -3,6 +3,7 @@ package com.reverse.payroll.internal.persistence;
 import com.reverse.payroll.internal.domain.InsuranceRate;
 import com.reverse.payroll.internal.domain.PayrollLedger;
 import com.reverse.payroll.internal.domain.SalarySetting;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -12,7 +13,8 @@ import org.apache.ibatis.annotations.Param;
 public interface PayrollMapper {
 
     // 사원 식별번호로 최근 유효한 기본 급여 설정 조회
-    Optional<SalarySetting> findSalarySettingByEmployeeId(@Param("employeeId") Long employeeId);
+    Optional<SalarySetting> findSalarySettingByEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("targetDate") LocalDate targetDate);
 
     // 적용년도 4대보험 요율 조회
     Optional<InsuranceRate> findInsuranceRateByApplyYear(@Param("applyYear") int applyYear);

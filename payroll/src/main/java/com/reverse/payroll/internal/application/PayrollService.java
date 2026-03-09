@@ -13,9 +13,11 @@ import com.reverse.payroll.internal.exception.InvalidSalaryPasswordException;
 import com.reverse.payroll.internal.persistence.PayrollMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,18 +42,11 @@ public class PayrollService {
         }
         String yearMonth = String.format("%04d-%02d", year, month);
 
-        // 이미 정산된 내역이 있는지 확인
-        payrollMapper
-                .findPayrollLedgerByYearMonth(employeeId, yearMonth)
-                .ifPresent(
-                        ledger -> {
-                            throw new IllegalStateException("해당 월의 급여 대장이 이미 존재합니다.");
-                        });
-
         // 기본 설정 및 4대보험 요율 적용
+        LocalDate targetDate = LocalDate.of(year, month, 1);
         SalarySetting salarySetting =
                 payrollMapper
-                        .findSalarySettingByEmployeeId(employeeId)
+                        .findSalarySettingByEmployeeId(employeeId, targetDate)
                         .orElseThrow(() -> new IllegalArgumentException("급여 기본 설정 정보가 없습니다."));
 
         InsuranceRate insuranceRate =
@@ -127,7 +122,6 @@ public class PayrollService {
                         .add(localTax);
         BigDecimal netPay = totalPayment.subtract(totalDeduction);
 
-        // 객체 조립 후 저장
         PayrollLedger ledger =
                 PayrollLedger.builder()
                         .employeeId(employeeId)
@@ -148,11 +142,15 @@ public class PayrollService {
                         .isSent("N")
                         .build();
 
-        payrollMapper.insertPayrollLedger(ledger);
+        try {
+            payrollMapper.insertPayrollLedger(ledger);
+        } catch (DuplicateKeyException e) {
+            throw new IllegalStateException("해당 월의 급여 대장이 이미 존재합니다.");
+        }
         return ledger;
     }
 
-    // 급여 명세서 조회를 위한 사용자 비밀번호 검증 (DB의 해시된 비밀번호와 비교)
+    // 급여 명세서 조회를 위한 사용자 비밀번호 검증
     public boolean verifySalaryPassword(Long employeeId, SalaryPasswordCheckRequest request) {
         String encodedPassword =
                 payrollMapper
@@ -170,7 +168,9 @@ public class PayrollService {
 
     // 최근 6개월 급여 목록 조회
     public List<PayrollListResponse> getRecentPayrollLedgers(Long employeeId, int limit) {
-        limit = Math.min(limit, 100); // 상한 검증 추가
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("limit은 1 이상 100 이하여야 합니다.");
+        }
         List<PayrollLedger> ledgers =
                 payrollMapper.findRecentPayrollLedgersByEmployeeId(employeeId, limit);
         return ledgers.stream().map(PayrollListResponse::from).collect(Collectors.toList());
@@ -178,6 +178,9 @@ public class PayrollService {
 
     // 특정 년도의 급여 목록 조회
     public List<PayrollListResponse> getPayrollLedgersByYear(Long employeeId, String year) {
+        if (year == null || !year.matches("\\d{4}")) {
+            throw new IllegalArgumentException("year는 yyyy 형식이어야 합니다.");
+        }
         List<PayrollLedger> ledgers = payrollMapper.findPayrollLedgersByYear(employeeId, year);
         return ledgers.stream().map(PayrollListResponse::from).collect(Collectors.toList());
     }
