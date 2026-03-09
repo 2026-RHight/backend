@@ -3,18 +3,15 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reverse.core.mapper.SequenceMapper">
 
-    <update id="updateSequenceNumber">
+    <update id="incrementSequenceNumber">
         UPDATE sequence_doc
-        SET last_doc = last_doc + 1
+        SET last_doc = LAST_INSERT_ID(last_doc + 1)
         WHERE prefix = #{prefix, jdbcType=CHAR}
                   AND doc_year = #{doc_year, jdbcType=CHAR}
     </update>
 
-    <select id="getSequenceNumber" resultType="int">
-        SELECT last_doc
-        FROM sequence_doc
-        WHERE prefix = #{prefix, jdbcType=CHAR}
-                  AND doc_year = #{doc_year, jdbcType=CHAR}
+    <select id="getLastInsertId" resultType="int">
+        SELECT LAST_INSERT_ID()
     </select>
 
     <insert id="insertInitialSequence">
@@ -22,7 +19,7 @@
         VALUES (
                    #{prefix, jdbcType=CHAR},
                    #{doc_year, jdbcType=CHAR},
-                   1
+                   LAST_INSERT_ID(1)
                )
     </insert>
 

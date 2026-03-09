@@ -17,17 +17,17 @@ public class NumberingService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateSequence(String prefix) {
         String docYear = String.valueOf(LocalDateTime.now().getYear());
-        int affectedRows = sequenceMapper.updateSequenceNumber(prefix, docYear);
+        int affectedRows = sequenceMapper.incrementSequenceNumber(prefix, docYear);
 
         if (affectedRows == 0) {
             try {
                 sequenceMapper.insertInitialSequence(prefix, docYear);
             } catch (DuplicateKeyException e) {
-                sequenceMapper.updateSequenceNumber(prefix, docYear);
+                sequenceMapper.incrementSequenceNumber(prefix, docYear);
             }
         }
 
-        int sequenceNumber = sequenceMapper.getSequenceNumber(prefix, docYear);
+        int sequenceNumber = sequenceMapper.getLastInsertId();
 
         return String.format("%s-%s-%04d", prefix, docYear, sequenceNumber);
     }
