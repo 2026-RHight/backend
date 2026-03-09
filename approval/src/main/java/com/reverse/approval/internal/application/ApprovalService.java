@@ -619,14 +619,16 @@ public class ApprovalService implements ApprovalFacade {
         }
 
         if (rec_dto != null) {
-            rec_dto.forEach(
-                    line -> {
-                        EmployeeProfileDTO profile =
-                                hrFacade.getEmployeeProfile(line.getReceipientId());
+            Set<Long> uniqueRecipientIds = new LinkedHashSet<>();
+            rec_dto.forEach(line -> uniqueRecipientIds.add(line.getReceipientId()));
+
+            uniqueRecipientIds.forEach(
+                    receiverId -> {
+                        EmployeeProfileDTO profile = hrFacade.getEmployeeProfile(receiverId);
                         recipientLineMapper.insertRecipientLine(
                                 RecipientLineParam.from(
                                         approvalId,
-                                        line.getReceipientId(),
+                                        receiverId,
                                         profile.employeeName() == null
                                                 ? "미지정"
                                                 : profile.employeeName(),

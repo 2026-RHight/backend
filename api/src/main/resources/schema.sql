@@ -326,6 +326,7 @@ CREATE TABLE IF NOT EXISTS recipient_line (
     read_dt DATETIME NULL,
     PRIMARY KEY (recipient_id),
     KEY idx_recipient_line_approval_id (approval_id),
+    UNIQUE KEY uk_recipient_line_approval_receiver (approval_id, receiver_id),
     CONSTRAINT fk_recipient_line_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
 
