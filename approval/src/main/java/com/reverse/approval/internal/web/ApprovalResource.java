@@ -71,7 +71,9 @@ public interface ApprovalResource {
     @Operation(summary = "첨부파일 다운로드 API")
     @SecurityRequirement(name = "JWT")
     ResponseEntity<byte[]> downloadAttachment(
-            @PathVariable("approvalId") Long approvalId, @PathVariable("fileId") Long fileId);
+            @PathVariable("approvalId") Long approvalId,
+            @PathVariable("fileId") Long fileId,
+            @AuthenticationPrincipal CustomUser user);
 
     @Operation(summary = "결재 처리 API")
     @SecurityRequirement(name = "JWT")

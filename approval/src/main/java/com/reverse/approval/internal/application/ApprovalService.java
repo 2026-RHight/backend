@@ -146,7 +146,10 @@ public class ApprovalService implements ApprovalFacade {
     }
 
     @Transactional(readOnly = true)
-    public DownloadedApprovalFile downloadAttachment(Long approvalId, Long fileId) {
+    public DownloadedApprovalFile downloadAttachment(
+            Long approvalId, Long fileId, Long employeeId) {
+        validateReadableApproval(approvalId, employeeId);
+
         ApprovalAttachmentRow attachment =
                 approvalAttachmentMapper
                         .findAttachmentByFileIdAndApprovalId(fileId, approvalId)

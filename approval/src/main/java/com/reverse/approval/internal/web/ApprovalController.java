@@ -72,8 +72,11 @@ public class ApprovalController implements ApprovalResource {
     @GetMapping("/{approvalId}/attachments/{fileId}/download")
     @SecurityRequirement(name = "JWT")
     public ResponseEntity<byte[]> downloadAttachment(
-            @PathVariable("approvalId") Long approvalId, @PathVariable("fileId") Long fileId) {
-        DownloadedApprovalFile downloaded = approvalService.downloadAttachment(approvalId, fileId);
+            @PathVariable("approvalId") Long approvalId,
+            @PathVariable("fileId") Long fileId,
+            @AuthenticationPrincipal CustomUser user) {
+        DownloadedApprovalFile downloaded =
+                approvalService.downloadAttachment(approvalId, fileId, user.getEmployeeId());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
