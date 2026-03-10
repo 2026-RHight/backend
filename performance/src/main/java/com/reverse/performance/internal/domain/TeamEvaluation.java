@@ -27,6 +27,9 @@ public class TeamEvaluation {
     @Column(name = "appraisee_id")
     private Long appraiseeId;
 
+    @Column(name = "evaluation_year")
+    private Integer evaluationYear;
+
     @Column(name = "performance_eval")
     private String performanceEval;
 

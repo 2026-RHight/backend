@@ -5,13 +5,12 @@ import com.reverse.performance.internal.dto.request.TeamEvalRequest;
 import com.reverse.performance.internal.dto.response.PerformancePeerReviewTargetResponse;
 import com.reverse.performance.internal.dto.response.PerformanceTeamEvaluationAveragesResponse;
 import com.reverse.performance.internal.dto.response.PerformanceTeamEvaluationTargetResponse;
-import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
+import com.reverse.performance.internal.persistence.PerformanceViewMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,21 +22,21 @@ public class PerformanceEvaluationService {
 
     public List<PerformanceTeamEvaluationTargetResponse> getTeamEvaluationTargets(Long employeeId) {
         return performanceViewMapper.findTeamEvaluationTargets(employeeId).stream()
-                .map(row -> new PerformanceTeamEvaluationTargetResponse(
-                        row.id(),
-                        row.name(),
-                        row.role(),
-                        row.department(),
-                        row.status(),
-                        nvl(row.systemScore()),
-                        nvd(row.peerReviewScore()),
-                        new PerformanceTeamEvaluationAveragesResponse(
-                                nvd(row.performanceAvg()),
-                                nvd(row.attitudeAvg()),
-                                nvd(row.collaborationAvg()),
-                                nvd(row.creativityAvg())
-                        )
-                ))
+                .map(
+                        row ->
+                                new PerformanceTeamEvaluationTargetResponse(
+                                        row.id(),
+                                        row.name(),
+                                        row.role(),
+                                        row.department(),
+                                        row.status(),
+                                        nvl(row.systemScore()),
+                                        nvd(row.peerReviewScore()),
+                                        new PerformanceTeamEvaluationAveragesResponse(
+                                                nvd(row.performanceAvg()),
+                                                nvd(row.attitudeAvg()),
+                                                nvd(row.collaborationAvg()),
+                                                nvd(row.creativityAvg()))))
                 .toList();
     }
 
@@ -46,27 +45,29 @@ public class PerformanceEvaluationService {
     }
 
     @Transactional
-    public void submitTeamEvaluation(Long evaluatorId, PerformanceTeamEvaluationSubmitRequest request) {
+    public void submitTeamEvaluation(
+            Long evaluatorId, PerformanceTeamEvaluationSubmitRequest request) {
         if (request == null || request.appraiseeId() == null) {
             throw new PerformanceActionNotAllowedException("평가 대상이 필요합니다.");
         }
 
-        performanceService.saveTeamEval(new TeamEvalRequest(
-                evaluatorId,
-                request.appraiseeId(),
-                null,
-                null,
-                null,
-                null,
-                request.performanceScore(),
-                request.performanceComment(),
-                request.attitudeScore(),
-                request.attitudeComment(),
-                request.collaborationScore(),
-                request.collaborationComment(),
-                request.creativityScore(),
-                request.creativityComment()
-        ));
+        performanceService.saveTeamEval(
+                new TeamEvalRequest(
+                        evaluatorId,
+                        request.appraiseeId(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        request.performanceScore(),
+                        request.performanceComment(),
+                        request.attitudeScore(),
+                        request.attitudeComment(),
+                        request.collaborationScore(),
+                        request.collaborationComment(),
+                        request.creativityScore(),
+                        request.creativityComment()));
     }
 
     private int nvl(Integer value) {

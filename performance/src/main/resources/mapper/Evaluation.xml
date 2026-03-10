@@ -6,9 +6,9 @@
     <insert id="saveEvaluation"
             parameterType="com.reverse.performance.internal.dto.request.EvalRequest">
         INSERT INTO evaluation(
-            employee_id, approval_id, year, evaluation_score, confirmed_at, created_at)
+            employee_id, evaluator_id, year, evaluation_score, confirmed_at, created_at)
         VALUES (
-            #{employeeId}, #{approvalId}, #{year}, #{evaluationScore}, #{confirmAt}, NOW()
+            #{employeeId}, #{evaluatorId}, #{year}, #{evaluationScore}, NOW(), NOW()
         )
     </insert>
 </mapper>

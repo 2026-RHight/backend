@@ -13,7 +13,7 @@
               SELECT 1
               FROM evaluation e
               WHERE e.employee_id = performance.employee_id
-                AND e.approval_id = #{approvalId}
+                AND e.evaluator_id = #{evaluatorId}
           )
     </update>
 </mapper>

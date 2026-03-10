@@ -1,38 +1,35 @@
 package com.reverse.performance.internal.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.reverse.performance.internal.domain.Status;
 import com.reverse.performance.internal.domain.WorkItem;
-
 import java.time.LocalDate;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record PerformanceRequest(
-        Long performanceId,
-        Long employeeId,
-        String title,
-        WorkItem workItem,
-        LocalDate startDate,
-        LocalDate expectedEndDate,
-        String workDetail,
-        Status status,
-        Integer achievementRate,
-        Integer difficultyScore,
-        String comment,
-        String feedback
-) {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PerformanceRequest {
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Long performanceId;
+
+    private String title;
+    private WorkItem workItem;
+    private LocalDate startDate;
+    private LocalDate expectedEndDate;
+    private String workDetail;
+    private Status status;
+    private Integer achievementRate;
+    private Integer difficultyScore;
+    private String comment;
+    private String feedback;
+
     public PerformanceRequest withEmployeeId(Long employeeId) {
-        return new PerformanceRequest(
-                performanceId,
-                employeeId,
-                title,
-                workItem,
-                startDate,
-                expectedEndDate,
-                workDetail,
-                status,
-                achievementRate,
-                difficultyScore,
-                comment,
-                feedback
-        );
+        return this;
     }
 }

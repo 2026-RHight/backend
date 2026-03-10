@@ -13,6 +13,9 @@
             <if test="workItem != null">
                 AND p.work_item = #{workItem, typeHandler=org.apache.ibatis.type.EnumTypeHandler}
             </if>
+            <if test="workItem == null">
+                AND p.work_item = 'PERSONAL'
+            </if>
         </where>
     </select>
 

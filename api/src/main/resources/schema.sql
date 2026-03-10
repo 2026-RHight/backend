@@ -464,15 +464,6 @@ CREATE TABLE IF NOT EXISTS rtw_detail (
 -- 성과(Performance) 모듈 테이블
 -- ==========================================
 
-DROP TABLE IF EXISTS peer_review;
-DROP TABLE IF EXISTS team_evaluation;
-DROP TABLE IF EXISTS performance_attachment;
-DROP TABLE IF EXISTS monthly_performance;
-DROP TABLE IF EXISTS evaluation;
-DROP TABLE IF EXISTS performance_personal;
-DROP TABLE IF EXISTS performance_team;
-DROP TABLE IF EXISTS performance;
-
 CREATE TABLE performance (
     performance_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
@@ -530,7 +521,7 @@ CREATE TABLE performance_attachment (
 CREATE TABLE evaluation (
     eval_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
-    approval_id BIGINT NOT NULL,
+    evaluator_id BIGINT NOT NULL,
     year INT NOT NULL,
     evaluation_score INT NULL,
     confirmed_at DATETIME NULL,
@@ -538,10 +529,10 @@ CREATE TABLE evaluation (
     updated_at DATETIME NULL,
     PRIMARY KEY (eval_id),
     KEY idx_evaluation_employee (employee_id),
-    KEY idx_evaluation_approval (approval_id),
-    UNIQUE KEY uk_evaluation_employee_year_approval (employee_id, year, approval_id),
+    KEY idx_evaluation_evaluator (evaluator_id),
+    UNIQUE KEY uk_evaluation_employee_year_evaluator (employee_id, year, evaluator_id),
     CONSTRAINT fk_evaluation_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
-    CONSTRAINT fk_evaluation_approval_employee FOREIGN KEY (approval_id) REFERENCES employee(employee_id)
+    CONSTRAINT fk_evaluation_evaluator_employee FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id)
 );
 
 CREATE TABLE monthly_performance (
@@ -570,6 +561,7 @@ CREATE TABLE peer_review (
     eval_year INT NOT NULL,
     created_at DATETIME NOT NULL,
     PRIMARY KEY (peer_review_id),
+    UNIQUE KEY ux_peer_review_eval_reviewer (eval_id, reviewer_id),
     KEY idx_peer_review_eval (eval_id),
     KEY idx_peer_review_reviewer (reviewer_id),
     CONSTRAINT fk_peer_review_evaluation FOREIGN KEY (eval_id) REFERENCES evaluation(eval_id) ON DELETE CASCADE,
@@ -580,6 +572,7 @@ CREATE TABLE team_evaluation (
     team_evaluation_id BIGINT NOT NULL AUTO_INCREMENT,
     evaluator_id BIGINT NOT NULL,
     appraisee_id BIGINT NOT NULL,
+    evaluation_year INT NOT NULL,
     performance_eval TEXT NULL,
     work_attitude_eval TEXT NULL,
     teamwork_eval TEXT NULL,
@@ -597,7 +590,8 @@ CREATE TABLE team_evaluation (
     PRIMARY KEY (team_evaluation_id),
     KEY idx_team_evaluation_evaluator (evaluator_id),
     KEY idx_team_evaluation_appraisee (appraisee_id),
-    UNIQUE KEY uk_team_evaluation_evaluator_appraisee (evaluator_id, appraisee_id),
+    KEY idx_team_evaluation_year (evaluation_year),
+    UNIQUE KEY uk_team_evaluation_evaluator_appraisee_year (evaluator_id, appraisee_id, evaluation_year),
     CONSTRAINT fk_team_evaluation_evaluator FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_team_evaluation_appraisee FOREIGN KEY (appraisee_id) REFERENCES employee(employee_id)
 );

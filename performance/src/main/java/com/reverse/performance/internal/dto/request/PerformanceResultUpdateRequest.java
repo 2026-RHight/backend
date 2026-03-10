@@ -5,4 +5,14 @@ public record PerformanceResultUpdateRequest(
         String resultSummary,
         String resultNote,
         String growthPoint,
-        String improvementPoint) {}
+        String improvementPoint) {
+
+    public PerformanceResultUpdateRequest {
+        if (progress == null) {
+            throw new IllegalArgumentException("progress는 필수입니다.");
+        }
+        if (progress < 0 || progress > 100) {
+            throw new IllegalArgumentException("progress는 0 이상 100 이하여야 합니다.");
+        }
+    }
+}

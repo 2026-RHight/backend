@@ -14,6 +14,8 @@ import com.reverse.performance.internal.dto.response.PersonalPerformanceResponse
 import com.reverse.performance.internal.dto.response.TeamPerformanceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,13 +28,14 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/performance")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "JWT")
 public class PerformanceInquiryController {
+
+    private static final Set<String> ADMIN_ROLES =
+            Set.of("ROLE_HR_ADMIN_MASTER", "ROLE_HR_ADMIN_BASIC", "ROLE_HR_ADMIN_PAYROLL");
 
     private final PerformanceService performanceService;
     private final PerformanceInquiryService performanceInquiryService;
@@ -52,11 +55,7 @@ public class PerformanceInquiryController {
             @RequestParam(required = false) Status status) {
         return ApiResponse.success(
                 performanceService.findAllEvaluatorPerformance(
-                        user.getEmployeeId(),
-                        appraiseeId,
-                        status
-                )
-        );
+                        user.getEmployeeId(), appraiseeId, status));
     }
 
     @Operation(summary = "개인 성과 조회")
@@ -65,44 +64,49 @@ public class PerformanceInquiryController {
             @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) WorkItem workItem) {
         return ApiResponse.success(
-                performanceService.findAllPersonalPerformance(user.getEmployeeId(), workItem)
-        );
+                performanceService.findAllPersonalPerformance(user.getEmployeeId(), workItem));
     }
 
     @Operation(summary = "팀 성과 조회")
     @GetMapping("/team-performance")
     public ApiResponse<List<TeamPerformanceResponse>> myTeamPerformance(
             @AuthenticationPrincipal CustomUser user) {
-        return ApiResponse.success(
-                performanceService.findallTeamPerformance(user.getEmployeeId())
-        );
+        return ApiResponse.success(performanceService.findallTeamPerformance(user.getEmployeeId()));
     }
 
     @Operation(summary = "성과 조회 화면 목록 조회")
     @GetMapping("/inquiry")
     public ApiResponse<List<PerformanceInquiryItemResponse>> inquiry(
             @AuthenticationPrincipal CustomUser user,
-            @RequestParam(required = false) Long employeeId) {
+            @RequestParam(name = "targetEmployeeId", required = false) Long targetEmployeeId) {
         return ApiResponse.success(
                 performanceInquiryService.getInquiryItems(
                         user.getEmployeeId(),
-                        employeeId,
-                        isAdmin(user)
-                )
-        );
+                        resolveTargetEmployeeId(user, targetEmployeeId),
+                        isAdmin(user)));
     }
 
     @Operation(summary = "성과 결과 등록")
     @PatchMapping(value = "/result/{performanceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<Void> updateResult(
+            @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
             @RequestPart("request") PerformanceResultUpdateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-        performanceInquiryService.updateResult(performanceId, request, files == null ? List.of() : files);
+        performanceInquiryService.updateResult(
+                user.getEmployeeId(), performanceId, request, files == null ? List.of() : files);
         return ApiResponse.success();
     }
 
     private boolean isAdmin(CustomUser user) {
-        return user.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().contains("ADMIN"));
+        return user.getAuthorities().stream()
+                .anyMatch(auth -> ADMIN_ROLES.contains(auth.getAuthority()));
+    }
+
+    private Long resolveTargetEmployeeId(CustomUser user, Long targetEmployeeId) {
+        if (targetEmployeeId == null) {
+            return user.getEmployeeId();
+        }
+        return targetEmployeeId;
     }
 }

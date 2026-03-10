@@ -17,8 +17,8 @@
         FROM performance p
         LEFT JOIN monthly_performance m
                ON m.employee_id = p.employee_id
-              AND m.year = YEAR(p.created_at)
-              AND m.month = MONTH(p.created_at)
+              AND m.year = YEAR(p.end_date)
+              AND m.month = MONTH(p.end_date)
         WHERE p.employee_id = #{id}
           AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         ORDER BY p.created_at DESC
@@ -31,7 +31,7 @@
         FROM performance p
         INNER JOIN evaluation e
                 ON e.employee_id = p.employee_id
-               AND e.approval_id = #{employeeId}
+               AND e.evaluator_id = #{employeeId}
         INNER JOIN performance_attachment pa
                 ON pa.performance_id = p.performance_id
         WHERE p.status = 'ACTIVE'

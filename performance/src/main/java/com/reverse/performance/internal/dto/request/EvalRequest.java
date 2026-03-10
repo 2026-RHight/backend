@@ -4,22 +4,11 @@ import java.time.LocalDateTime;
 
 public record EvalRequest(
         Long evalId,
-        Long employeeId,
-        Long approvalId,
+        Long evaluatorId,
         Integer year,
         Integer evaluationScore,
-        LocalDateTime confirmAt,
-        LocalDateTime createdAt
-) {
-    public EvalRequest withApprovalId(Long approvalId) {
-        return new EvalRequest(
-                evalId,
-                employeeId,
-                approvalId,
-                year,
-                evaluationScore,
-                confirmAt,
-                createdAt
-        );
+        LocalDateTime createdAt) {
+    public EvalRequest withEvaluatorId(Long evaluatorId) {
+        return new EvalRequest(evalId, evaluatorId, year, evaluationScore, createdAt);
     }
 }

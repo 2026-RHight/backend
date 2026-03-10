@@ -8,6 +8,7 @@
         INSERT INTO team_evaluation (
             evaluator_id,
             appraisee_id,
+            evaluation_year,
             performance_eval,
             work_attitude_eval,
             teamwork_eval,
@@ -25,6 +26,7 @@
         VALUES (
             #{evaluatorId, jdbcType=BIGINT},
             #{appraiseeId, jdbcType=BIGINT},
+            #{evaluationYear, jdbcType=INTEGER},
             #{performanceEval, jdbcType=VARCHAR},
             #{workAttitudeEval, jdbcType=VARCHAR},
             #{teamworkEval, jdbcType=VARCHAR},
@@ -40,10 +42,4 @@
             NOW()
         )
     </insert>
-
-    <select id="findTeamEval"
-            parameterType="long"
-            resultType="long">
-        SELECT
-    </select>
 </mapper>

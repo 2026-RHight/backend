@@ -4,22 +4,25 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reverse.performance.internal.persistence.PerformanceMapper">
     <insert id="savePerformance"
-            parameterType="com.reverse.performance.internal.dto.request.PerformanceRequest">
+            parameterType="map"
+            useGeneratedKeys="true"
+            keyProperty="request.performanceId"
+            keyColumn="performance_id">
         INSERT INTO performance(
         employee_id, title, work_item,
         start_date, expected_end_date, work_detail, status,
         achievement_rate, difficulty_score, comment, feedback, created_at
         ) VALUES (
-        #{employeeId}, #{title}, #{workItem, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
-        #{startDate}, #{expectedEndDate}, #{workDetail}, #{status, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
-        #{achievementRate}, #{difficultyScore}, #{comment}, #{feedback}, NOW()
+        #{employeeId}, #{request.title}, #{request.workItem, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        #{request.startDate}, #{request.expectedEndDate}, #{request.workDetail}, #{request.status, typeHandler=org.apache.ibatis.type.EnumTypeHandler},
+        #{request.achievementRate}, #{request.difficultyScore}, #{request.comment}, #{request.feedback}, NOW()
         )
     </insert>
     <insert id="savePerformancePersonal"
             parameterType="com.reverse.performance.internal.dto.request.PerformancePersonalRequest">
         INSERT INTO performance_personal (performance_id, expected_value, result_summary,
         growth_point, improvement
-        ) VALUES ( LAST_INSERT_ID(),
+        ) VALUES ( #{performanceId},
         #{expectedValue}, #{resultSummary},
         #{growthPoint}, #{improvement}
         )
@@ -28,7 +31,7 @@
             parameterType="com.reverse.performance.internal.dto.request.PerformanceTeamRequest">
         INSERT INTO performance_team (performance_id, weight, team_result_summary, special_point
         ) VALUES (
-        LAST_INSERT_ID(), #{weight},
+        #{performanceId}, #{weight},
         #{teamResultSummary}, #{specialPoint}
         )
     </insert>

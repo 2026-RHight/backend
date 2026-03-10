@@ -26,29 +26,33 @@ public class PerformanceRegistrationService {
         }
 
         WorkItem workItem = resolveWorkItem(request.type());
-        PerformanceRequest performanceRequest = new PerformanceRequest(
-                null,
+        PerformanceRequest performanceRequest =
+                new PerformanceRequest(
+                        null,
+                        request.title(),
+                        workItem,
+                        request.startDate(),
+                        request.endDate(),
+                        buildWorkDetail(request.coreTask(), request.content()),
+                        Status.ACTIVE,
+                        0,
+                        resolveDifficultyScore(request.weight()),
+                        null,
+                        null);
+
+        PerformancePersonalRequest personalRequest =
+                workItem == WorkItem.PERSONAL
+                        ? new PerformancePersonalRequest(
+                                null, blankToNull(request.value()), null, null, null)
+                        : null;
+        PerformanceTeamRequest teamRequest =
+                workItem == WorkItem.TEAM
+                        ? new PerformanceTeamRequest(null, request.weight(), null, null)
+                        : null;
+
+        performanceService.save(
                 employeeId,
-                request.title(),
-                workItem,
-                request.startDate(),
-                request.endDate(),
-                buildWorkDetail(request.coreTask(), request.content()),
-                Status.ACTIVE,
-                0,
-                resolveDifficultyScore(request.weight()),
-                null,
-                null
-        );
-
-        PerformancePersonalRequest personalRequest = workItem == WorkItem.PERSONAL
-                ? new PerformancePersonalRequest(null, blankToNull(request.value()), null, null, null)
-                : null;
-        PerformanceTeamRequest teamRequest = workItem == WorkItem.TEAM
-                ? new PerformanceTeamRequest(null, request.weight(), null, null)
-                : null;
-
-        performanceService.save(new PerformanceCreateDTO(performanceRequest, personalRequest, teamRequest));
+                new PerformanceCreateDTO(performanceRequest, personalRequest, teamRequest));
     }
 
     private WorkItem resolveWorkItem(String type) {

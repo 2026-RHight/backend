@@ -1,22 +1,23 @@
 package com.reverse.performance.internal.application;
 
-import com.reverse.performance.internal.dto.request.PerformanceResultUpdateRequest;
+import com.reverse.core.exception.BadRequestException;
+import com.reverse.core.exception.ForbiddenException;
 import com.reverse.performance.internal.dto.request.AttachmentRequest;
+import com.reverse.performance.internal.dto.request.PerformanceResultUpdateRequest;
 import com.reverse.performance.internal.dto.response.PerformanceInquiryItemResponse;
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import com.reverse.performance.internal.exception.PerformanceNotFoundException;
 import com.reverse.performance.internal.persistence.AttachmentMapper;
 import com.reverse.performance.internal.persistence.PerformanceViewMapper;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,38 +34,55 @@ public class PerformanceInquiryService {
     }
 
     @Transactional
-    public void updateResult(Long performanceId, PerformanceResultUpdateRequest request) {
-        updateResult(performanceId, request, List.of());
+    public void updateResult(
+            Long callerEmployeeId, Long performanceId, PerformanceResultUpdateRequest request) {
+        updateResult(callerEmployeeId, performanceId, request, List.of());
     }
 
     @Transactional
     public void updateResult(
+            Long callerEmployeeId,
             Long performanceId,
             PerformanceResultUpdateRequest request,
             List<MultipartFile> files) {
+        if (request == null) {
+            throw new BadRequestException("성과 결과 등록 요청이 비어 있습니다.");
+        }
+        validateUpdatePermission(callerEmployeeId, performanceId);
+
         String summary = blankToNull(request.resultSummary());
         int performanceUpdated =
-                performanceViewMapper.updatePerformanceResult(performanceId, request.progress(), summary);
+                performanceViewMapper.updatePerformanceResult(
+                        performanceId, request.progress(), summary);
         if (performanceUpdated == 0) {
             throw new PerformanceNotFoundException("결과를 등록할 성과를 찾을 수 없습니다.");
         }
 
-        int personalUpdated = performanceViewMapper.updatePersonalResult(
-                performanceId,
-                summary,
-                blankToNull(request.growthPoint()),
-                blankToNull(request.improvementPoint())
-        );
-        int teamUpdated = performanceViewMapper.updateTeamResult(
-                performanceId,
-                summary,
-                blankToNull(request.resultNote())
-        );
+        int personalUpdated =
+                performanceViewMapper.updatePersonalResult(
+                        performanceId,
+                        summary,
+                        blankToNull(request.growthPoint()),
+                        blankToNull(request.improvementPoint()));
+        int teamUpdated =
+                performanceViewMapper.updateTeamResult(
+                        performanceId, summary, blankToNull(request.resultNote()));
         if (personalUpdated == 0 && teamUpdated == 0) {
             throw new PerformanceActionNotAllowedException("성과 상세 정보가 없어 결과를 저장할 수 없습니다.");
         }
 
         saveAttachments(performanceId, files);
+    }
+
+    private void validateUpdatePermission(Long callerEmployeeId, Long performanceId) {
+        if (callerEmployeeId == null) {
+            throw new ForbiddenException("FORBIDDEN", "성과 결과를 수정할 권한이 없습니다.");
+        }
+        int authorized =
+                performanceViewMapper.countOwnedPerformance(callerEmployeeId, performanceId);
+        if (authorized == 0) {
+            throw new ForbiddenException("FORBIDDEN", "성과 결과를 수정할 권한이 없습니다.");
+        }
     }
 
     private void saveAttachments(Long performanceId, List<MultipartFile> files) {
@@ -91,9 +109,7 @@ public class PerformanceInquiryService {
                             uploaded.originalName(),
                             uploaded.fileUrl(),
                             null,
-                            LocalDateTime.now()
-                    )
-            );
+                            LocalDateTime.now()));
         }
     }
 

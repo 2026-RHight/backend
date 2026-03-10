@@ -9,7 +9,7 @@
         FROM performance p
         INNER JOIN evaluation e
             ON e.employee_id = p.employee_id
-           AND e.approval_id = #{employeeId}
+           AND e.evaluator_id = #{employeeId}
         WHERE p.status = 'WAITING'
     </select>
 
@@ -107,7 +107,8 @@
              AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
              AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE <include refid="targetEmployeeCondition"/>
-              AND COALESCE(p.end_date, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
         ) base
         GROUP BY YEAR(base.target_date), MONTH(base.target_date)
         ORDER BY YEAR(base.target_date), MONTH(base.target_date)
@@ -122,17 +123,18 @@
         FROM (
             SELECT COALESCE(mp.calculated_at, p.end_date, p.created_at) AS target_date,
                    COALESCE(mp.score, p.achievement_rate, 0) AS score
-            FROM employee_hr_info my_info
+            FROM employee_hr_info target_info
             INNER JOIN employee_hr_info team_info
-                ON team_info.org_id = my_info.org_id
+                ON team_info.org_id = target_info.org_id
             INNER JOIN performance p
                 ON p.employee_id = team_info.employee_id
             LEFT JOIN monthly_performance mp
               ON mp.employee_id = p.employee_id
              AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
              AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
-            WHERE my_info.employee_id = #{viewerEmployeeId}
-              AND COALESCE(p.end_date, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+            WHERE target_info.employee_id = #{targetEmployeeId}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
         ) base
         GROUP BY YEAR(base.target_date), MONTH(base.target_date)
         ORDER BY YEAR(base.target_date), MONTH(base.target_date)
@@ -186,7 +188,7 @@
         FROM performance p
         INNER JOIN evaluation ev
             ON ev.employee_id = p.employee_id
-           AND ev.approval_id = #{employeeId}
+           AND ev.evaluator_id = #{employeeId}
         INNER JOIN employee e ON e.employee_id = p.employee_id
         LEFT JOIN employee_hr_info ehr ON ehr.employee_id = e.employee_id
         LEFT JOIN organization o ON o.org_id = ehr.org_id
@@ -224,11 +226,12 @@
             end_date = COALESCE(end_date, CURDATE()),
             feedback = COALESCE(#{comment}, feedback)
         WHERE performance_id = #{performanceId}
+          AND status = 'WAITING'
           AND EXISTS (
               SELECT 1
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
-                AND ev.approval_id = #{employeeId}
+                AND ev.evaluator_id = #{employeeId}
           )
     </update>
 
@@ -237,13 +240,23 @@
         SET status = 'ACTIVE',
             feedback = COALESCE(#{comment}, feedback)
         WHERE performance_id = #{performanceId}
+          AND status = 'WAITING'
           AND EXISTS (
               SELECT 1
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
-                AND ev.approval_id = #{employeeId}
+                AND ev.evaluator_id = #{employeeId}
           )
     </update>
+
+    <select id="countOwnedPerformance"
+            parameterType="map"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM performance
+        WHERE performance_id = #{performanceId}
+          AND employee_id = #{employeeId}
+    </select>
 
     <select id="findTeamEvaluationTargets"
             parameterType="long"
@@ -258,6 +271,7 @@
                        FROM team_evaluation te_done
                        WHERE te_done.evaluator_id = #{employeeId}
                          AND te_done.appraisee_id = e.employee_id
+                         AND te_done.evaluation_year = YEAR(CURDATE())
                    ) THEN '완료'
                    WHEN EXISTS (
                        SELECT 1

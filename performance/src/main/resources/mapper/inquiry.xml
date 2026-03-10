@@ -27,7 +27,7 @@
         FROM performance p
         INNER JOIN evaluation e
                 ON e.employee_id = p.employee_id
-               AND e.approval_id = #{employeeId}
+               AND e.evaluator_id = #{employeeId}
         <where>
             <if test="appraiseeId != null">
                 p.employee_id = #{appraiseeId}

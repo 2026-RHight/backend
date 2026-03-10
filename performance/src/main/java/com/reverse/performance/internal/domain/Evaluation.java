@@ -1,11 +1,10 @@
 package com.reverse.performance.internal.domain;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -21,8 +20,8 @@ public class Evaluation {
     @Column(name = "employee_id")
     private Long employeeId;
 
-    @Column(name = "approval_id")
-    private Long approvalId;
+    @Column(name = "evaluator_id")
+    private Long evaluatorId;
 
     @Column(name = "year")
     private Integer year;
@@ -35,6 +34,4 @@ public class Evaluation {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-
 }

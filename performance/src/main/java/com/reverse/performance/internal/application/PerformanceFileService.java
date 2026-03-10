@@ -33,13 +33,15 @@ public class PerformanceFileService {
         String key = dir + "/" + UUID.randomUUID() + getExt(originalName);
 
         try {
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .contentType(file.getContentType())
-                    .build();
+            PutObjectRequest request =
+                    PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType(file.getContentType())
+                            .build();
 
-            s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
+            s3Client.putObject(
+                    request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             return new UploadResult(key, endpoint + "/" + bucket + "/" + key, originalName);
         } catch (IOException e) {
             throw new IllegalStateException("파일 업로드 실패", e);
@@ -74,6 +76,9 @@ public class PerformanceFileService {
             }
             return normalized.substring(bucketPrefix.length());
         } catch (RuntimeException e) {
+            if (e instanceof IllegalArgumentException) {
+                throw e;
+            }
             throw new IllegalStateException("파일 URL에서 key 파싱 실패", e);
         }
     }

@@ -6,11 +6,11 @@
     <insert id="savePeerReview"
             parameterType="com.reverse.performance.internal.dto.request.PeerReviewRequest">
         INSERT INTO peer_review(
-            peer_review_id, eval_id, reviewer_id, communication_Score,
+            eval_id, reviewer_id, communication_Score,
             solving_score, responsibility_score, team_contribution, culture_contribution,
             comment, eval_year, created_at
         )VALUES (
-            #{peerReviewId}, #{evalId}, #{reviewerId}, #{communicationScore},
+            #{evalId}, #{reviewerId}, #{communicationScore},
             #{solvingScore}, #{responsibilityScore}, #{teamContribution}, #{cultureContribution},
             #{comment}, #{evalYear}, NOW()
             )
