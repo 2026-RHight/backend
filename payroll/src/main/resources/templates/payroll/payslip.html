@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'NanumGothic', 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            width: 48%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .amount-col {
+            text-align: right;
+            width: 150px;
+        }
+        .total-row {
+            background-color: #f1f3f5;
+            font-weight: bold;
+        }
+        .net-pay-section {
+            margin-top: 40px;
+            text-align: right;
+            border-top: 2px solid #2c3e50;
+            padding-top: 20px;
+        }
+        .net-pay-label {
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+        .net-pay-amount {
+            font-size: 32px;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            color: #bdc3c7;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title" th:text="${payroll.yearMonth} + ' 급여명세서'">2024-03 급여명세서</div>
+        <div class="subtitle">(주) RHight 인사시스템</div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-box">
+            <table>
+                <tr>
+                    <th>성명</th>
+                    <td th:text="${payroll.employeeName}">홍길동</td>
+                </tr>
+                <tr>
+                    <th>부서</th>
+                    <td th:text="${payroll.department}">개발팀</td>
+                </tr>
+            </table>
+        </div>
+        <div class="info-box">
+            <table>
+                <tr>
+                    <th>지급일</th>
+                    <td th:text="${payroll.paymentDate}">2024-03-25</td>
+                </tr>
+                <tr>
+                    <th>직급</th>
+                    <td th:text="${payroll.position}">대리</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 20px;">
+        <!-- 지급 항목 -->
+        <div style="flex: 1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">지급 항목 (Earnings)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>기본급</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.salaryAmount, 0, 'COMMA')}">3,000,000</td>
+                    </tr>
+                    <tr>
+                        <td>연장/야간/휴일수당</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.overtimeAmount, 0, 'COMMA')}">250,000</td>
+                    </tr>
+                    <tr>
+                        <td>식대</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.mealAmount, 0, 'COMMA')}">100,000</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>지급액 계</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.totalPayment, 0, 'COMMA')}">3,350,000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 공제 항목 -->
+        <div style="flex: 1;">
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">공제 항목 (Deductions)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>국민연금</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.nationalPensionAmount, 0, 'COMMA')}">140,000</td>
+                    </tr>
+                    <tr>
+                        <td>건강보험</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.healthInsuranceAmount, 0, 'COMMA')}">110,000</td>
+                    </tr>
+                    <tr>
+                        <td>장기요양보험</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.longTermCareAmount, 0, 'COMMA')}">12,000</td>
+                    </tr>
+                    <tr>
+                        <td>고용보험</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.empInsuranceAmount, 0, 'COMMA')}">28,000</td>
+                    </tr>
+                    <tr>
+                        <td>소득세</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.incomeTaxAmount, 0, 'COMMA')}">50,000</td>
+                    </tr>
+                    <tr>
+                        <td>지방소득세</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.localTaxAmount, 0, 'COMMA')} = ${#numbers.formatInteger(payroll.localTaxAmount, 0, 'COMMA')}">5,000</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>공제액 계</td>
+                        <td class="amount-col" th:text="${#numbers.formatInteger(payroll.totalDeduction, 0, 'COMMA')}">345,000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="net-pay-section">
+        <div class="net-pay-label">차인 지급액 (Net Pay)</div>
+        <div class="net-pay-amount">
+            <span th:text="${#numbers.formatInteger(payroll.netPay, 0, 'COMMA')}">3,005,000</span> 원
+        </div>
+        <div style="margin-top: 10px; font-size: 14px; color: #7f8c8d;" 
+             th:text="'입금계좌: ' + ${payroll.bankName} + ' ' + ${payroll.accountNumber} + ' (예금주: ' + ${payroll.accountHolder} + ')'">
+            입금계좌: 국민은행 123-45-67890 (예금주: 홍길동)
+        </div>
+    </div>
+
+    <div class="footer">
+        위와 같이 급여를 지급하였음을 확인함.<br>
+        2024년 03월 25일<br>
+        (주) RHight 대표이사 김철수 (인)
+    </div>
+</body>
+</html>
