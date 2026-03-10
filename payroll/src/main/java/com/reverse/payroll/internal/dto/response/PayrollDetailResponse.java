@@ -9,13 +9,7 @@ import lombok.Getter;
 public class PayrollDetailResponse {
 
     private Long id;
-    private String targetMonth;
-
-    // 사원 정보 (급여명세서용 추가)
-    private String employeeName;
-    private String department;
-    private String position;
-    private String paymentDate;
+    private String yearMonth;
 
     // 지급 내역
     private BigDecimal salaryAmount; // 기본급
@@ -32,22 +26,13 @@ public class PayrollDetailResponse {
     private BigDecimal localTaxAmount; // 지방소득세금액
     private BigDecimal totalDeductionAmount; // 총 공제액 합계
 
-    // 입금 계좌 정보 (ERD 추가분)
-    private String bankName;
-    private String accountNumber;
-    private String accountHolder;
-
     // 세후
     private BigDecimal netPay;
 
     @Builder
     public PayrollDetailResponse(
             Long id,
-            String targetMonth,
-            String employeeName,
-            String department,
-            String position,
-            String paymentDate,
+            String yearMonth,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
             BigDecimal mealAmount,
@@ -59,16 +44,9 @@ public class PayrollDetailResponse {
             BigDecimal incomeTaxAmount,
             BigDecimal localTaxAmount,
             BigDecimal totalDeductionAmount,
-            BigDecimal netPay,
-            String bankName,
-            String accountNumber,
-            String accountHolder) {
+            BigDecimal netPay) {
         this.id = id;
-        this.targetMonth = targetMonth;
-        this.employeeName = employeeName;
-        this.department = department;
-        this.position = position;
-        this.paymentDate = paymentDate;
+        this.yearMonth = yearMonth;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
         this.mealAmount = mealAmount;
@@ -81,22 +59,9 @@ public class PayrollDetailResponse {
         this.localTaxAmount = localTaxAmount;
         this.totalDeductionAmount = totalDeductionAmount;
         this.netPay = netPay;
-        this.bankName = bankName;
-        this.accountNumber = accountNumber;
-        this.accountHolder = accountHolder;
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
-        return of(ledger, null, null, null, null, null);
-    }
-
-    public static PayrollDetailResponse of(
-            PayrollLedger ledger,
-            com.reverse.payroll.internal.domain.SalarySetting salarySetting,
-            String plainAccountNumber,
-            String employeeName,
-            String department,
-            String position) {
         BigDecimal totalDeduction =
                 safeAdd(
                         ledger.getNationalPensionAmount(),
@@ -106,16 +71,9 @@ public class PayrollDetailResponse {
                         ledger.getIncomeTaxAmount(),
                         ledger.getLocalTaxAmount());
 
-        // 지급일은 통상 해당월 25일로 표기 (가정)
-        String paymentDate = ledger.getTargetMonth() + "-25";
-
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
-                .targetMonth(ledger.getTargetMonth())
-                .employeeName(employeeName)
-                .department(department)
-                .position(position)
-                .paymentDate(paymentDate)
+                .yearMonth(ledger.getYearMonth())
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())
@@ -128,15 +86,6 @@ public class PayrollDetailResponse {
                 .localTaxAmount(ledger.getLocalTaxAmount())
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
-                .bankName(
-                        ledger.getBankNameSnapshot() != null
-                                ? ledger.getBankNameSnapshot()
-                                : (salarySetting != null ? salarySetting.getBankName() : null))
-                .accountNumber(plainAccountNumber)
-                .accountHolder(
-                        ledger.getAccountHolderSnapshot() != null
-                                ? ledger.getAccountHolderSnapshot()
-                                : (salarySetting != null ? salarySetting.getAccountHolder() : null))
                 .build();
     }
 
