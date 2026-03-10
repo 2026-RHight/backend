@@ -1,6 +1,7 @@
 package com.reverse.hr.internal.persistence;
 
 import com.reverse.hr.internal.persistence.param.CareerCreateParam;
+import com.reverse.hr.internal.persistence.param.CertificateRequestCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
@@ -33,6 +34,11 @@ public interface MyPageMapper {
 
     int insertCareer(CareerCreateParam param);
 
+    int insertCertificateRequest(CertificateRequestCreateParam param);
+
+    List<CertificateRequestHistoryRow> findCertificateRequestsByEmployeeId(
+            @Param("employeeId") Long employeeId);
+
     int updateBasicInfo(UpdateBasicInfoParam param);
 
     int updateProfileId(@Param("employeeId") Long employeeId, @Param("profileId") Long profileId);
@@ -45,6 +51,9 @@ public interface MyPageMapper {
 
     Optional<HrFileRow> findCareerFileByIdAndEmployeeId(
             @Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
+
+    Optional<HrFileRow> findCertificateFileByRequestIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("requestId") Long requestId);
 
     int deleteCareerByIdAndEmployeeId(
             @Param("employeeId") Long employeeId, @Param("careerId") Long careerId);

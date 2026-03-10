@@ -12,6 +12,7 @@ import lombok.Setter;
 public class HrFileRow {
 
     private Long hrFileId;
+    private String fileKey;
     private String fileUrl;
     private String fileTitle;
 }

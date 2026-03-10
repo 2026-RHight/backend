@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        body { font-family: 'NotoSansKR', sans-serif; margin: 36px; color: #1f2d3d; }
+        h1 { text-align: center; letter-spacing: 10px; margin-bottom: 36px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #334155; padding: 10px; vertical-align: middle; }
+        th { width: 140px; background: #f8fafc; text-align: center; }
+        .footer { margin-top: 48px; text-align: center; font-size: 15px; }
+    </style>
+</head>
+<body>
+<h1>재 직 증 명 서</h1>
+
+<table>
+    <tr><th>성명</th><td>${name}</td><th>주민등록번호</th><td>${residentNumberMasked}</td></tr>
+    <tr><th>사번</th><td>${employeeNum}</td><th>주소</th><td>${address}</td></tr>
+</table>
+
+<table>
+    <tr><th>소속</th><td>${orgName}</td></tr>
+    <tr><th>직위</th><td>${positionName}</td></tr>
+    <tr><th>직급</th><td>${rankName}</td></tr>
+    <tr><th>직무</th><td>${jobName}</td></tr>
+    <tr><th>입사일</th><td>${hireDate}</td></tr>
+    <tr><th>재직기간</th><td>${employmentPeriodKo}</td></tr>
+    <tr><th>제출처</th><td>${submitTo}</td></tr>
+    <tr><th>용도</th><td>${purpose}</td></tr>
+</table>
+
+<p class="footer">상기와 같이 재직 중임을 증명합니다.</p>
+<p class="footer">${issuedDateKo}</p>
+</body>
+</html>
