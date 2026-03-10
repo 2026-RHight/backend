@@ -44,6 +44,8 @@ public class BusinessTripService {
     @Transactional(readOnly = true)
     public com.reverse.core.response.PageResponse<BusinessTrip> getMyTrips(
             Long employeeId, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
         int limit = size;
         int offset = (page - 1) * size;
         List<BusinessTrip> content = businessTripMapper.findByEmployeeId(employeeId, limit, offset);
@@ -66,10 +68,10 @@ public class BusinessTripService {
                         .orElseThrow(() -> new IllegalArgumentException("해당 신청 내역을 찾을 수 없습니다."));
 
         if (!trip.getEmployeeId().equals(employeeId)) {
-            throw new IllegalStateException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (trip.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("결재 대기 상태인 건만 즉시 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 즉시 취소할 수 있습니다.");
         }
 
         BusinessTrip canceledTrip =
@@ -80,7 +82,7 @@ public class BusinessTripService {
 
         int updatedRows = businessTripMapper.updateStatusIfPending(canceledTrip);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 
@@ -88,6 +90,8 @@ public class BusinessTripService {
     @Transactional(readOnly = true)
     public com.reverse.core.response.PageResponse<BusinessTrip> getAllTrips(
             String status, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
         int limit = size;
         int offset = (page - 1) * size;
         List<BusinessTrip> content = businessTripMapper.findAll(status, limit, offset);
@@ -104,7 +108,7 @@ public class BusinessTripService {
                         .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
 
         if (trip.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("대기 상태인 신청 건만 결재할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
         }
 
         ApprovalStatus newStatus;
@@ -129,7 +133,7 @@ public class BusinessTripService {
 
         int updatedRows = businessTripMapper.updateStatusIfPending(processedTrip);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 }

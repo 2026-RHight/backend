@@ -61,7 +61,8 @@ public class LeaveService {
                 leaveMapper.countOverlappingLeaves(
                         employeeId, request.getStartDate(), request.getEndDate());
         if (overlapCount > 0) {
-            throw new IllegalStateException("해당 기간에 이미 신청했거나 승인된 휴가가 존재합니다.");
+            throw new com.reverse.core.exception.BadRequestException(
+                    "해당 기간에 이미 신청했거나 승인된 휴가가 존재합니다.");
         }
 
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
@@ -82,11 +83,9 @@ public class LeaveService {
                 == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
             deductionDays = daysBetween * 1.0;
         } else {
-            // 반차 신청인데 선택한 기간 중 평일이 없으면 에러 (예: 토요일 반차 신청)
-            if (daysBetween == 0) {
-                throw new IllegalArgumentException("주말이나 휴일에는 반차를 신청할 수 없습니다.");
+            if (!request.getStartDate().isEqual(request.getEndDate()) || daysBetween != 1) {
+                throw new IllegalArgumentException("반차는 근무일 하루에만 신청할 수 있습니다.");
             }
-            // 반차는 기본 deductionDays인 0.5가 적용됨
         }
 
         if (deductionDays <= 0
@@ -98,7 +97,7 @@ public class LeaveService {
         // 잔여 연차 검증
         LeaveBalanceResponse balance = getLeaveBalance(employeeId);
         if (balance.getRemainingAnnualLeave() < deductionDays) {
-            throw new IllegalStateException("잔여 연차가 부족하여 휴가를 신청할 수 없습니다.");
+            throw new com.reverse.core.exception.BadRequestException("잔여 연차가 부족하여 휴가를 신청할 수 없습니다.");
         }
 
         LeaveRequest leaveRequest =
@@ -119,6 +118,8 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public com.reverse.core.response.PageResponse<LeaveRequest> getMyLeaveRequests(
             Long employeeId, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
         int limit = size;
         int offset = (page - 1) * size;
         List<LeaveRequest> content =
@@ -143,11 +144,12 @@ public class LeaveService {
                         .orElseThrow(() -> new IllegalArgumentException("해당 휴가 내역을 찾을 수 없습니다."));
 
         if (!request.getEmployeeId().equals(employeeId)) {
-            throw new IllegalStateException("본인의 휴가만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("본인의 휴가만 취소할 수 있습니다.");
         }
 
         if (request.getLeaveStatus() != LeaveStatus.PENDING) {
-            throw new IllegalStateException("결재 대기 상태인 휴가만 즉시 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException(
+                    "결재 대기 상태인 휴가만 즉시 취소할 수 있습니다.");
         }
 
         LeaveRequest canceledRequest =
@@ -158,13 +160,15 @@ public class LeaveService {
 
         int updatedRows = leaveMapper.updateStatusIfPending(canceledRequest);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 
     @Transactional(readOnly = true)
     public com.reverse.core.response.PageResponse<LeaveRequest> getAllTeamLeaveRequests(
             String status, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
         int limit = size;
         int offset = (page - 1) * size;
         List<LeaveRequest> content = leaveMapper.findAllLeaveRequests(status, limit, offset);
@@ -181,7 +185,7 @@ public class LeaveService {
                         .orElseThrow(() -> new IllegalArgumentException("결재할 휴가 내역을 찾을 수 없습니다."));
 
         if (leaveRequest.getLeaveStatus() != LeaveStatus.PENDING) {
-            throw new IllegalStateException("대기 상태인 휴가 신청 건만 결재할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("대기 상태인 휴가 신청 건만 결재할 수 있습니다.");
         }
 
         LeaveStatus newStatus;
@@ -207,7 +211,7 @@ public class LeaveService {
 
         int updatedRows = leaveMapper.updateStatusIfPending(processedRequest);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
         // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
         if (request.isApprove()) {

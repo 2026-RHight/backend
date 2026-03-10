@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS attendance_policy (
     break_time_end TIME COMMENT '휴게 시간 종료',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_attendance_policy_employee (employee_id),
     CONSTRAINT fk_attendance_policy_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
