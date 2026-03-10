@@ -20,6 +20,13 @@
         FROM overtime_request
         WHERE employee_id = #{employeeId}
         ORDER BY start_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByEmployeeId" resultType="long">
+        SELECT COUNT(*)
+        FROM overtime_request
+        WHERE employee_id = #{employeeId}
     </select>
 
     <select id="findById" resultType="com.reverse.attendance.internal.domain.Overtime">
@@ -51,6 +58,36 @@
             </if>
         </where>
         ORDER BY start_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM overtime_request
+        <where>
+            <if test="approvalStatus != null and approvalStatus != ''">
+                approval_status = #{approvalStatus}
+            </if>
+        </where>
+    </select>
+
+    <select id="countOverlappingOvertimes" resultType="int">
+        SELECT COUNT(*)
+        FROM overtime_request
+        WHERE employee_id = #{employeeId}
+          AND work_date = #{workDate}
+          AND approval_status IN ('PENDING', 'APPROVED')
+          AND start_time &lt; #{endTime}
+          AND end_time &gt; #{startTime}
+    </select>
+
+    <select id="countRequestStatus" resultType="com.reverse.attendance.internal.dto.response.RequestStatusCountResponse">
+        SELECT
+            COUNT(CASE WHEN approval_status = 'PENDING' THEN 1 END) as pendingCount,
+            COUNT(CASE WHEN approval_status = 'APPROVED' THEN 1 END) as approvedCount,
+            COUNT(CASE WHEN approval_status = 'REJECTED' THEN 1 END) as rejectedCount
+        FROM overtime_request
+        WHERE employee_id = #{employeeId}
     </select>
 
 </mapper>

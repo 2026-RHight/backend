@@ -191,8 +191,11 @@ public class AttendanceService {
                                         .checkOutTime(record.getCheckOutTime())
                                         .status(record.getStatus())
                                         .statusDescription(
-                                                record.getStatus()
-                                                        .getDescription()) // "정상", "지각" 등 한글 텍스트
+                                                record.getStatus().getDescription()) // "정상",
+                                        // "지각"
+                                        // 등
+                                        // 한글
+                                        // 텍스트
                                         .build())
                 .collect(Collectors.toList());
     }

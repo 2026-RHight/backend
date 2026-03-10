@@ -1,6 +1,7 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.LeaveRequest;
+import com.reverse.attendance.internal.dto.response.RequestStatusCountResponse;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,23 +10,45 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface LeaveMapper {
 
-    Optional<Double> findTotalAnnualLeaveByEmployeeId(@Param("employeeId") Long employeeId);
+    Optional<Double> findTotalAnnualLeaveByEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("baseYear") int baseYear);
 
-    void lockVacationBalanceByEmployeeId(@Param("employeeId") Long employeeId);
+    void lockVacationBalanceByEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("baseYear") int baseYear);
 
     Double sumUsedDaysByStatus(
             @Param("employeeId") Long employeeId, @Param("status") String status);
 
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
-    List<LeaveRequest> findLeaveRequestsByEmployeeId(@Param("employeeId") Long employeeId);
+    List<LeaveRequest> findLeaveRequestsByEmployeeId(
+            @Param("employeeId") Long employeeId,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     Optional<LeaveRequest> findLeaveRequestById(@Param("leaveRequestId") Long leaveRequestId);
 
     int updateStatusIfPending(LeaveRequest leaveRequest);
 
-    List<LeaveRequest> findAllLeaveRequests(@Param("leaveStatus") String leaveStatus);
+    List<LeaveRequest> findAllLeaveRequests(
+            @Param("leaveStatus") String leaveStatus,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countAll(@Param("leaveStatus") String leaveStatus);
 
     Optional<com.reverse.attendance.internal.domain.enums.LeaveType> findApprovedLeaveTypeByDate(
             @Param("employeeId") Long employeeId, @Param("date") java.time.LocalDate date);
+
+    int countOverlappingLeaves(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
+
+    RequestStatusCountResponse countRequestStatus(@Param("employeeId") Long employeeId);
+
+    // 자정 배치 작업용 (신년 연차 일괄 부여)
+    int insertNextYearLeaveBalance(@Param("baseYear") int baseYear);
 }

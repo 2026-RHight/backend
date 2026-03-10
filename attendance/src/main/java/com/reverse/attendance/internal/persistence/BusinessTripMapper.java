@@ -13,7 +13,12 @@ public interface BusinessTripMapper {
     void insertBusinessTrip(BusinessTrip businessTrip);
 
     // 내 신청 내역 조회
-    List<BusinessTrip> findByEmployeeId(@Param("employeeId") Long employeeId);
+    List<BusinessTrip> findByEmployeeId(
+            @Param("employeeId") Long employeeId,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     // 단건 조회 (결재 및 취소용)
     Optional<BusinessTrip> findById(@Param("tripId") Long tripId);
@@ -22,5 +27,13 @@ public interface BusinessTripMapper {
     int updateStatusIfPending(BusinessTrip businessTrip);
 
     // 전체 내역 조회(관리자용)
-    List<BusinessTrip> findAll(@Param("approvalStatus") String approvalStatus);
+    List<BusinessTrip> findAll(
+            @Param("approvalStatus") String approvalStatus,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countAll(@Param("approvalStatus") String approvalStatus);
+
+    com.reverse.attendance.internal.dto.response.RequestStatusCountResponse countRequestStatus(
+            @Param("employeeId") Long employeeId);
 }

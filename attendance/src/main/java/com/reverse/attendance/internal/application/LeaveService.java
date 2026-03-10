@@ -21,7 +21,9 @@ public class LeaveService {
     // 연차 현황 조회
     @Transactional(readOnly = true)
     public LeaveBalanceResponse getLeaveBalance(Long employeeId) {
-        double total = leaveMapper.findTotalAnnualLeaveByEmployeeId(employeeId).orElse(0.0);
+        int currentYear = java.time.LocalDate.now().getYear();
+        double total =
+                leaveMapper.findTotalAnnualLeaveByEmployeeId(employeeId, currentYear).orElse(0.0);
 
         double used = leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.APPROVED.name());
         double pending = leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.PENDING.name());
@@ -38,8 +40,12 @@ public class LeaveService {
     // 휴가 신청
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
+        int currentYear =
+                request.getStartDate() != null
+                        ? request.getStartDate().getYear()
+                        : java.time.LocalDate.now().getYear();
         // 직원별 연차 신청 직렬화를 위한 행 잠금
-        leaveMapper.lockVacationBalanceByEmployeeId(employeeId);
+        leaveMapper.lockVacationBalanceByEmployeeId(employeeId, currentYear);
 
         if (request.getStartDate() == null
                 || request.getEndDate() == null
@@ -50,24 +56,43 @@ public class LeaveService {
             throw new IllegalArgumentException("종료일이 시작일보다 빠를 수 없습니다.");
         }
 
+        // 중복 휴가(겹치는 기간) 검증
+        int overlapCount =
+                leaveMapper.countOverlappingLeaves(
+                        employeeId, request.getStartDate(), request.getEndDate());
+        if (overlapCount > 0) {
+            throw new IllegalStateException("해당 기간에 이미 신청했거나 승인된 휴가가 존재합니다.");
+        }
+
         // 차감 일수 계산 (연차면 일수 계산, 반차면 무조건 0.5일)
         double deductionDays = request.getLeaveType().getDeductionDays();
+
+        long daysBetween = 0;
+        java.time.LocalDate date = request.getStartDate();
+        while (!date.isAfter(request.getEndDate())) {
+            java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
+            if (dayOfWeek != java.time.DayOfWeek.SATURDAY
+                    && dayOfWeek != java.time.DayOfWeek.SUNDAY) {
+                daysBetween++;
+            }
+            date = date.plusDays(1);
+        }
+
         if (request.getLeaveType()
                 == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
-            long daysBetween = 0;
-            java.time.LocalDate date = request.getStartDate();
-            while (!date.isAfter(request.getEndDate())) {
-                java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
-                if (dayOfWeek != java.time.DayOfWeek.SATURDAY
-                        && dayOfWeek != java.time.DayOfWeek.SUNDAY) {
-                    daysBetween++;
-                }
-                date = date.plusDays(1);
-            }
             deductionDays = daysBetween * 1.0;
-            if (deductionDays <= 0) {
-                throw new IllegalArgumentException("근무일이 포함된 연차만 신청할 수 있습니다.");
+        } else {
+            // 반차 신청인데 선택한 기간 중 평일이 없으면 에러 (예: 토요일 반차 신청)
+            if (daysBetween == 0) {
+                throw new IllegalArgumentException("주말이나 휴일에는 반차를 신청할 수 없습니다.");
             }
+            // 반차는 기본 deductionDays인 0.5가 적용됨
+        }
+
+        if (deductionDays <= 0
+                && request.getLeaveType()
+                        == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
+            throw new IllegalArgumentException("근무일이 포함된 연차만 신청할 수 있습니다.");
         }
 
         // 잔여 연차 검증
@@ -92,8 +117,21 @@ public class LeaveService {
 
     // 나의 휴가 내역 리스트 조회
     @Transactional(readOnly = true)
-    public List<LeaveRequest> getMyLeaveRequests(Long employeeId) {
-        return leaveMapper.findLeaveRequestsByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<LeaveRequest> getMyLeaveRequests(
+            Long employeeId, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<LeaveRequest> content =
+                leaveMapper.findLeaveRequestsByEmployeeId(employeeId, limit, offset);
+        long totalElements = leaveMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    // 휴가 신청 내역 상태별 집계
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return leaveMapper.countRequestStatus(employeeId);
     }
 
     // 휴가 취소 (대기 상태일 때만 가능)
@@ -125,8 +163,13 @@ public class LeaveService {
     }
 
     @Transactional(readOnly = true)
-    public List<LeaveRequest> getAllTeamLeaveRequests(String status) {
-        return leaveMapper.findAllLeaveRequests(status);
+    public com.reverse.core.response.PageResponse<LeaveRequest> getAllTeamLeaveRequests(
+            String status, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<LeaveRequest> content = leaveMapper.findAllLeaveRequests(status, limit, offset);
+        long totalElements = leaveMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     // 관리자용 휴가 승인/반려
@@ -166,10 +209,16 @@ public class LeaveService {
         if (updatedRows == 0) {
             throw new IllegalStateException("이미 처리된 신청 건입니다.");
         }
-        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성 (종일 휴가인 연차만 우선 처리)
-        if (request.isApprove()
-                && leaveRequest.getLeaveType()
-                        == com.reverse.attendance.internal.domain.enums.LeaveType.ANNUAL) {
+        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
+        if (request.isApprove()) {
+            com.reverse.attendance.internal.domain.enums.AttendanceStatus statusToSet =
+                    (leaveRequest.getLeaveType()
+                                    == com.reverse.attendance.internal.domain.enums.LeaveType
+                                            .ANNUAL)
+                            ? com.reverse.attendance.internal.domain.enums.AttendanceStatus.VACATION
+                            : com.reverse.attendance.internal.domain.enums.AttendanceStatus
+                                    .HALF_VACATION;
+
             java.time.LocalDate ptr = leaveRequest.getStartDate();
             while (!ptr.isAfter(leaveRequest.getEndDate())) {
                 java.time.DayOfWeek dayOfWeek = ptr.getDayOfWeek();
@@ -192,9 +241,7 @@ public class LeaveService {
                                         .workDate(rec.getWorkDate())
                                         .checkInTime(rec.getCheckInTime())
                                         .checkOutTime(rec.getCheckOutTime())
-                                        .status(
-                                                com.reverse.attendance.internal.domain.enums
-                                                        .AttendanceStatus.VACATION)
+                                        .status(statusToSet)
                                         .modifyReason("휴가 승인으로 인한 자동 변경")
                                         .build();
                         attendanceMapper.updateAttendanceByAdmin(updatedRec);
@@ -203,9 +250,7 @@ public class LeaveService {
                                 com.reverse.attendance.internal.domain.Attendance.builder()
                                         .employeeId(leaveRequest.getEmployeeId())
                                         .workDate(ptr)
-                                        .status(
-                                                com.reverse.attendance.internal.domain.enums
-                                                        .AttendanceStatus.VACATION)
+                                        .status(statusToSet)
                                         .build();
                         attendanceMapper.insertCheckIn(newRec);
                     }

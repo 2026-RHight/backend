@@ -28,6 +28,16 @@ public class OvertimeService {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        int overlapCount =
+                overtimeMapper.countOverlappingOvertimes(
+                        employeeId,
+                        request.getWorkDate(),
+                        request.getStartTime(),
+                        request.getEndTime());
+        if (overlapCount > 0) {
+            throw new IllegalStateException("해당 시간대에 이미 신청했거나 승인된 연장근무가 존재합니다.");
+        }
+
         Overtime overtime =
                 Overtime.builder()
                         .employeeId(employeeId)
@@ -42,8 +52,19 @@ public class OvertimeService {
     }
 
     @Transactional(readOnly = true)
-    public List<Overtime> getMyOvertimes(Long employeeId) {
-        return overtimeMapper.findByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<Overtime> getMyOvertimes(
+            Long employeeId, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<Overtime> content = overtimeMapper.findByEmployeeId(employeeId, limit, offset);
+        long totalElements = overtimeMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return overtimeMapper.countRequestStatus(employeeId);
     }
 
     @Transactional
@@ -74,8 +95,13 @@ public class OvertimeService {
     }
 
     @Transactional(readOnly = true)
-    public List<Overtime> getAllOvertimes(String status) {
-        return overtimeMapper.findAll(status);
+    public com.reverse.core.response.PageResponse<Overtime> getAllOvertimes(
+            String status, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<Overtime> content = overtimeMapper.findAll(status, limit, offset);
+        long totalElements = overtimeMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     @Transactional

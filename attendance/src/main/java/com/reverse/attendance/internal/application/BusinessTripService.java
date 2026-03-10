@@ -42,8 +42,19 @@ public class BusinessTripService {
 
     // 내 신청 내역 조회
     @Transactional(readOnly = true)
-    public List<BusinessTrip> getMyTrips(Long employeeId) {
-        return businessTripMapper.findByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<BusinessTrip> getMyTrips(
+            Long employeeId, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<BusinessTrip> content = businessTripMapper.findByEmployeeId(employeeId, limit, offset);
+        long totalElements = businessTripMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return businessTripMapper.countRequestStatus(employeeId);
     }
 
     // 신청 취소 (대기 상태만)
@@ -75,8 +86,13 @@ public class BusinessTripService {
 
     // 팀원 전체 내역 조회 (관리자용)
     @Transactional(readOnly = true)
-    public List<BusinessTrip> getAllTrips(String status) {
-        return businessTripMapper.findAll(status);
+    public com.reverse.core.response.PageResponse<BusinessTrip> getAllTrips(
+            String status, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<BusinessTrip> content = businessTripMapper.findAll(status, limit, offset);
+        long totalElements = businessTripMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     // 결재 처리 (관리자)

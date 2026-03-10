@@ -28,6 +28,13 @@ public class WeeklyWorkScheduleService {
             throw new IllegalArgumentException("유연근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        int overlapCount =
+                scheduleMapper.countOverlappingSchedules(
+                        employeeId, request.getStartDate(), request.getEndDate());
+        if (overlapCount > 0) {
+            throw new IllegalStateException("해당 기간에 이미 신청했거나 승인된 유연근무가 존재합니다.");
+        }
+
         WeeklyWorkSchedule schedule =
                 WeeklyWorkSchedule.builder()
                         .employeeId(employeeId)
@@ -44,8 +51,20 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public List<WeeklyWorkSchedule> getMySchedules(Long employeeId) {
-        return scheduleMapper.findByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getMySchedules(
+            Long employeeId, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<WeeklyWorkSchedule> content =
+                scheduleMapper.findByEmployeeId(employeeId, limit, offset);
+        long totalElements = scheduleMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return scheduleMapper.countRequestStatus(employeeId);
     }
 
     @Transactional
@@ -76,8 +95,13 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public List<WeeklyWorkSchedule> getAllSchedules(String status) {
-        return scheduleMapper.findAll(status);
+    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getAllSchedules(
+            String status, int page, int size) {
+        int limit = size;
+        int offset = (page - 1) * size;
+        List<WeeklyWorkSchedule> content = scheduleMapper.findAll(status, limit, offset);
+        long totalElements = scheduleMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     @Transactional

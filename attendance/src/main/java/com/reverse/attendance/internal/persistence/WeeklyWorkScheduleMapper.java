@@ -1,6 +1,7 @@
 package com.reverse.attendance.internal.persistence;
 
 import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
+import com.reverse.attendance.internal.dto.response.RequestStatusCountResponse;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -13,9 +14,24 @@ public interface WeeklyWorkScheduleMapper {
 
     Optional<WeeklyWorkSchedule> findById(@Param("weeklyId") Long weeklyId);
 
-    List<WeeklyWorkSchedule> findByEmployeeId(@Param("employeeId") Long employeeId);
+    List<WeeklyWorkSchedule> findByEmployeeId(
+            @Param("employeeId") Long employeeId,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
 
-    List<WeeklyWorkSchedule> findAll(@Param("status") String status);
+    long countByEmployeeId(@Param("employeeId") Long employeeId);
+
+    List<WeeklyWorkSchedule> findAll(
+            @Param("status") String status, @Param("limit") int limit, @Param("offset") int offset);
+
+    long countAll(@Param("status") String status);
 
     int updateStatusIfPending(WeeklyWorkSchedule schedule);
+
+    int countOverlappingSchedules(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
+
+    RequestStatusCountResponse countRequestStatus(@Param("employeeId") Long employeeId);
 }

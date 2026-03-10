@@ -76,6 +76,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }
 
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ApiResponse<Void>> handleIllegalException(RuntimeException ex) {
+        log.error("잘못된 요청 파라미터 또는 상태 예외 발생: {}", ex.getMessage());
+
+        ErrorResponse error = ErrorResponse.builder().message(ex.getMessage()).build();
+
+        return ResponseEntity.badRequest().body(ApiResponse.fail(error));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
         log.error("예상치 못한 에러 발생: ", ex);
