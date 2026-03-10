@@ -20,7 +20,7 @@ public class PerformancePeerReviewService {
 
     @Transactional
     public void submitPeerReview(Long reviewerId, PerformancePeerReviewSubmitRequest request) {
-        if (request == null || request.appraiseeId() == null) {
+        if (reviewerId == null || request == null || request.appraiseeId() == null) {
             throw new PerformanceActionNotAllowedException("평가 대상이 필요합니다.");
         }
 
@@ -28,6 +28,7 @@ public class PerformancePeerReviewService {
         if (evalId == null) {
             throw new PerformanceNotFoundException("평가 대상자의 평가 정보를 찾을 수 없습니다.");
         }
+        LocalDate now = LocalDate.now();
 
         performanceService.savePeerReview(
                 new PeerReviewRequest(
@@ -40,7 +41,7 @@ public class PerformancePeerReviewService {
                         request.teamContributionScore(),
                         request.cultureContributionScore(),
                         request.comment(),
-                        LocalDate.now().getYear(),
-                        LocalDate.now()));
+                        now.getYear(),
+                        now));
     }
 }

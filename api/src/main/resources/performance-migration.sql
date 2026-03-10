@@ -123,6 +123,8 @@ PREPARE stmt_evaluation_rename FROM @evaluation_rename_sql;
 EXECUTE stmt_evaluation_rename;
 DEALLOCATE PREPARE stmt_evaluation_rename;
 
+DROP TABLE IF EXISTS peer_review_duplicate_cleanup;
+
 -- monthly_performance / team_evaluation 키 불일치 자동 보정
 -- monthly_performance.monthly_score_id -> monthly_performance.monthly_performance_id
 SET @monthly_performance_has_new_id = (

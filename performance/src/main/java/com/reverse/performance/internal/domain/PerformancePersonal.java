@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class PerformancePersonal {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // performance_id is assigned from the parent performance row.
     @Column(name = "performance_id")
     private Long id;
 
