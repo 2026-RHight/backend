@@ -117,6 +117,8 @@ public class PayrollController {
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, private")
+                .header("Pragma", "no-cache")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
     }

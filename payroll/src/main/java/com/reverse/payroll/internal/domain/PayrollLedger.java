@@ -27,8 +27,14 @@ public class PayrollLedger {
     private BigDecimal incomeTaxAmount; // 소득세금액
     private BigDecimal localTaxAmount; // 지방소득세금액
 
+    // 스냅샷 정보 (급여 확정 시점의 인사 정보)
+    private String employeeNameSnapshot;
+    private String deptNameSnapshot;
+    private String positionNameSnapshot;
+
     @Builder
     public PayrollLedger(
+            Long id,
             Long employeeId,
             Long insuranceId,
             String yearMonth,
@@ -44,7 +50,11 @@ public class PayrollLedger {
             BigDecimal longTermCareAmount,
             BigDecimal empInsuranceAmount,
             BigDecimal incomeTaxAmount,
-            BigDecimal localTaxAmount) {
+            BigDecimal localTaxAmount,
+            String employeeNameSnapshot,
+            String deptNameSnapshot,
+            String positionNameSnapshot) {
+        this.id = id;
         this.employeeId = employeeId;
         this.insuranceId = insuranceId;
         this.yearMonth = yearMonth;
@@ -61,5 +71,8 @@ public class PayrollLedger {
         this.empInsuranceAmount = empInsuranceAmount;
         this.incomeTaxAmount = incomeTaxAmount;
         this.localTaxAmount = localTaxAmount;
+        this.employeeNameSnapshot = employeeNameSnapshot;
+        this.deptNameSnapshot = deptNameSnapshot;
+        this.positionNameSnapshot = positionNameSnapshot;
     }
 }

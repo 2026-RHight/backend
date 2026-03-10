@@ -87,12 +87,13 @@ public class PayrollDetailResponse {
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
-        return of(ledger, null, null, null, null);
+        return of(ledger, null, null, null, null, null);
     }
 
     public static PayrollDetailResponse of(
             PayrollLedger ledger,
             com.reverse.payroll.internal.domain.SalarySetting salarySetting,
+            String plainAccountNumber,
             String employeeName,
             String department,
             String position) {
@@ -128,7 +129,7 @@ public class PayrollDetailResponse {
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
                 .bankName(salarySetting != null ? salarySetting.getBankName() : null)
-                .accountNumber(salarySetting != null ? salarySetting.getAccountNumber() : null)
+                .accountNumber(plainAccountNumber)
                 .accountHolder(salarySetting != null ? salarySetting.getAccountHolder() : null)
                 .build();
     }
