@@ -241,6 +241,8 @@
                    (SELECT COUNT(*) FROM employee_skill_credential s WHERE s.hr_file_id = #{hrFileId})
                        +
                    (SELECT COUNT(*) FROM employee_career_details c WHERE c.hr_file_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM certificate_request cr WHERE cr.hr_file_id = #{hrFileId})
                    ) AS refCount
     </select>
 
