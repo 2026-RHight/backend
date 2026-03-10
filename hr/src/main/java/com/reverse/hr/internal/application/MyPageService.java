@@ -760,7 +760,9 @@ public class MyPageService {
     private String readTemplate(String classpathPath) {
         try {
             ClassPathResource resource = new ClassPathResource(classpathPath);
-            return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            try (var inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
         } catch (IOException e) {
             throw new IllegalStateException("증명서 템플릿을 읽을 수 없습니다: " + classpathPath, e);
         }
