@@ -20,7 +20,9 @@
     <select id="sumUsedDaysByStatus" resultType="java.lang.Double">
         SELECT IFNULL(SUM(used_days), 0)
         FROM leave_request
-        WHERE employee_id = #{employeeId} AND leave_status = #{status}
+        WHERE employee_id = #{employeeId}
+          AND leave_status = #{status}
+          AND YEAR(start_date) = #{year}
     </select>
 
     <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
@@ -44,7 +46,7 @@
             reject_reason as rejectReason
         FROM leave_request
         WHERE employee_id = #{employeeId}
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, leave_request_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -94,7 +96,7 @@
                 leave_status = #{leaveStatus}
             </if>
         </where>
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, leave_request_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 

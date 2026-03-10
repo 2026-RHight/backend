@@ -20,6 +20,11 @@ public interface BusinessTripMapper {
 
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
+    int countOverlappingTrips(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
+
     // 단건 조회 (결재 및 취소용)
     Optional<BusinessTrip> findById(@Param("tripId") Long tripId);
 

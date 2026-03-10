@@ -26,6 +26,14 @@ public class BusinessTripService {
             throw new IllegalArgumentException("종료 일시가 시작 일시보다 빠를 수 없습니다.");
         }
 
+        int overlapCount =
+                businessTripMapper.countOverlappingTrips(
+                        employeeId, request.getStartDatetime(), request.getEndDatetime());
+        if (overlapCount > 0) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "해당 기간에 이미 신청했거나 승인된 외근/출장이 존재합니다.");
+        }
+
         BusinessTrip trip =
                 BusinessTrip.builder()
                         .employeeId(employeeId)

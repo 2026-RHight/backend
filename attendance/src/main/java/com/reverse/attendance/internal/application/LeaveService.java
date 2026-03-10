@@ -18,15 +18,15 @@ public class LeaveService {
     private final LeaveMapper leaveMapper;
     private final com.reverse.attendance.internal.persistence.AttendanceMapper attendanceMapper;
 
-    // 연차 현황 조회
+    // 연차 현황 조회 (지정 연도)
     @Transactional(readOnly = true)
-    public LeaveBalanceResponse getLeaveBalance(Long employeeId) {
-        int currentYear = java.time.LocalDate.now().getYear();
-        double total =
-                leaveMapper.findTotalAnnualLeaveByEmployeeId(employeeId, currentYear).orElse(0.0);
+    public LeaveBalanceResponse getLeaveBalance(Long employeeId, int year) {
+        double total = leaveMapper.findTotalAnnualLeaveByEmployeeId(employeeId, year).orElse(0.0);
 
-        double used = leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.APPROVED.name());
-        double pending = leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.PENDING.name());
+        double used =
+                leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.APPROVED.name(), year);
+        double pending =
+                leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.PENDING.name(), year);
         double remaining = total - used - pending;
 
         return LeaveBalanceResponse.builder()
@@ -35,6 +35,13 @@ public class LeaveService {
                 .pendingAnnualLeave(pending)
                 .remainingAnnualLeave(remaining)
                 .build();
+    }
+
+    // 연차 현황 조회 (올해 기본)
+    @Transactional(readOnly = true)
+    public LeaveBalanceResponse getLeaveBalance(Long employeeId) {
+        int currentYear = java.time.LocalDate.now().getYear();
+        return getLeaveBalance(employeeId, currentYear);
     }
 
     // 휴가 신청
@@ -95,7 +102,7 @@ public class LeaveService {
         }
 
         // 잔여 연차 검증
-        LeaveBalanceResponse balance = getLeaveBalance(employeeId);
+        LeaveBalanceResponse balance = getLeaveBalance(employeeId, currentYear);
         if (balance.getRemainingAnnualLeave() < deductionDays) {
             throw new com.reverse.core.exception.BadRequestException("잔여 연차가 부족하여 휴가를 신청할 수 없습니다.");
         }

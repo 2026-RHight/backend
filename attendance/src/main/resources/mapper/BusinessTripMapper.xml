@@ -29,6 +29,15 @@
         WHERE employee_id = #{employeeId}
     </select>
 
+    <select id="countOverlappingTrips" resultType="int">
+        SELECT COUNT(*)
+        FROM business_trip_request
+        WHERE employee_id = #{employeeId}
+          AND approval_status IN ('PENDING', 'APPROVED')
+          AND start_datetime &lt;= #{endDate}
+          AND end_datetime &gt;= #{startDate}
+    </select>
+
     <select id="findById" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
             trip_id as tripId, employee_id as employeeId, trip_type as tripType,
