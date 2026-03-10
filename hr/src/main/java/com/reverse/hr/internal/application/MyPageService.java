@@ -1,6 +1,7 @@
 package com.reverse.hr.internal.application;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.FieldCryptoService;
 import com.reverse.hr.internal.domain.enums.CertificateRequestStatus;
@@ -25,7 +26,6 @@ import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -42,6 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +68,7 @@ public class MyPageService {
     private static final Set<String> ALLOWED_PROFILE_EXT = Set.of("jpg", "jpeg", "png", "webp");
     private static final Set<String> ALLOWED_PROFILE_CONTENT_TYPE =
             Set.of("image/jpeg", "image/png", "image/webp");
+    private static final long CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS = 300L;
 
     public MyPageHeaderResponseDTO getMyPageHeader(Long employeeId) {
         MyPageHeaderRow row =
@@ -438,8 +440,12 @@ public class MyPageService {
         HrFileRow fileRow =
                 myPageMapper
                         .findCertificateFileByRequestIdAndEmployeeId(employeeId, requestId)
-                        .orElseThrow(() -> new IllegalStateException("증명서 파일을 찾을 수 없습니다."));
-        return fileRow.getFileUrl();
+                        .orElseThrow(() -> new NotFoundException("증명서 파일을 찾을 수 없습니다."));
+        if (fileRow.getFileKey() == null || fileRow.getFileKey().isBlank()) {
+            throw new NotFoundException("증명서 파일을 찾을 수 없습니다.");
+        }
+        return s3FileService.generatePresignedUrl(
+                fileRow.getFileKey(), CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS);
     }
 
     private EvidenceUploadResult uploadEvidenceFile(
@@ -699,23 +705,23 @@ public class MyPageService {
         }
 
         String html = readTemplate(templatePath);
-        return html.replace("${name}", valueOrDash(basicInfoRow.employeeName()))
-                .replace("${employeeNum}", valueOrDash(basicInfoRow.employeeNum()))
-                .replace("${residentNumberMasked}", residentMasked)
-                .replace("${address}", valueOrDash(basicInfoRow.address()))
-                .replace("${orgName}", valueOrDash(hrInfoRow.orgName()))
-                .replace("${rankName}", valueOrDash(hrInfoRow.rankName()))
-                .replace("${jobName}", valueOrDash(hrInfoRow.jobName()))
-                .replace("${positionName}", valueOrDash(hrInfoRow.positionName()))
-                .replace("${hireDate}", valueOrDash(formatDate(hrInfoRow.hireDate())))
+        return html.replace("${name}", htmlText(basicInfoRow.employeeName()))
+                .replace("${employeeNum}", htmlText(basicInfoRow.employeeNum()))
+                .replace("${residentNumberMasked}", htmlText(residentMasked))
+                .replace("${address}", htmlText(basicInfoRow.address()))
+                .replace("${orgName}", htmlText(hrInfoRow.orgName()))
+                .replace("${rankName}", htmlText(hrInfoRow.rankName()))
+                .replace("${jobName}", htmlText(hrInfoRow.jobName()))
+                .replace("${positionName}", htmlText(hrInfoRow.positionName()))
+                .replace("${hireDate}", htmlText(formatDate(hrInfoRow.hireDate())))
                 .replace(
                         "${issuedDateKo}",
-                        issuedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")))
-                .replace("${submitTo}", valueOrDash(request.submitTo()))
-                .replace("${purpose}", valueOrDash(request.purpose()))
+                        htmlText(issuedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))))
+                .replace("${submitTo}", htmlText(request.submitTo()))
+                .replace("${purpose}", htmlText(request.purpose()))
                 .replace(
                         "${employmentPeriodKo}",
-                        formatEmploymentPeriodKo(hrInfoRow.hireDate(), LocalDate.now()));
+                        htmlText(formatEmploymentPeriodKo(hrInfoRow.hireDate(), LocalDate.now())));
     }
 
     private byte[] buildPdfBytes(String html) {
@@ -733,35 +739,22 @@ public class MyPageService {
     }
 
     private void registerPdfFonts(PdfRendererBuilder builder) {
-        ClassPathResource notoSans = new ClassPathResource("fonts/NotoSansKR-Regular.ttf");
-        if (notoSans.exists()) {
-            builder.useFont(
-                    () -> {
-                        try {
-                            return notoSans.getInputStream();
-                        } catch (IOException e) {
-                            throw new IllegalStateException("폰트 파일 로드 실패", e);
-                        }
-                    },
-                    "NotoSansKR");
-            return;
+        ClassPathResource resource = new ClassPathResource("fonts/NotoSansKR-Regular.ttf");
+        if (!resource.exists()) {
+            throw new IllegalStateException(
+                    "한글 PDF 폰트를 찾을 수 없습니다. "
+                            + "hr/src/main/resources/fonts/NotoSansKR-Regular.ttf 파일을 확인해주세요.");
         }
 
-        File arialUnicode = new File("/System/Library/Fonts/Supplemental/Arial Unicode.ttf");
-        if (arialUnicode.exists()) {
-            builder.useFont(arialUnicode, "NotoSansKR");
-            return;
-        }
-
-        File arialUnicodeLibrary = new File("/Library/Fonts/Arial Unicode.ttf");
-        if (arialUnicodeLibrary.exists()) {
-            builder.useFont(arialUnicodeLibrary, "NotoSansKR");
-            return;
-        }
-
-        throw new IllegalStateException(
-                "한글 PDF 폰트를 찾을 수 없습니다. "
-                        + "hr/src/main/resources/fonts/NotoSansKR-Regular.ttf 파일을 추가해주세요.");
+        builder.useFont(
+                () -> {
+                    try {
+                        return resource.getInputStream();
+                    } catch (IOException e) {
+                        throw new IllegalStateException("폰트 파일 로드 실패", e);
+                    }
+                },
+                "NotoSansKR");
     }
 
     private String readTemplate(String classpathPath) {
@@ -785,6 +778,10 @@ public class MyPageService {
 
     private String valueOrDash(String value) {
         return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    private String htmlText(String value) {
+        return HtmlUtils.htmlEscape(valueOrDash(value));
     }
 
     private String toCertificateName(String type) {

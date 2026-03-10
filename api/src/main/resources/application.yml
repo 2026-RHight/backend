@@ -30,7 +30,9 @@ security:
   cors:
     allowed-origins:
       http://localhost:8080
-      http://api.beyond21.iptime.org
+      http://www.beyond21.iptime.org:2060
+      http://www.rhight.kro.kr
+      https://www.rhight.kro.kr
       
 springdoc:
   api-docs:

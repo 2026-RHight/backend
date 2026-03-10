@@ -749,137 +749,8 @@ WHERE e.employee_num = '2402040001'
 -- ---------------------------------------------------------------------------
 -- HR events (for MyPage HR history tab)
 -- ---------------------------------------------------------------------------
-INSERT INTO hr_event (
-    employee_id,
-    event_type,
-    event_title,
-    requested_at,
-    approved_at,
-    effective_from,
-    effective_to,
-    excuse,
-    before_change,
-    after_change
-)
-SELECT
-    e.employee_id,
-    'PROMOTION',
-    '직급 변경',
-    '2025-12-20 09:10:00',
-    '2025-12-27 14:30:00',
-    DATE '2026-01-01',
-    NULL,
-    '정기 승진',
-    JSON_OBJECT('rankName', '주임'),
-    JSON_OBJECT('rankName', '대리')
-FROM employee e
-WHERE e.employee_num = '2402040001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM hr_event h
-      WHERE h.employee_id = e.employee_id
-        AND h.event_type = 'PROMOTION'
-        AND h.effective_from = DATE '2026-01-01'
-  );
 
-INSERT INTO hr_event (
-    employee_id,
-    event_type,
-    event_title,
-    requested_at,
-    approved_at,
-    effective_from,
-    effective_to,
-    excuse,
-    before_change,
-    after_change
-)
-SELECT
-    e.employee_id,
-    'TRANSFER',
-    '부서 이동',
-    '2025-01-18 10:00:00',
-    '2025-01-25 16:10:00',
-    DATE '2025-02-02',
-    NULL,
-    '프로젝트 조직 개편',
-    JSON_OBJECT('orgName', '모바일3팀'),
-    JSON_OBJECT('orgName', '모바일1팀')
-FROM employee e
-WHERE e.employee_num = '2402040001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM hr_event h
-      WHERE h.employee_id = e.employee_id
-        AND h.event_type = 'TRANSFER'
-        AND h.effective_from = DATE '2025-02-02'
-  );
 
-INSERT INTO hr_event (
-    employee_id,
-    event_type,
-    event_title,
-    requested_at,
-    approved_at,
-    effective_from,
-    effective_to,
-    excuse,
-    before_change,
-    after_change
-)
-SELECT
-    e.employee_id,
-    'STATE_CHANGE',
-    '재직 상태 변경',
-    '2024-07-23 10:40:00',
-    '2024-07-29 18:20:00',
-    DATE '2024-08-01',
-    DATE '2024-11-30',
-    '육아 휴직 신청',
-    JSON_OBJECT('employeeState', 'WORK'),
-    JSON_OBJECT('employeeState', 'LEAVE')
-FROM employee e
-WHERE e.employee_num = '2402040001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM hr_event h
-      WHERE h.employee_id = e.employee_id
-        AND h.event_type = 'STATE_CHANGE'
-        AND h.effective_from = DATE '2024-08-01'
-  );
-
-INSERT INTO hr_event (
-    employee_id,
-    event_type,
-    event_title,
-    requested_at,
-    approved_at,
-    effective_from,
-    effective_to,
-    excuse,
-    before_change,
-    after_change
-)
-SELECT
-    e.employee_id,
-    'STATE_CHANGE',
-    '재직 상태 변경',
-    '2024-11-20 11:30:00',
-    '2024-11-27 09:50:00',
-    DATE '2024-12-01',
-    NULL,
-    '복직 승인',
-    JSON_OBJECT('employeeState', 'LEAVE'),
-    JSON_OBJECT('employeeState', 'WORK')
-FROM employee e
-WHERE e.employee_num = '2402040001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM hr_event h
-      WHERE h.employee_id = e.employee_id
-        AND h.event_type = 'STATE_CHANGE'
-        AND h.effective_from = DATE '2024-12-01'
-  );
 
 -- ---------------------------------------------------------------------------
 -- Organization chart demo seeds (tree + members)
@@ -1445,13 +1316,6 @@ SELECT
     'employment_ko_2402040001_20260205.pdf'
 WHERE NOT EXISTS (SELECT 1 FROM hr_file WHERE hr_file_id = 301);
 
-INSERT INTO hr_file (hr_file_id, file_key, file_url, file_title)
-SELECT
-    302,
-    'hr/certificate/1/employment_en_2402040001_20251220.pdf',
-    'https://cdn.rhight.local/certificate/employment_en_2402040001_20251220.pdf',
-    'employment_en_2402040001_20251220.pdf'
-WHERE NOT EXISTS (SELECT 1 FROM hr_file WHERE hr_file_id = 302);
 
 INSERT INTO certificate_request (
     request_id,
@@ -1495,7 +1359,7 @@ INSERT INTO certificate_request (
 SELECT
     2,
     e.employee_id,
-    'EMPLOYMENT_EN',
+    'EMPLOYMENT_KO',
     '비자 서류 제출',
     'Immigration Office',
     'ISSUED',

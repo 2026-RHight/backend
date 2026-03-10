@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS policy_version (
 CREATE TABLE IF NOT EXISTS certificate_request (
     request_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
-    certificate_type ENUM('EMPLOYMENT_KO','EMPLOYMENT_EN') NOT NULL,
+    certificate_type ENUM('EMPLOYMENT_KO') NOT NULL,
     purpose VARCHAR(255) NOT NULL,
     submit_to VARCHAR(255) NOT NULL,
     status ENUM('ISSUED','FAILED') NOT NULL,

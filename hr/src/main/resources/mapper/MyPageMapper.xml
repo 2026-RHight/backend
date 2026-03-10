@@ -162,7 +162,7 @@
                DATE_FORMAT(COALESCE(cr.issued_at, cr.requested_at), '%Y.%m.%d') AS issuedDate
         FROM certificate_request cr
         WHERE cr.employee_id = #{employeeId}
-        ORDER BY cr.request_id DESC
+        ORDER BY COALESCE(cr.issued_at, cr.requested_at) DESC, cr.request_id DESC
     </select>
 
     <update id="updateBasicInfo">
