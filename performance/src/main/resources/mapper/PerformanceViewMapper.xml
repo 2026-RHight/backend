@@ -108,7 +108,7 @@
              AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE <include refid="targetEmployeeCondition"/>
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
-              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) &lt; #{windowEndExclusive}
         ) base
         GROUP BY YEAR(base.target_date), MONTH(base.target_date)
         ORDER BY YEAR(base.target_date), MONTH(base.target_date)
@@ -134,7 +134,7 @@
              AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE target_info.employee_id = #{targetEmployeeId}
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
-              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) &lt; #{windowEndExclusive}
         ) base
         GROUP BY YEAR(base.target_date), MONTH(base.target_date)
         ORDER BY YEAR(base.target_date), MONTH(base.target_date)

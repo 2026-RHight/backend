@@ -9,15 +9,15 @@ import lombok.Getter;
 public class PayrollListResponse {
 
     private Long id;
-    private String yearMonth;
+    private String targetMonth;
     private BigDecimal totalPayment; // 세전
     private BigDecimal netPay; // 세후
 
     @Builder
     public PayrollListResponse(
-            Long id, String yearMonth, BigDecimal totalPayment, BigDecimal netPay) {
+            Long id, String targetMonth, BigDecimal totalPayment, BigDecimal netPay) {
         this.id = id;
-        this.yearMonth = yearMonth;
+        this.targetMonth = targetMonth;
         this.totalPayment = totalPayment;
         this.netPay = netPay;
     }
@@ -25,7 +25,7 @@ public class PayrollListResponse {
     public static PayrollListResponse from(PayrollLedger ledger) {
         return PayrollListResponse.builder()
                 .id(ledger.getId())
-                .yearMonth(ledger.getYearMonth())
+                .targetMonth(ledger.getTargetMonth())
                 .totalPayment(ledger.getTotalPayment())
                 .netPay(ledger.getNetPay())
                 .build();

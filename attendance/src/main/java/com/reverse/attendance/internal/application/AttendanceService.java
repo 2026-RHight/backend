@@ -172,18 +172,18 @@ public class AttendanceService {
     // 월별 통계 대쉬보드
     @Transactional(readOnly = true)
     public AttendanceSummaryResponse getMonthlySummary(Long employeeId, int year, int month) {
-        String yearMonth = String.format("%04d-%02d", year, month);
-        return attendanceMapper.countMonthlySummary(employeeId, yearMonth);
+        String targetMonth = String.format("%04d-%02d", year, month);
+        return attendanceMapper.countMonthlySummary(employeeId, targetMonth);
     }
 
     // 월별 리스트 조회
     @Transactional(readOnly = true)
     public List<AttendanceRecordResponse> getMonthlyRecords(
             Long employeeId, int year, int month, String status) {
-        String yearMonth = String.format("%04d-%02d", year, month);
+        String targetMonth = String.format("%04d-%02d", year, month);
 
         List<Attendance> records =
-                attendanceMapper.findMonthlyRecords(employeeId, yearMonth, status);
+                attendanceMapper.findMonthlyRecords(employeeId, targetMonth, status);
 
         return records.stream()
                 .map(

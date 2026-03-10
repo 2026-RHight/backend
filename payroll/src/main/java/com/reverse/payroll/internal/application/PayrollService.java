@@ -21,11 +21,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -46,7 +48,7 @@ public class PayrollService {
         if (year < 1900 || year > 2100) {
             throw new IllegalArgumentException("유효하지 않은 연도입니다.");
         }
-        String yearMonth = String.format("%04d-%02d", year, month);
+        String targetMonth = String.format("%04d-%02d", year, month);
 
         // 기본 설정 및 4대보험 요율 적용
         LocalDate targetDate = LocalDate.of(year, month, 1);
@@ -171,7 +173,7 @@ public class PayrollService {
                 PayrollLedger.builder()
                         .employeeId(employeeId)
                         .insuranceId(insuranceRate.getInsuranceId())
-                        .yearMonth(yearMonth)
+                        .targetMonth(targetMonth)
                         .salaryAmount(baseSalary)
                         .overtimeAmount(totalExtraPayment)
                         .mealAmount(mealAllowance)
@@ -188,6 +190,9 @@ public class PayrollService {
                         .employeeNameSnapshot(empInfo.employeeName())
                         .deptNameSnapshot(empInfo.departmentName())
                         .positionNameSnapshot(empInfo.positionName())
+                        .bankNameSnapshot(salarySetting.getBankName())
+                        .accountNumberSnapshotEnc(salarySetting.getAccountNumberEnc())
+                        .accountHolderSnapshot(salarySetting.getAccountHolder())
                         .build();
 
         try {
@@ -248,7 +253,7 @@ public class PayrollService {
         }
 
         // 해당 월에 적용되었던 급여 설정을 가져와서 은행 정보 추출
-        LocalDate targetDate = LocalDate.parse(ledger.getYearMonth() + "-01");
+        LocalDate targetDate = LocalDate.parse(ledger.getTargetMonth() + "-01");
         SalarySetting salarySetting =
                 payrollMapper.findSalarySettingByEmployeeId(employeeId, targetDate).orElse(null);
 
@@ -262,14 +267,19 @@ public class PayrollService {
                         ? ledger.getPositionNameSnapshot()
                         : "직급없음";
 
-        // 계좌번호 복호화
+        // 계좌번호 복호화 (스냅샷 우선 사용)
         String plainAccountNumber = null;
-        if (salarySetting != null && salarySetting.getAccountNumberEnc() != null) {
+        String targetAccountNumberEnc =
+                ledger.getAccountNumberSnapshotEnc() != null
+                        ? ledger.getAccountNumberSnapshotEnc()
+                        : (salarySetting != null ? salarySetting.getAccountNumberEnc() : null);
+
+        if (targetAccountNumberEnc != null) {
             try {
-                plainAccountNumber =
-                        fieldCryptoService.decrypt(salarySetting.getAccountNumberEnc());
+                plainAccountNumber = fieldCryptoService.decrypt(targetAccountNumberEnc);
             } catch (Exception e) {
-                plainAccountNumber = "복호화 실패";
+                log.error("계좌번호 복호화 실패 - employeeId: {}, ledgerId: {}", employeeId, ledgerId, e);
+                throw new IllegalStateException("급여 계좌 정보를 조회할 수 없습니다.", e);
             }
         }
 

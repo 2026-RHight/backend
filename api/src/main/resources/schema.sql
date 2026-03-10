@@ -330,7 +330,7 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     employee_id BIGINT NOT NULL,
     insurance_id BIGINT,
-    year_month VARCHAR(7) NOT NULL, -- e.g., '2024-03'
+    target_month VARCHAR(7) NOT NULL, -- e.g., '2024-03'
     salary_amount DECIMAL(15,2) DEFAULT 0.00,
     overtime_amount DECIMAL(15,2) DEFAULT 0.00,
     meal_amount DECIMAL(15,2) DEFAULT 0.00,
@@ -344,11 +344,14 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     emp_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
     income_tax_amount DECIMAL(15,2) DEFAULT 0.00,
     local_tax_amount DECIMAL(15,2) DEFAULT 0.00,
-    employee_name_snapshot VARCHAR(50),
-    dept_name_snapshot VARCHAR(100),
-    position_name_snapshot VARCHAR(50),
-    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, year_month),
-    KEY idx_payroll_ledger_year_month (year_month),
+    employee_name_snapshot VARCHAR(100),
+    dept_name_snapshot VARCHAR(255),
+    position_name_snapshot VARCHAR(255),
+    bank_name_snapshot VARCHAR(50),
+    account_number_snapshot_enc TEXT,
+    account_holder_snapshot VARCHAR(100),
+    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, target_month),
+    KEY idx_payroll_ledger_target_month (target_month),
     CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_payroll_ledger_insurance FOREIGN KEY (insurance_id) REFERENCES insurance_rate(insurance_id)
 );

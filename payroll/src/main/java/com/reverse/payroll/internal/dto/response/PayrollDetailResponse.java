@@ -9,7 +9,7 @@ import lombok.Getter;
 public class PayrollDetailResponse {
 
     private Long id;
-    private String yearMonth;
+    private String targetMonth;
 
     // 사원 정보 (급여명세서용 추가)
     private String employeeName;
@@ -43,7 +43,7 @@ public class PayrollDetailResponse {
     @Builder
     public PayrollDetailResponse(
             Long id,
-            String yearMonth,
+            String targetMonth,
             String employeeName,
             String department,
             String position,
@@ -64,7 +64,7 @@ public class PayrollDetailResponse {
             String accountNumber,
             String accountHolder) {
         this.id = id;
-        this.yearMonth = yearMonth;
+        this.targetMonth = targetMonth;
         this.employeeName = employeeName;
         this.department = department;
         this.position = position;
@@ -107,11 +107,11 @@ public class PayrollDetailResponse {
                         ledger.getLocalTaxAmount());
 
         // 지급일은 통상 해당월 25일로 표기 (가정)
-        String paymentDate = ledger.getYearMonth() + "-25";
+        String paymentDate = ledger.getTargetMonth() + "-25";
 
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
-                .yearMonth(ledger.getYearMonth())
+                .targetMonth(ledger.getTargetMonth())
                 .employeeName(employeeName)
                 .department(department)
                 .position(position)
@@ -128,9 +128,15 @@ public class PayrollDetailResponse {
                 .localTaxAmount(ledger.getLocalTaxAmount())
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
-                .bankName(salarySetting != null ? salarySetting.getBankName() : null)
+                .bankName(
+                        ledger.getBankNameSnapshot() != null
+                                ? ledger.getBankNameSnapshot()
+                                : (salarySetting != null ? salarySetting.getBankName() : null))
                 .accountNumber(plainAccountNumber)
-                .accountHolder(salarySetting != null ? salarySetting.getAccountHolder() : null)
+                .accountHolder(
+                        ledger.getAccountHolderSnapshot() != null
+                                ? ledger.getAccountHolderSnapshot()
+                                : (salarySetting != null ? salarySetting.getAccountHolder() : null))
                 .build();
     }
 

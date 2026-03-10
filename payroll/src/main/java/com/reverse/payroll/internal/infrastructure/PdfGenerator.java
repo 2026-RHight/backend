@@ -39,11 +39,12 @@ public class PdfGenerator {
                     fontResolver.addFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
                     log.info("PDF Font registered: NanumGothic from {}", fontPath);
                 } else {
-                    log.warn(
-                            "PDF Font file not found at classpath:fonts/nanum.ttf. Korean text might not render correctly.");
+                    throw new IllegalStateException(
+                            "PDF 한글 폰트 파일을 찾을 수 없습니다. (classpath:fonts/nanum.ttf)");
                 }
             } catch (Exception e) {
-                log.warn("Failed to register custom font for PDF: {}", e.getMessage());
+                if (e instanceof IllegalStateException) throw (IllegalStateException) e;
+                throw new IllegalStateException("PDF 한글 폰트 등록에 실패했습니다.", e);
             }
 
             renderer.setDocumentFromString(htmlContent);

@@ -12,7 +12,7 @@ public class PayrollLedger {
     private Long id;
     private Long employeeId;
     private Long insuranceId;
-    private String yearMonth;
+    private String targetMonth;
     private BigDecimal salaryAmount;
     private BigDecimal overtimeAmount;
     private BigDecimal mealAmount;
@@ -31,13 +31,16 @@ public class PayrollLedger {
     private String employeeNameSnapshot;
     private String deptNameSnapshot;
     private String positionNameSnapshot;
+    private String bankNameSnapshot;
+    private String accountNumberSnapshotEnc;
+    private String accountHolderSnapshot;
 
     @Builder
     public PayrollLedger(
             Long id,
             Long employeeId,
             Long insuranceId,
-            String yearMonth,
+            String targetMonth,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
             BigDecimal mealAmount,
@@ -53,11 +56,14 @@ public class PayrollLedger {
             BigDecimal localTaxAmount,
             String employeeNameSnapshot,
             String deptNameSnapshot,
-            String positionNameSnapshot) {
+            String positionNameSnapshot,
+            String bankNameSnapshot,
+            String accountNumberSnapshotEnc,
+            String accountHolderSnapshot) {
         this.id = id;
         this.employeeId = employeeId;
         this.insuranceId = insuranceId;
-        this.yearMonth = yearMonth;
+        this.targetMonth = targetMonth;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
         this.mealAmount = mealAmount;
@@ -74,5 +80,8 @@ public class PayrollLedger {
         this.employeeNameSnapshot = employeeNameSnapshot;
         this.deptNameSnapshot = deptNameSnapshot;
         this.positionNameSnapshot = positionNameSnapshot;
+        this.bankNameSnapshot = bankNameSnapshot;
+        this.accountNumberSnapshotEnc = accountNumberSnapshotEnc;
+        this.accountHolderSnapshot = accountHolderSnapshot;
     }
 }
