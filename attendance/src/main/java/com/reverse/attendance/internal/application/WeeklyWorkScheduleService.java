@@ -80,7 +80,9 @@ public class WeeklyWorkScheduleService {
                 scheduleMapper
                         .findById(weeklyId)
                         .orElseThrow(
-                                () -> new IllegalArgumentException("해당 유연근무 신청 내역을 찾을 수 없습니다."));
+                                () ->
+                                        new com.reverse.core.exception.NotFoundException(
+                                                "해당 유연근무 신청 내역을 찾을 수 없습니다."));
 
         if (!schedule.getEmployeeId().equals(employeeId)) {
             throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
@@ -122,7 +124,10 @@ public class WeeklyWorkScheduleService {
         WeeklyWorkSchedule schedule =
                 scheduleMapper
                         .findById(request.getWeeklyId())
-                        .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
+                        .orElseThrow(
+                                () ->
+                                        new com.reverse.core.exception.NotFoundException(
+                                                "결재할 신청 내역을 찾을 수 없습니다."));
 
         if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
