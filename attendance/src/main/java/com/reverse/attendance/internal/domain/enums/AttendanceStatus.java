@@ -10,7 +10,8 @@ public enum AttendanceStatus {
     TARDY("지각"),
     EARLY_LEAVE("조퇴"),
     ABSENT("결근"),
-    VACATION("휴가");
+    VACATION("휴가"),
+    HALF_VACATION("반차");
 
     private final String description;
 }

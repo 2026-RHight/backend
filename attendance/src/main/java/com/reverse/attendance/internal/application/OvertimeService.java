@@ -28,6 +28,20 @@ public class OvertimeService {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        // 동시성(중복 신청) 방지를 위해 직원 기준으로 DB 락 획득
+        overtimeMapper.lockEmployee(employeeId);
+
+        int overlapCount =
+                overtimeMapper.countOverlappingOvertimes(
+                        employeeId,
+                        request.getWorkDate(),
+                        request.getStartTime(),
+                        request.getEndTime());
+        if (overlapCount > 0) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "해당 시간대에 이미 신청했거나 승인된 연장근무가 존재합니다.");
+        }
+
         Overtime overtime =
                 Overtime.builder()
                         .employeeId(employeeId)
@@ -42,8 +56,25 @@ public class OvertimeService {
     }
 
     @Transactional(readOnly = true)
-    public List<Overtime> getMyOvertimes(Long employeeId) {
-        return overtimeMapper.findByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<Overtime> getMyOvertimes(
+            Long employeeId, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
+        int limit = size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+        List<Overtime> content = overtimeMapper.findByEmployeeId(employeeId, limit, offset);
+        long totalElements = overtimeMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return overtimeMapper.countRequestStatus(employeeId);
     }
 
     @Transactional
@@ -55,10 +86,10 @@ public class OvertimeService {
                                 () -> new IllegalArgumentException("해당 연장근무 신청 내역을 찾을 수 없습니다."));
 
         if (!overtime.getEmployeeId().equals(employeeId)) {
-            throw new IllegalStateException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (overtime.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("결재 대기 상태인 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 취소할 수 있습니다.");
         }
 
         Overtime canceledOvertime =
@@ -69,13 +100,24 @@ public class OvertimeService {
 
         int updatedRows = overtimeMapper.updateStatusIfPending(canceledOvertime);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 
     @Transactional(readOnly = true)
-    public List<Overtime> getAllOvertimes(String status) {
-        return overtimeMapper.findAll(status);
+    public com.reverse.core.response.PageResponse<Overtime> getAllOvertimes(
+            String status, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
+        int limit = size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+        List<Overtime> content = overtimeMapper.findAll(status, limit, offset);
+        long totalElements = overtimeMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     @Transactional
@@ -86,7 +128,7 @@ public class OvertimeService {
                         .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
 
         if (overtime.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("대기 상태인 신청 건만 결재할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
         }
 
         ApprovalStatus newStatus;
@@ -111,7 +153,7 @@ public class OvertimeService {
 
         int updatedRows = overtimeMapper.updateStatusIfPending(processedOvertime);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 }

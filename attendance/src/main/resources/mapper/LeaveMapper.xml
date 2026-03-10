@@ -6,21 +6,23 @@
 
     <select id="findTotalAnnualLeaveByEmployeeId" resultType="java.lang.Double">
         SELECT total_annual_leave
-        FROM vacation_balance
-        WHERE employee_id = #{employeeId}
+        FROM leave_balance
+        WHERE employee_id = #{employeeId} AND base_year = #{baseYear}
     </select>
 
     <select id="lockVacationBalanceByEmployeeId" resultType="java.lang.Double">
         SELECT total_annual_leave
-        FROM vacation_balance
-        WHERE employee_id = #{employeeId}
+        FROM leave_balance
+        WHERE employee_id = #{employeeId} AND base_year = #{baseYear}
         FOR UPDATE
     </select>
 
     <select id="sumUsedDaysByStatus" resultType="java.lang.Double">
         SELECT IFNULL(SUM(used_days), 0)
         FROM leave_request
-        WHERE employee_id = #{employeeId} AND leave_status = #{status}
+        WHERE employee_id = #{employeeId}
+          AND leave_status = #{status}
+          AND YEAR(start_date) = #{year}
     </select>
 
     <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
@@ -44,7 +46,14 @@
             reject_reason as rejectReason
         FROM leave_request
         WHERE employee_id = #{employeeId}
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, leave_request_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByEmployeeId" resultType="long">
+        SELECT COUNT(*)
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
     </select>
 
     <select id="findLeaveRequestById" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
@@ -87,7 +96,18 @@
                 leave_status = #{leaveStatus}
             </if>
         </where>
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, leave_request_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM leave_request
+        <where>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                leave_status = #{leaveStatus}
+            </if>
+        </where>
     </select>
 
     <select id="findApprovedLeaveTypeByDate" resultType="com.reverse.attendance.internal.domain.enums.LeaveType">
@@ -98,5 +118,33 @@
             AND #{date} BETWEEN start_date AND end_date
         LIMIT 1
     </select>
+
+    <select id="countOverlappingLeaves" resultType="int">
+        SELECT COUNT(*)
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+          AND leave_status IN ('PENDING', 'APPROVED')
+          AND start_date &lt;= #{endDate}
+          AND end_date &gt;= #{startDate}
+    </select>
+
+    <select id="countRequestStatus" resultType="com.reverse.attendance.internal.dto.response.RequestStatusCountResponse">
+        SELECT
+            COUNT(CASE WHEN leave_status = 'PENDING' THEN 1 END) as pendingCount,
+            COUNT(CASE WHEN leave_status = 'APPROVED' THEN 1 END) as approvedCount,
+            COUNT(CASE WHEN leave_status = 'REJECTED' THEN 1 END) as rejectedCount
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+    </select>
+
+    <insert id="insertNextYearLeaveBalance">
+        INSERT IGNORE INTO leave_balance (
+            employee_id, base_year, total_annual_leave, used_annual_leave
+        )
+        SELECT
+            employee_id, #{baseYear}, 15.0, 0.0
+        FROM employee
+        WHERE employ_state = 'WORK'
+    </insert>
 
 </mapper>

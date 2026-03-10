@@ -135,26 +135,64 @@ CREATE TABLE IF NOT EXISTS employee_hr_info (
 -- 본인(HEAD)이 작성한 근태 관리 관련 테이블
 -- ==========================================
 
+-- 근태 정책 (코어 타임 등 설정)
+CREATE TABLE IF NOT EXISTS attendance_policy (
+    policy_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    std_start_time TIME NOT NULL COMMENT '표준 출근 시간',
+    std_end_time TIME NOT NULL COMMENT '표준 퇴근 시간',
+    core_time_start TIME COMMENT '코어타임 시작',
+    core_time_end TIME COMMENT '코어타임 종료',
+    break_time_start TIME COMMENT '휴게 시간 시작',
+    break_time_end TIME COMMENT '휴게 시간 종료',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_attendance_policy_employee (employee_id),
+    CONSTRAINT chk_attendance_policy_std_range CHECK (std_start_time < std_end_time),
+    CONSTRAINT chk_attendance_policy_core_range CHECK (
+        core_time_start IS NULL OR core_time_end IS NULL OR core_time_start < core_time_end
+    ),
+    CONSTRAINT chk_attendance_policy_break_range CHECK (
+        break_time_start IS NULL OR break_time_end IS NULL OR break_time_start < break_time_end
+    ),
+    CONSTRAINT fk_attendance_policy_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
 -- 근태 관리
 CREATE TABLE IF NOT EXISTS attendance_record (
-                                                attendance_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                employee_id BIGINT NOT NULL,
-                                                work_date DATE NOT NULL,
-                                                check_in_time TIME,
-                                                check_out_time TIME,
-                                                status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
+    attendance_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    work_date DATE NOT NULL,
+    check_in_time TIME,
+    check_out_time TIME,
+    status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',
     modify_reason VARCHAR(255) COMMENT '관리자 수정 사유',
+    overtime_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '연장 근무 시간',
+    night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '야간 근무 시간',
+    holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '휴일 근무 시간',
+    is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE COMMENT '무급 휴가 여부',
+    CONSTRAINT chk_attendance_record_overtime_hours CHECK (overtime_hours BETWEEN 0.0 AND 24.0),
+    CONSTRAINT chk_attendance_record_night_work_hours CHECK (night_work_hours BETWEEN 0.0 AND 24.0),
+    CONSTRAINT chk_attendance_record_holiday_work_hours CHECK (holiday_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_attendance_employee_date (employee_id, work_date)
-    );
+);
 
--- 사원별 총 연차 관리
+-- 사원별 총 연차 관리 (연도별 이력 관리)
 CREATE TABLE IF NOT EXISTS leave_balance (
-                                            employee_id BIGINT PRIMARY KEY,
-                                            total_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '총 발생 연차 (0.5일 단위)',
-    CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
-    );
+    vacation_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    base_year INT NOT NULL COMMENT '기준년도',
+    total_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '총 발생 연차 (0.5일 단위)',
+    used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '사용한 연차 (0.5일 단위)',
+    remaining_annual_leave DECIMAL(5,1) AS (total_annual_leave - used_annual_leave) STORED COMMENT '잔여 연차 (0.5일 단위)',
+    CONSTRAINT chk_leave_balance_total CHECK (total_annual_leave >= 0.0),
+    CONSTRAINT chk_leave_balance_used CHECK (used_annual_leave >= 0.0),
+    CONSTRAINT chk_leave_balance_used_lte_total CHECK (used_annual_leave <= total_annual_leave),
+    CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    UNIQUE KEY uk_leave_balance_emp_year (employee_id, base_year)
+);
 
 -- 휴가 신청 내역
 CREATE TABLE IF NOT EXISTS leave_request (

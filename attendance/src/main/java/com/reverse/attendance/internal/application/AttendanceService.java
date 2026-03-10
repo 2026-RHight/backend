@@ -62,7 +62,7 @@ public class AttendanceService {
         try {
             attendanceMapper.insertCheckIn(attendance);
         } catch (DuplicateKeyException e) {
-            throw new IllegalStateException("이미 오늘의 출근 기록이 존재합니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 오늘의 출근 기록이 존재합니다.");
         }
         return attendance.getAttendanceId();
     }
@@ -77,14 +77,15 @@ public class AttendanceService {
                         .findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                         .orElseThrow(
                                 () ->
-                                        new IllegalStateException(
+                                        new com.reverse.core.exception.BadRequestException(
                                                 "오늘의 출근 기록이 존재하지 않아 퇴근 처리를 할 수 없습니다."));
 
         if (attendance.getCheckOutTime() != null) {
-            throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 퇴근 처리가 완료되었습니다.");
         }
         if (attendance.getCheckInTime() == null) {
-            throw new IllegalStateException("출근 기록이 없는 상태에서는 퇴근 처리할 수 없습니다.");
+            throw new com.reverse.core.exception.BadRequestException(
+                    "출근 기록이 없는 상태에서는 퇴근 처리할 수 없습니다.");
         }
 
         // 사원 개인의 근태 규정(퇴근 시간) 및 조퇴 여부 판단. 반차 등에 의해 조정될 수 있습니다.
@@ -109,7 +110,7 @@ public class AttendanceService {
         int updatedRows = attendanceMapper.updateCheckOut(attendanceToUpdate);
 
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 퇴근 처리가 완료되었습니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 퇴근 처리가 완료되었습니다.");
         }
     }
 
@@ -124,7 +125,10 @@ public class AttendanceService {
                 attendanceMapper
                         .findByEmployeeIdAndWorkDate(
                                 request.getTargetEmployeeId(), request.getWorkDate())
-                        .orElseThrow(() -> new IllegalStateException("해당 날짜의 근태 기록이 존재하지 않습니다."));
+                        .orElseThrow(
+                                () ->
+                                        new com.reverse.core.exception.BadRequestException(
+                                                "해당 날짜의 근태 기록이 존재하지 않습니다."));
 
         LocalTime resolvedCheckIn = attendance.getCheckInTime();
         if (request.getNewCheckInTime() != null) {
@@ -191,8 +195,11 @@ public class AttendanceService {
                                         .checkOutTime(record.getCheckOutTime())
                                         .status(record.getStatus())
                                         .statusDescription(
-                                                record.getStatus()
-                                                        .getDescription()) // "정상", "지각" 등 한글 텍스트
+                                                record.getStatus().getDescription()) // "정상",
+                                        // "지각"
+                                        // 등
+                                        // 한글
+                                        // 텍스트
                                         .build())
                 .collect(Collectors.toList());
     }

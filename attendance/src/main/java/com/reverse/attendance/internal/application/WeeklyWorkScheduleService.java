@@ -28,6 +28,20 @@ public class WeeklyWorkScheduleService {
             throw new IllegalArgumentException("유연근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        // 동시성(중복 신청) 방지를 위해 직원 기준으로 DB 락 획득
+        scheduleMapper.lockEmployee(employeeId);
+
+        int overlapCount =
+                scheduleMapper.countOverlappingSchedules(
+                        employeeId,
+                        request.getPlanDate(),
+                        request.getStartDate(),
+                        request.getEndDate());
+        if (overlapCount > 0) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "해당 기간에 이미 신청했거나 승인된 유연근무가 존재합니다.");
+        }
+
         WeeklyWorkSchedule schedule =
                 WeeklyWorkSchedule.builder()
                         .employeeId(employeeId)
@@ -44,8 +58,26 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public List<WeeklyWorkSchedule> getMySchedules(Long employeeId) {
-        return scheduleMapper.findByEmployeeId(employeeId);
+    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getMySchedules(
+            Long employeeId, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
+        int limit = size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+        List<WeeklyWorkSchedule> content =
+                scheduleMapper.findByEmployeeId(employeeId, limit, offset);
+        long totalElements = scheduleMapper.countByEmployeeId(employeeId);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+    }
+
+    @Transactional(readOnly = true)
+    public com.reverse.attendance.internal.dto.response.RequestStatusCountResponse
+            getMyRequestStatusCounts(Long employeeId) {
+        return scheduleMapper.countRequestStatus(employeeId);
     }
 
     @Transactional
@@ -54,13 +86,15 @@ public class WeeklyWorkScheduleService {
                 scheduleMapper
                         .findById(weeklyId)
                         .orElseThrow(
-                                () -> new IllegalArgumentException("해당 유연근무 신청 내역을 찾을 수 없습니다."));
+                                () ->
+                                        new com.reverse.core.exception.NotFoundException(
+                                                "해당 유연근무 신청 내역을 찾을 수 없습니다."));
 
         if (!schedule.getEmployeeId().equals(employeeId)) {
-            throw new IllegalStateException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("결재 대기 상태인 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 취소할 수 있습니다.");
         }
 
         WeeklyWorkSchedule canceledSchedule =
@@ -71,13 +105,24 @@ public class WeeklyWorkScheduleService {
 
         int updatedRows = scheduleMapper.updateStatusIfPending(canceledSchedule);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 
     @Transactional(readOnly = true)
-    public List<WeeklyWorkSchedule> getAllSchedules(String status) {
-        return scheduleMapper.findAll(status);
+    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getAllSchedules(
+            String status, int page, int size) {
+        page = Math.max(1, page);
+        size = Math.min(100, Math.max(1, size));
+        int limit = size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+        List<WeeklyWorkSchedule> content = scheduleMapper.findAll(status, limit, offset);
+        long totalElements = scheduleMapper.countAll(status);
+        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
     }
 
     @Transactional
@@ -85,10 +130,13 @@ public class WeeklyWorkScheduleService {
         WeeklyWorkSchedule schedule =
                 scheduleMapper
                         .findById(request.getWeeklyId())
-                        .orElseThrow(() -> new IllegalArgumentException("결재할 신청 내역을 찾을 수 없습니다."));
+                        .orElseThrow(
+                                () ->
+                                        new com.reverse.core.exception.NotFoundException(
+                                                "결재할 신청 내역을 찾을 수 없습니다."));
 
         if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new IllegalStateException("대기 상태인 신청 건만 결재할 수 있습니다.");
+            throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
         }
 
         ApprovalStatus newStatus =
@@ -102,7 +150,7 @@ public class WeeklyWorkScheduleService {
 
         int updatedRows = scheduleMapper.updateStatusIfPending(processedSchedule);
         if (updatedRows == 0) {
-            throw new IllegalStateException("이미 처리된 신청 건입니다.");
+            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
     }
 }

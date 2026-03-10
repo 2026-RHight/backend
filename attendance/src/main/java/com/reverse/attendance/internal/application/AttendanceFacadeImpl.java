@@ -4,6 +4,7 @@ import com.reverse.attendance.AttendanceFacade;
 import com.reverse.attendance.dto.request.LeaveBalanceInitializeRequest;
 import com.reverse.attendance.dto.response.PayrollAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceDashboardResponse;
+import com.reverse.attendance.internal.persistence.AttendanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AttendanceFacadeImpl implements AttendanceFacade {
 
+    private final AttendanceMapper attendanceMapper;
     private final AttendanceService attendanceService;
     private final LeaveService leaveService;
     private final BusinessTripService businessTripService;
@@ -22,17 +24,28 @@ public class AttendanceFacadeImpl implements AttendanceFacade {
         return AttendanceDashboardResponse.builder()
                 .attendanceSummary(attendanceService.getMonthlySummary(employeeId, year, month))
                 .leaveBalance(leaveService.getLeaveBalance(employeeId))
-                .recentLeaveRequests(leaveService.getMyLeaveRequests(employeeId))
-                .recentBusinessTrips(businessTripService.getMyTrips(employeeId))
-                .recentOvertimes(overtimeService.getMyOvertimes(employeeId))
+                .recentLeaveRequests(leaveService.getMyLeaveRequests(employeeId, 1, 5).getContent())
+                .recentBusinessTrips(businessTripService.getMyTrips(employeeId, 1, 5).getContent())
+                .recentOvertimes(overtimeService.getMyOvertimes(employeeId, 1, 5).getContent())
                 .build();
     }
 
     @Override
     public PayrollAttendanceResponse getAttendanceForPayroll(Long employeeId, int year, int month) {
-        // TODO: 나중에 근태 서비스들 조합해서 급여용 DTO 만드는 로직 작성!
-        // 당장은 빨간 줄(에러)만 없애기 위해 일단 null을 리턴합니다.
-        return null;
+        // 급여 계산에 필요한 종합적인 근태 통계 정보를 AttendanceMapper를 통해 조회합니다.
+        PayrollAttendanceResponse response =
+                attendanceMapper.getAttendanceForPayroll(employeeId, year, month);
+
+        // 데이터가 아예 없을 경우 (해당 월 정상 출근이 0일이라도) 기본값이 세팅된 객체 반환
+        if (response == null) {
+            return PayrollAttendanceResponse.builder()
+                    .employeeId(employeeId)
+                    .year(year)
+                    .month(month)
+                    .build();
+        }
+
+        return response;
     }
 
     @Override

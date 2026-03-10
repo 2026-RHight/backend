@@ -29,4 +29,13 @@ public interface AttendanceMapper {
             @Param("employeeId") Long employeeId,
             @Param("yearMonth") String yearMonth,
             @Param("status") String status);
+
+    // 급여 정산용 근태 통계 조회
+    com.reverse.attendance.dto.response.PayrollAttendanceResponse getAttendanceForPayroll(
+            @Param("employeeId") Long employeeId,
+            @Param("year") int year,
+            @Param("month") int month);
+
+    // 퇴근 미처리자 자정 마감 처리
+    int autoCloseMissingCheckOut(@Param("workDate") LocalDate workDate);
 }
