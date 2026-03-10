@@ -181,6 +181,13 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public com.reverse.core.response.PageResponse<LeaveRequest> getAllTeamLeaveRequests(
             String status, int page, int size) {
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                LeaveStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+            }
+        }
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
