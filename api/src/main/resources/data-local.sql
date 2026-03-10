@@ -1407,3 +1407,102 @@ WHERE e.employee_num = '2402040016'
       FROM password_history ph
       WHERE ph.employee_id = e.employee_id
   );
+
+-- 증명서 정책 더미
+INSERT INTO policy (policy_id, policy_type, policy_title, created_at, is_active)
+SELECT 1, 'CERTIFICATE', '증명서 발급 정책', NOW(), TRUE
+WHERE NOT EXISTS (SELECT 1 FROM policy WHERE policy_id = 1);
+
+INSERT INTO policy_version (
+    policy_version_id,
+    policy_id,
+    version_no,
+    content,
+    change_summary,
+    employee_id,
+    changed_at,
+    effective_from
+)
+SELECT
+    1,
+    1,
+    1,
+    '1. 재직증명서는 본인 계정에서만 신청 가능합니다.\n2. 발급 요청 시 즉시 문서가 생성됩니다.\n3. 발급 이력에서 재다운로드 가능합니다.\n4. 허위 용도 사용 시 사내 규정에 따라 제한될 수 있습니다.',
+    '초기 정책 등록',
+    e.employee_id,
+    NOW(),
+    CURDATE()
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (SELECT 1 FROM policy_version WHERE policy_version_id = 1);
+
+-- 증명서 발급 이력 더미
+INSERT INTO hr_file (hr_file_id, file_key, file_url, file_title)
+SELECT
+    301,
+    'hr/certificate/1/employment_ko_2402040001_20260205.pdf',
+    'https://cdn.rhight.local/certificate/employment_ko_2402040001_20260205.pdf',
+    'employment_ko_2402040001_20260205.pdf'
+WHERE NOT EXISTS (SELECT 1 FROM hr_file WHERE hr_file_id = 301);
+
+INSERT INTO hr_file (hr_file_id, file_key, file_url, file_title)
+SELECT
+    302,
+    'hr/certificate/1/employment_en_2402040001_20251220.pdf',
+    'https://cdn.rhight.local/certificate/employment_en_2402040001_20251220.pdf',
+    'employment_en_2402040001_20251220.pdf'
+WHERE NOT EXISTS (SELECT 1 FROM hr_file WHERE hr_file_id = 302);
+
+INSERT INTO certificate_request (
+    request_id,
+    employee_id,
+    certificate_type,
+    purpose,
+    submit_to,
+    status,
+    requested_at,
+    issued_at,
+    hr_file_id,
+    fail_reason
+)
+SELECT
+    1,
+    e.employee_id,
+    'EMPLOYMENT_KO',
+    '금융 거래 제출',
+    '국민은행',
+    'ISSUED',
+    DATE_SUB(NOW(), INTERVAL 33 DAY),
+    DATE_SUB(NOW(), INTERVAL 33 DAY),
+    301,
+    NULL
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (SELECT 1 FROM certificate_request WHERE request_id = 1);
+
+INSERT INTO certificate_request (
+    request_id,
+    employee_id,
+    certificate_type,
+    purpose,
+    submit_to,
+    status,
+    requested_at,
+    issued_at,
+    hr_file_id,
+    fail_reason
+)
+SELECT
+    2,
+    e.employee_id,
+    'EMPLOYMENT_EN',
+    '비자 서류 제출',
+    'Immigration Office',
+    'ISSUED',
+    DATE_SUB(NOW(), INTERVAL 80 DAY),
+    DATE_SUB(NOW(), INTERVAL 80 DAY),
+    302,
+    NULL
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (SELECT 1 FROM certificate_request WHERE request_id = 2);

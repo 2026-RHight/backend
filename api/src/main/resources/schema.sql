@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS hr_file (
                                     hr_file_id BIGINT NOT NULL AUTO_INCREMENT,
+                                    file_key VARCHAR(1024) NULL,
                                     file_url TEXT NOT NULL,
                                     file_title VARCHAR(255) NULL,
     PRIMARY KEY (hr_file_id)
@@ -281,6 +282,46 @@ CREATE TABLE IF NOT EXISTS event_publication (
     completion_date DATETIME(6) NULL,
     serialized_event TEXT NOT NULL,
     PRIMARY KEY (id)
+);
+
+-- 증명서 정책/발급 관련 테이블
+CREATE TABLE IF NOT EXISTS policy (
+    policy_id BIGINT NOT NULL AUTO_INCREMENT,
+    policy_type ENUM('CERTIFICATE') NOT NULL,
+    policy_title VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (policy_id)
+);
+
+CREATE TABLE IF NOT EXISTS policy_version (
+    policy_version_id BIGINT NOT NULL AUTO_INCREMENT,
+    policy_id BIGINT NOT NULL,
+    version_no INT NOT NULL,
+    content TEXT NOT NULL,
+    change_summary TEXT NULL,
+    employee_id BIGINT NOT NULL,
+    changed_at DATETIME NOT NULL,
+    effective_from DATE NOT NULL,
+    PRIMARY KEY (policy_version_id),
+    CONSTRAINT fk_policy_version_policy FOREIGN KEY (policy_id) REFERENCES policy(policy_id),
+    CONSTRAINT fk_policy_version_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS certificate_request (
+    request_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    certificate_type ENUM('EMPLOYMENT_KO','EMPLOYMENT_EN') NOT NULL,
+    purpose VARCHAR(255) NOT NULL,
+    submit_to VARCHAR(255) NOT NULL,
+    status ENUM('ISSUED','FAILED') NOT NULL,
+    requested_at DATETIME NOT NULL,
+    issued_at DATETIME NULL,
+    hr_file_id BIGINT NULL,
+    fail_reason VARCHAR(255) NULL,
+    PRIMARY KEY (request_id),
+    CONSTRAINT fk_certificate_request_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_certificate_request_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
 );
 
 CREATE TABLE IF NOT EXISTS electronic_approval (
