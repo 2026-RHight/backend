@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistStore tokenBlacklistStore;
 
     @Override
     protected void doFilterInternal(
@@ -31,7 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 jwtTokenProvider.validateToken(token);
-
+                if (tokenBlacklistStore.isBlacklisted(token)) {
+                    throw new BadCredentialsException("JWT is blacklisted"); // 인증 실패
+                }
                 Long employeeId = jwtTokenProvider.getEmployeeId(token);
                 String employeeNum = jwtTokenProvider.getEmployeeNum(token);
                 List<String> roles = jwtTokenProvider.getRoles(token);

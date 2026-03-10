@@ -2,6 +2,7 @@ package com.reverse.hr.internal.web;
 
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.response.ApiResponse;
+import com.reverse.core.security.TokenBlacklistStore;
 import com.reverse.hr.internal.application.AuthService;
 import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
@@ -10,6 +11,7 @@ import com.reverse.hr.internal.dto.response.LoginResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final TokenBlacklistStore tokenBlacklistStore;
 
     @Operation(summary = "로그인")
     @PostMapping("/login")
@@ -41,6 +44,20 @@ public class AuthController {
     public ApiResponse<Void> initializePassword(@Valid @RequestBody InitializeRequestDTO dto) {
         authService.initializePassword(dto);
         return ApiResponse.success();
+    }
+
+    @Transactional
+    public void logout(String authorization) {
+        String token = extractToken(authorization);
+        tokenBlacklistStore.blacklist(token);
+    }
+
+    // accessToken 헤더 제거
+    private String extractToken(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new UnauthorizedException("만료된 토큰입니다.");
+        }
+        return authorization.substring(7);
     }
 
     private String extractBearerToken(String authorization) {
