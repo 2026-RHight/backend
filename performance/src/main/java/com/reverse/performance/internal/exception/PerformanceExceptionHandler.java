@@ -15,7 +15,10 @@ public class PerformanceExceptionHandler {
     @ExceptionHandler(PerformanceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handlePerformanceNotFoundException(
             PerformanceNotFoundException ex) {
-        log.error("PerformanceNotFoundException 발생: code={}, message={}", ex.getCode(), ex.getMessage());
+        log.error(
+                "PerformanceNotFoundException 발생: code={}, message={}",
+                ex.getCode(),
+                ex.getMessage());
 
         ErrorResponse error =
                 ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();

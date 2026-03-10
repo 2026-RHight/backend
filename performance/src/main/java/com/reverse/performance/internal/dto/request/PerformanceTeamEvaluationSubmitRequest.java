@@ -9,6 +9,4 @@ public record PerformanceTeamEvaluationSubmitRequest(
         Integer collaborationScore,
         String collaborationComment,
         Integer creativityScore,
-        String creativityComment
-) {
-}
+        String creativityComment) {}

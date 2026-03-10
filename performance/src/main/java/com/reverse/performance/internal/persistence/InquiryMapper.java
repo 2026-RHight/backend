@@ -1,12 +1,11 @@
 package com.reverse.performance.internal.persistence;
 
+import com.reverse.performance.internal.domain.Status;
 import com.reverse.performance.internal.dto.response.EvaluatorPerformanceResponse;
 import com.reverse.performance.internal.dto.response.MyPerformanceResponse;
-import com.reverse.performance.internal.domain.Status;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 public interface InquiryMapper {
@@ -15,6 +14,5 @@ public interface InquiryMapper {
     List<EvaluatorPerformanceResponse> findEvaluatorPerformances(
             @Param("employeeId") Long employeeId,
             @Param("appraiseeId") Long appraiseeId,
-            @Param("status") Status status
-    );
+            @Param("status") Status status);
 }

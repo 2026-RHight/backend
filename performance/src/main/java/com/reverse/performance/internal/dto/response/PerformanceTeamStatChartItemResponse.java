@@ -1,7 +1,3 @@
 package com.reverse.performance.internal.dto.response;
 
-public record PerformanceTeamStatChartItemResponse(
-        String subject,
-        double value
-) {
-}
+public record PerformanceTeamStatChartItemResponse(String subject, double value) {}

@@ -6,8 +6,55 @@ ALTER TABLE peer_review
     ADD COLUMN IF NOT EXISTS culture_contribution INT NULL AFTER team_contribution;
 
 -- 동료 평가 중복 방지
-ALTER TABLE peer_review
-    ADD CONSTRAINT ux_peer_review_eval_reviewer UNIQUE (eval_id, reviewer_id);
+CREATE TABLE IF NOT EXISTS peer_review_duplicate_cleanup AS
+SELECT *
+FROM peer_review
+WHERE 1 = 0;
+
+INSERT INTO peer_review_duplicate_cleanup
+SELECT pr.*
+FROM peer_review pr
+JOIN (
+    SELECT eval_id, reviewer_id, MIN(peer_review_id) AS keep_peer_review_id
+    FROM peer_review
+    GROUP BY eval_id, reviewer_id
+    HAVING COUNT(*) > 1
+) dup
+  ON dup.eval_id = pr.eval_id
+ AND dup.reviewer_id = pr.reviewer_id
+WHERE pr.peer_review_id <> dup.keep_peer_review_id;
+
+DELETE pr
+FROM peer_review pr
+JOIN (
+    SELECT eval_id, reviewer_id, MIN(peer_review_id) AS keep_peer_review_id
+    FROM peer_review
+    GROUP BY eval_id, reviewer_id
+    HAVING COUNT(*) > 1
+) dup
+  ON dup.eval_id = pr.eval_id
+ AND dup.reviewer_id = pr.reviewer_id
+WHERE pr.peer_review_id <> dup.keep_peer_review_id;
+
+SET @peer_review_constraint_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.table_constraints
+    WHERE constraint_schema = DATABASE()
+      AND table_name = 'peer_review'
+      AND constraint_name = 'ux_peer_review_eval_reviewer'
+      AND constraint_type = 'UNIQUE'
+);
+
+SET @peer_review_constraint_sql = CASE
+    WHEN @peer_review_constraint_exists = 0 THEN
+        'ALTER TABLE peer_review ADD CONSTRAINT ux_peer_review_eval_reviewer UNIQUE (eval_id, reviewer_id)'
+    ELSE
+        'SELECT ''ux_peer_review_eval_reviewer already exists'' AS migration_status'
+END;
+
+PREPARE stmt_peer_review_constraint FROM @peer_review_constraint_sql;
+EXECUTE stmt_peer_review_constraint;
+DEALLOCATE PREPARE stmt_peer_review_constraint;
 
 -- 팀 평가 확장 컬럼 추가
 ALTER TABLE team_evaluation
@@ -23,17 +70,24 @@ ALTER TABLE team_evaluation
     ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER creativity_comment,
     ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
 
-UPDATE team_evaluation
-SET evaluation_year = YEAR(CURDATE())
-WHERE evaluation_year IS NULL;
+SET @team_evaluation_year_index_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'team_evaluation'
+      AND index_name = 'idx_team_evaluation_year'
+);
 
-ALTER TABLE team_evaluation
-    MODIFY COLUMN evaluation_year INT NOT NULL;
+SET @team_evaluation_year_index_sql = CASE
+    WHEN @team_evaluation_year_index_exists = 0 THEN
+        'ALTER TABLE team_evaluation ADD INDEX idx_team_evaluation_year (evaluation_year)'
+    ELSE
+        'SELECT ''idx_team_evaluation_year already exists'' AS migration_status'
+END;
 
-ALTER TABLE team_evaluation
-    DROP INDEX uk_team_evaluation_evaluator_appraisee,
-    ADD INDEX idx_team_evaluation_year (evaluation_year),
-    ADD CONSTRAINT uk_team_evaluation_evaluator_appraisee_year UNIQUE (evaluator_id, appraisee_id, evaluation_year);
+PREPARE stmt_team_evaluation_year_index FROM @team_evaluation_year_index_sql;
+EXECUTE stmt_team_evaluation_year_index;
+DEALLOCATE PREPARE stmt_team_evaluation_year_index;
 
 -- 결과 첨부 확인일 컬럼 추가
 ALTER TABLE performance_attachment

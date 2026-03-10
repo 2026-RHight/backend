@@ -51,6 +51,9 @@
                    ON pt2.performance_id = p2.performance_id
             WHERE p2.end_date IS NOT NULL
               AND p2.status = 'ENDED'
+              AND p2.employee_id = #{employeeId}
+              AND YEAR(p2.end_date) = #{targetYear}
+              AND MONTH(p2.end_date) = #{targetMonth}
             GROUP BY p2.employee_id, YEAR(p2.end_date), MONTH(p2.end_date)
         ) ms
                ON ms.employee_id = p.employee_id

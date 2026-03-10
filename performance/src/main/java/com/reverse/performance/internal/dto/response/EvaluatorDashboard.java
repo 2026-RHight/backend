@@ -1,7 +1,6 @@
 package com.reverse.performance.internal.dto.response;
 
 import com.reverse.performance.internal.domain.WorkItem;
-
 import java.time.LocalDate;
 
 public record EvaluatorDashboard(
@@ -12,6 +11,4 @@ public record EvaluatorDashboard(
         LocalDate createdAt,
         Long attachmentId,
         String fileName,
-        String fileUrl
-) {
-}
+        String fileUrl) {}

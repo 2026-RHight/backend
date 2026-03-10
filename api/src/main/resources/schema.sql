@@ -464,7 +464,7 @@ CREATE TABLE IF NOT EXISTS rtw_detail (
 -- 성과(Performance) 모듈 테이블
 -- ==========================================
 
-CREATE TABLE performance (
+CREATE TABLE IF NOT EXISTS performance (
     performance_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
     title VARCHAR(255) NOT NULL,
@@ -487,7 +487,7 @@ CREATE TABLE performance (
     CONSTRAINT fk_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
-CREATE TABLE performance_personal (
+CREATE TABLE IF NOT EXISTS performance_personal (
     performance_id BIGINT NOT NULL,
     expected_value TEXT NULL,
     result_summary TEXT NULL,
@@ -497,7 +497,7 @@ CREATE TABLE performance_personal (
     CONSTRAINT fk_performance_personal_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
 );
 
-CREATE TABLE performance_team (
+CREATE TABLE IF NOT EXISTS performance_team (
     performance_id BIGINT NOT NULL,
     weight INT NULL,
     team_result_summary TEXT NULL,
@@ -506,7 +506,7 @@ CREATE TABLE performance_team (
     CONSTRAINT fk_performance_team_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
 );
 
-CREATE TABLE performance_attachment (
+CREATE TABLE IF NOT EXISTS performance_attachment (
     attachment_id BIGINT NOT NULL AUTO_INCREMENT,
     performance_id BIGINT NOT NULL,
     file_name VARCHAR(255) NOT NULL,
@@ -518,7 +518,7 @@ CREATE TABLE performance_attachment (
     CONSTRAINT fk_performance_attachment_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
 );
 
-CREATE TABLE evaluation (
+CREATE TABLE IF NOT EXISTS evaluation (
     eval_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
     evaluator_id BIGINT NOT NULL,
@@ -535,7 +535,7 @@ CREATE TABLE evaluation (
     CONSTRAINT fk_evaluation_evaluator_employee FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id)
 );
 
-CREATE TABLE monthly_performance (
+CREATE TABLE IF NOT EXISTS monthly_performance (
     monthly_performance_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
     year INT NOT NULL,
@@ -548,7 +548,7 @@ CREATE TABLE monthly_performance (
     CONSTRAINT fk_monthly_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
-CREATE TABLE peer_review (
+CREATE TABLE IF NOT EXISTS peer_review (
     peer_review_id BIGINT NOT NULL AUTO_INCREMENT,
     eval_id BIGINT NOT NULL,
     reviewer_id BIGINT NOT NULL,
@@ -568,7 +568,7 @@ CREATE TABLE peer_review (
     CONSTRAINT fk_peer_review_reviewer FOREIGN KEY (reviewer_id) REFERENCES employee(employee_id)
 );
 
-CREATE TABLE team_evaluation (
+CREATE TABLE IF NOT EXISTS team_evaluation (
     team_evaluation_id BIGINT NOT NULL AUTO_INCREMENT,
     evaluator_id BIGINT NOT NULL,
     appraisee_id BIGINT NOT NULL,

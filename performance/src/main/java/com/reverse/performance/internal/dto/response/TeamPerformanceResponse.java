@@ -7,8 +7,4 @@ public record TeamPerformanceResponse(
         LocalDate endDate,
         Integer achievementRate,
         String workDetail,
-        String comment
-
-) {
-
-}
+        String comment) {}

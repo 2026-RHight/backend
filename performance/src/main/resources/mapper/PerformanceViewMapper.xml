@@ -203,6 +203,7 @@
             status = 'ENDED',
             comment = COALESCE(#{comment}, comment)
         WHERE performance_id = #{performanceId}
+          AND status = 'ACTIVE'
     </update>
 
     <update id="updatePersonalResult" parameterType="map">

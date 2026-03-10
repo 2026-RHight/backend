@@ -8,6 +8,4 @@ public record AttachmentRequest(
         String fileName,
         String fileUrl,
         LocalDateTime confirmedAt,
-        LocalDateTime createdAt
-) {
-}
+        LocalDateTime createdAt) {}

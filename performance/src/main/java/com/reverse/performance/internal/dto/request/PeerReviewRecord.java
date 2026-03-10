@@ -12,6 +12,4 @@ public record PeerReviewRecord(
         Integer teamContribution,
         String comment,
         Integer evalYear,
-        LocalDate createdAt
-) {
-}
+        LocalDate createdAt) {}

@@ -9,6 +9,7 @@ import com.reverse.performance.internal.dto.response.AppraiseePerformance;
 import com.reverse.performance.internal.dto.response.PerformanceApprovalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/performance")
@@ -34,9 +33,7 @@ public class PerformanceApprovalController {
     @GetMapping("/waiting")
     public ApiResponse<List<AppraiseePerformance>> checkWaitingPerformance(
             @AuthenticationPrincipal CustomUser user) {
-        return ApiResponse.success(
-                performanceService.findWaitingPerformance(user.getEmployeeId())
-        );
+        return ApiResponse.success(performanceService.findWaitingPerformance(user.getEmployeeId()));
     }
 
     @Operation(summary = "승인 화면 목록 조회")
@@ -44,15 +41,13 @@ public class PerformanceApprovalController {
     public ApiResponse<PerformanceApprovalResponse> approvals(
             @AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(
-                performanceApprovalService.getApprovalItems(user.getEmployeeId())
-        );
+                performanceApprovalService.getApprovalItems(user.getEmployeeId()));
     }
 
     @Operation(summary = "성과 확정 처리")
     @PatchMapping("/confirm/{performanceId}")
     public ApiResponse<Void> confirmPerformance(
-            @PathVariable Long performanceId,
-            @AuthenticationPrincipal CustomUser user) {
+            @PathVariable Long performanceId, @AuthenticationPrincipal CustomUser user) {
         performanceService.updateConfirm(performanceId, user.getEmployeeId());
         return ApiResponse.success();
     }
@@ -66,8 +61,7 @@ public class PerformanceApprovalController {
         performanceApprovalService.approvePerformance(
                 user.getEmployeeId(),
                 performanceId,
-                request == null ? new PerformanceApprovalActionRequest(null) : request
-        );
+                request == null ? new PerformanceApprovalActionRequest(null) : request);
         return ApiResponse.success();
     }
 
@@ -80,8 +74,7 @@ public class PerformanceApprovalController {
         performanceApprovalService.rejectPerformance(
                 user.getEmployeeId(),
                 performanceId,
-                request == null ? new PerformanceApprovalActionRequest(null) : request
-        );
+                request == null ? new PerformanceApprovalActionRequest(null) : request);
         return ApiResponse.success();
     }
 }

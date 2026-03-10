@@ -27,5 +27,4 @@ public class PerformancePersonal {
 
     @Column(name = "improvement")
     private String improvement;
-
 }

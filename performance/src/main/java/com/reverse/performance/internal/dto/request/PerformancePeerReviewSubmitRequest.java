@@ -7,6 +7,4 @@ public record PerformancePeerReviewSubmitRequest(
         Integer responsibilityScore,
         Integer teamContributionScore,
         Integer cultureContributionScore,
-        String comment
-) {
-}
+        String comment) {}

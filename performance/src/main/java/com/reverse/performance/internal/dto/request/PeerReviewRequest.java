@@ -13,8 +13,7 @@ public record PeerReviewRequest(
         Integer cultureContribution,
         String comment,
         Integer evalYear,
-        LocalDate createdAt
-) {
+        LocalDate createdAt) {
     public PeerReviewRequest withReviewerId(Long reviewerId) {
         return new PeerReviewRequest(
                 peerReviewId,
@@ -27,7 +26,6 @@ public record PeerReviewRequest(
                 cultureContribution,
                 comment,
                 evalYear,
-                createdAt
-        );
+                createdAt);
     }
 }

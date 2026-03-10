@@ -10,6 +10,4 @@ public record PerformanceTeamStatsMemberResponse(
         double avgScore,
         int systemScore,
         List<PerformanceTeamStatChartItemResponse> chartData,
-        List<PerformanceTeamStatTaskResponse> tasks
-) {
-}
+        List<PerformanceTeamStatTaskResponse> tasks) {}

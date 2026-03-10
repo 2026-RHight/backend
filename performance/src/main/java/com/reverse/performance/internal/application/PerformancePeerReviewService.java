@@ -5,11 +5,10 @@ import com.reverse.performance.internal.dto.request.PerformancePeerReviewSubmitR
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import com.reverse.performance.internal.exception.PerformanceNotFoundException;
 import com.reverse.performance.internal.persistence.PerformanceViewMapper;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -30,18 +29,18 @@ public class PerformancePeerReviewService {
             throw new PerformanceNotFoundException("평가 대상자의 평가 정보를 찾을 수 없습니다.");
         }
 
-        performanceService.savePeerReview(new PeerReviewRequest(
-                null,
-                evalId,
-                reviewerId,
-                request.communicationScore(),
-                request.solvingScore(),
-                request.responsibilityScore(),
-                request.teamContributionScore(),
-                request.cultureContributionScore(),
-                request.comment(),
-                LocalDate.now().getYear(),
-                LocalDate.now()
-        ));
+        performanceService.savePeerReview(
+                new PeerReviewRequest(
+                        null,
+                        evalId,
+                        reviewerId,
+                        request.communicationScore(),
+                        request.solvingScore(),
+                        request.responsibilityScore(),
+                        request.teamContributionScore(),
+                        request.cultureContributionScore(),
+                        request.comment(),
+                        LocalDate.now().getYear(),
+                        LocalDate.now()));
     }
 }

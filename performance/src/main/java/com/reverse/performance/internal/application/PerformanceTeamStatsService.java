@@ -5,14 +5,13 @@ import com.reverse.performance.internal.dto.response.PerformanceTeamStatTaskResp
 import com.reverse.performance.internal.dto.response.PerformanceTeamStatsMemberResponse;
 import com.reverse.performance.internal.dto.response.PerformanceTeamStatsResponse;
 import com.reverse.performance.internal.persistence.PerformanceViewMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,36 +26,68 @@ public class PerformanceTeamStatsService {
                 performanceViewMapper.findTeamStatsMembers(employeeId, blankToNull(teamName));
         Map<Long, List<PerformanceTeamStatTaskResponse>> taskMap =
                 performanceViewMapper.findTeamStatsTasks(employeeId, blankToNull(teamName)).stream()
-                        .collect(Collectors.groupingBy(
-                                PerformanceViewMapper.PerformanceTeamStatsTaskRow::employeeId,
-                                Collectors.collectingAndThen(Collectors.toList(), rows -> rows.stream()
-                                        .sorted(Comparator.comparing(PerformanceViewMapper.PerformanceTeamStatsTaskRow::createdAt).reversed())
-                                        .limit(3)
-                                        .map(row -> new PerformanceTeamStatTaskResponse(
-                                                row.performanceId(),
-                                                row.title(),
-                                                row.status()
-                                        ))
-                                        .toList())
-                        ));
+                        .collect(
+                                Collectors.groupingBy(
+                                        PerformanceViewMapper.PerformanceTeamStatsTaskRow
+                                                ::employeeId,
+                                        Collectors.collectingAndThen(
+                                                Collectors.toList(),
+                                                rows ->
+                                                        rows.stream()
+                                                                .sorted(
+                                                                        Comparator.comparing(
+                                                                                        PerformanceViewMapper
+                                                                                                        .PerformanceTeamStatsTaskRow
+                                                                                                ::createdAt)
+                                                                                .reversed())
+                                                                .limit(3)
+                                                                .map(
+                                                                        row ->
+                                                                                new PerformanceTeamStatTaskResponse(
+                                                                                        row
+                                                                                                .performanceId(),
+                                                                                        row.title(),
+                                                                                        row
+                                                                                                .status()))
+                                                                .toList())));
 
-        List<PerformanceTeamStatsMemberResponse> responses = members.stream()
-                .map(row -> new PerformanceTeamStatsMemberResponse(
-                        row.id(),
-                        row.name(),
-                        row.role(),
-                        row.department(),
-                        roundOneDecimal(average(row.performanceAvg(), row.attitudeAvg(), row.collaborationAvg(), row.creativityAvg())),
-                        nvl(row.systemScore()),
-                        List.of(
-                                new PerformanceTeamStatChartItemResponse("업무 성과", roundOneDecimal(nvd(row.performanceAvg()))),
-                                new PerformanceTeamStatChartItemResponse("업무 태도", roundOneDecimal(nvd(row.attitudeAvg()))),
-                                new PerformanceTeamStatChartItemResponse("협업 능력", roundOneDecimal(nvd(row.collaborationAvg()))),
-                                new PerformanceTeamStatChartItemResponse("창의성", roundOneDecimal(nvd(row.creativityAvg())))
-                        ),
-                        taskMap.getOrDefault(row.id(), List.of())
-                ))
-                .toList();
+        List<PerformanceTeamStatsMemberResponse> responses =
+                members.stream()
+                        .map(
+                                row ->
+                                        new PerformanceTeamStatsMemberResponse(
+                                                row.id(),
+                                                row.name(),
+                                                row.role(),
+                                                row.department(),
+                                                roundOneDecimal(
+                                                        average(
+                                                                row.performanceAvg(),
+                                                                row.attitudeAvg(),
+                                                                row.collaborationAvg(),
+                                                                row.creativityAvg())),
+                                                nvl(row.systemScore()),
+                                                List.of(
+                                                        new PerformanceTeamStatChartItemResponse(
+                                                                "업무 성과",
+                                                                roundOneDecimal(
+                                                                        nvd(row.performanceAvg()))),
+                                                        new PerformanceTeamStatChartItemResponse(
+                                                                "업무 태도",
+                                                                roundOneDecimal(
+                                                                        nvd(row.attitudeAvg()))),
+                                                        new PerformanceTeamStatChartItemResponse(
+                                                                "협업 능력",
+                                                                roundOneDecimal(
+                                                                        nvd(
+                                                                                row
+                                                                                        .collaborationAvg()))),
+                                                        new PerformanceTeamStatChartItemResponse(
+                                                                "창의성",
+                                                                roundOneDecimal(
+                                                                        nvd(row.creativityAvg())))),
+                                                taskMap.getOrDefault(row.id(), List.of())))
+                        .toList();
 
         return new PerformanceTeamStatsResponse(teamOptions, responses);
     }

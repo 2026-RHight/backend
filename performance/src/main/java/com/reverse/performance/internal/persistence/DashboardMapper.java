@@ -1,10 +1,9 @@
 package com.reverse.performance.internal.persistence;
 
 import com.reverse.performance.internal.dto.response.Dashboard;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 public interface DashboardMapper {
