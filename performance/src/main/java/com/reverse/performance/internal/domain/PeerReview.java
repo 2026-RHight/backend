@@ -36,6 +36,9 @@ public class PeerReview {
     @Column(name = "team_contribution")
     private Integer teamContribution;
 
+    @Column(name = "culture_contribution")
+    private Integer cultureContribution;
+
     @Column(name = "comment")
     private String comment;
 

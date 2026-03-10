@@ -80,7 +80,7 @@ public interface PerformanceViewMapper {
     List<PerformancePeerReviewTargetResponse> findPeerReviewTargets(
             @Param("employeeId") Long employeeId);
 
-    Long findLatestEvaluationId(@Param("appraiseeId") Long appraiseeId);
+    Long findPeerReviewableEvaluationId(@Param("appraiseeId") Long appraiseeId);
 
     List<String> findManagedTeams(@Param("employeeId") Long employeeId);
 

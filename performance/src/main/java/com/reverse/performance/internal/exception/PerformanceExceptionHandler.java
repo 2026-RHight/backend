@@ -32,13 +32,13 @@ public class PerformanceExceptionHandler {
     @ExceptionHandler(PerformanceActionNotAllowedException.class)
     public ResponseEntity<ApiResponse<Void>> handlePerformanceActionNotAllowedException(
             PerformanceActionNotAllowedException ex) {
-        log.error("PerformanceActionNotAllowedException 발생: message={}", ex.getMessage());
+        log.warn(
+                "PerformanceActionNotAllowedException 발생: code={}, message={}",
+                ex.getCode(),
+                ex.getMessage());
 
         ErrorResponse error =
-                ErrorResponse.builder()
-                        .code("PERFORMANCE_ACTION_NOT_ALLOWED")
-                        .message(ex.getMessage())
-                        .build();
+                ErrorResponse.builder().code(ex.getCode()).message(ex.getMessage()).build();
 
         return ResponseEntity.badRequest().body(ApiResponse.fail(error));
     }

@@ -67,7 +67,7 @@ ALTER TABLE team_evaluation
     ADD COLUMN IF NOT EXISTS collaboration_comment TEXT NULL AFTER collaboration_score,
     ADD COLUMN IF NOT EXISTS creativity_score INT NULL AFTER collaboration_comment,
     ADD COLUMN IF NOT EXISTS creativity_comment TEXT NULL AFTER creativity_score,
-    ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER creativity_comment,
+    ADD COLUMN IF NOT EXISTS created_at DATETIME NULL AFTER creativity_comment,
     ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
 
 SET @team_evaluation_year_index_exists = (
@@ -122,8 +122,6 @@ END;
 PREPARE stmt_evaluation_rename FROM @evaluation_rename_sql;
 EXECUTE stmt_evaluation_rename;
 DEALLOCATE PREPARE stmt_evaluation_rename;
-
-DROP TABLE IF EXISTS peer_review_duplicate_cleanup;
 
 -- monthly_performance / team_evaluation 키 불일치 자동 보정
 -- monthly_performance.monthly_score_id -> monthly_performance.monthly_performance_id
@@ -198,3 +196,5 @@ END;
 PREPARE stmt_team_evaluation_fix FROM @team_evaluation_fix_sql;
 EXECUTE stmt_team_evaluation_fix;
 DEALLOCATE PREPARE stmt_team_evaluation_fix;
+
+DROP TABLE IF EXISTS peer_review_duplicate_cleanup;

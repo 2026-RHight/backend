@@ -24,7 +24,7 @@ public class PerformancePeerReviewService {
             throw new PerformanceActionNotAllowedException("평가 대상이 필요합니다.");
         }
 
-        Long evalId = performanceViewMapper.findLatestEvaluationId(request.appraiseeId());
+        Long evalId = performanceViewMapper.findPeerReviewableEvaluationId(request.appraiseeId());
         if (evalId == null) {
             throw new PerformanceNotFoundException("평가 대상자의 평가 정보를 찾을 수 없습니다.");
         }

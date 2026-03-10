@@ -15,4 +15,11 @@
             #{comment}, #{evalYear}, NOW()
             )
     </insert>
+
+    <select id="countByEvalIdAndReviewerId" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM peer_review
+        WHERE eval_id = #{evalId}
+          AND reviewer_id = #{reviewerId}
+    </select>
 </mapper>

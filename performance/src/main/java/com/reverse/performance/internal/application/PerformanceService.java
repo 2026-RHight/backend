@@ -7,6 +7,7 @@ import com.reverse.performance.internal.domain.Status;
 import com.reverse.performance.internal.domain.WorkItem;
 import com.reverse.performance.internal.dto.request.*;
 import com.reverse.performance.internal.dto.response.*;
+import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import com.reverse.performance.internal.exception.PerformanceNotFoundException;
 import com.reverse.performance.internal.persistence.AttachmentMapper;
 import com.reverse.performance.internal.persistence.CheckPerformanceMapper;
@@ -116,6 +117,12 @@ public class PerformanceService {
 
     @Transactional
     public void savePeerReview(PeerReviewRequest dto) {
+        if (dto == null || dto.evalId() == null || dto.reviewerId() == null) {
+            throw new PerformanceActionNotAllowedException("동료 평가 대상 정보가 올바르지 않습니다.");
+        }
+        if (peerReviewMapper.countByEvalIdAndReviewerId(dto.evalId(), dto.reviewerId()) > 0) {
+            throw new PerformanceActionNotAllowedException("이미 동료 평가를 등록했습니다.");
+        }
         peerReviewMapper.savePeerReview(dto);
     }
 

@@ -330,11 +330,12 @@
         ORDER BY e.employee_name
     </select>
 
-    <select id="findLatestEvaluationId" parameterType="long" resultType="long">
+    <select id="findPeerReviewableEvaluationId" parameterType="long" resultType="long">
         SELECT ev.eval_id
         FROM evaluation ev
         WHERE ev.employee_id = #{appraiseeId}
-        ORDER BY ev.created_at DESC
+          AND ev.confirmed_at IS NULL
+        ORDER BY ev.year DESC, ev.created_at DESC
         LIMIT 1
     </select>
 
