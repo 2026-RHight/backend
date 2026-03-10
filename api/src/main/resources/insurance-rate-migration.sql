@@ -4,7 +4,7 @@
 -- 1. 기존 테이블의 기본값 변경 (신규 행 삽입 시 적용)
 ALTER TABLE insurance_rate MODIFY long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.12950;
 
--- 2. 2024년도 기존 데이터 백필 (이미 데이터가 존재하는 경우)
+-- 2. 2024년도 이후 기존 데이터 백필 (이미 데이터가 존재하는 경우)
 UPDATE insurance_rate 
 SET long_term_care_rate = 0.12950 
-WHERE apply_year = 2024;
+WHERE apply_year >= 2024;

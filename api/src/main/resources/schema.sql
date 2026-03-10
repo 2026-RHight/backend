@@ -321,7 +321,7 @@ CREATE TABLE IF NOT EXISTS insurance_rate (
     apply_year INT NOT NULL,
     national_pension_rate DECIMAL(7,5) NOT NULL DEFAULT 0.04500,
     health_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.03545,
-    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.12950, -- 건강보험료의 12.95% (2024년 기준)
+    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.12950, -- 건강보험료의 12.95% (2024년~ 기준)
     emp_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00900,
     UNIQUE KEY uk_insurance_rate_year (apply_year)
 );
