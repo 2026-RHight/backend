@@ -26,6 +26,9 @@ public class BusinessTripService {
             throw new IllegalArgumentException("종료 일시가 시작 일시보다 빠를 수 없습니다.");
         }
 
+        // 동시성(중복 신청) 방지를 위해 직원 기준으로 DB 락 획득
+        businessTripMapper.lockEmployee(employeeId);
+
         int overlapCount =
                 businessTripMapper.countOverlappingTrips(
                         employeeId, request.getStartDatetime(), request.getEndDatetime());

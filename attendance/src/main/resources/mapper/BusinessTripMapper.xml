@@ -12,6 +12,13 @@
                  )
     </insert>
 
+    <select id="lockEmployee" resultType="java.lang.Integer">
+        SELECT 1
+        FROM employee
+        WHERE employee_id = #{employeeId}
+        FOR UPDATE
+    </select>
+
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
             trip_id as tripId, employee_id as employeeId, trip_type as tripType,
@@ -19,7 +26,7 @@
             reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
         FROM business_trip_request
         WHERE employee_id = #{employeeId}
-        ORDER BY start_datetime DESC
+        ORDER BY start_datetime DESC, trip_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -66,7 +73,7 @@
                 approval_status = #{approvalStatus}
             </if>
         </where>
-        ORDER BY start_datetime DESC
+        ORDER BY start_datetime DESC, trip_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
