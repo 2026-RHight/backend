@@ -57,7 +57,11 @@ public class WeeklyWorkScheduleService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<WeeklyWorkSchedule> content =
                 scheduleMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = scheduleMapper.countByEmployeeId(employeeId);
@@ -79,7 +83,7 @@ public class WeeklyWorkScheduleService {
                                 () -> new IllegalArgumentException("해당 유연근무 신청 내역을 찾을 수 없습니다."));
 
         if (!schedule.getEmployeeId().equals(employeeId)) {
-            throw new com.reverse.core.exception.BadRequestException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 취소할 수 있습니다.");
@@ -103,7 +107,11 @@ public class WeeklyWorkScheduleService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<WeeklyWorkSchedule> content = scheduleMapper.findAll(status, limit, offset);
         long totalElements = scheduleMapper.countAll(status);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);

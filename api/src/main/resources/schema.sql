@@ -148,6 +148,13 @@ CREATE TABLE IF NOT EXISTS attendance_policy (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_attendance_policy_employee (employee_id),
+    CONSTRAINT chk_attendance_policy_std_range CHECK (std_start_time < std_end_time),
+    CONSTRAINT chk_attendance_policy_core_range CHECK (
+        core_time_start IS NULL OR core_time_end IS NULL OR core_time_start < core_time_end
+    ),
+    CONSTRAINT chk_attendance_policy_break_range CHECK (
+        break_time_start IS NULL OR break_time_end IS NULL OR break_time_start < break_time_end
+    ),
     CONSTRAINT fk_attendance_policy_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
@@ -165,6 +172,9 @@ CREATE TABLE IF NOT EXISTS attendance_record (
     night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '야간 근무 시간',
     holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '휴일 근무 시간',
     is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE COMMENT '무급 휴가 여부',
+    CONSTRAINT chk_attendance_record_overtime_hours CHECK (overtime_hours BETWEEN 0.0 AND 24.0),
+    CONSTRAINT chk_attendance_record_night_work_hours CHECK (night_work_hours BETWEEN 0.0 AND 24.0),
+    CONSTRAINT chk_attendance_record_holiday_work_hours CHECK (holiday_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_attendance_employee_date (employee_id, work_date)
 );
@@ -177,6 +187,10 @@ CREATE TABLE IF NOT EXISTS leave_balance (
     total_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '총 발생 연차 (0.5일 단위)',
     used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '사용한 연차 (0.5일 단위)',
     remaining_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '잔여 연차 (0.5일 단위)',
+    CONSTRAINT chk_leave_balance_total CHECK (total_annual_leave >= 0.0),
+    CONSTRAINT chk_leave_balance_used CHECK (used_annual_leave >= 0.0),
+    CONSTRAINT chk_leave_balance_remaining CHECK (remaining_annual_leave >= 0.0),
+    CONSTRAINT chk_leave_balance_used_lte_total CHECK (used_annual_leave <= total_annual_leave),
     CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_leave_balance_emp_year (employee_id, base_year)
 );

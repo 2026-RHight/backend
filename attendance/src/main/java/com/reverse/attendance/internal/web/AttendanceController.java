@@ -37,9 +37,7 @@ public class AttendanceController {
     @PutMapping("/admin/modify")
     @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     public ResponseEntity<String> modifyAttendanceByAdmin(
-            @RequestBody AttendanceModifyRequest request) {
-        // @AuthenticationPrincipal 등을 사용해 API 호출한 사람이 ' 팀장 및 관리자 ' 권한인지 체크해야 하는
-        // 로직들어가야됨.
+            @Valid @RequestBody AttendanceModifyRequest request) {
         attendanceService.modifyAttendanceByAdmin(request);
         return ResponseEntity.ok("근태 기록이 성공적으로 수정되었습니다.");
     }

@@ -28,6 +28,9 @@ public class OvertimeService {
             throw new IllegalArgumentException("연장근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        // 동시성(중복 신청) 방지를 위해 직원 기준으로 DB 락 획득
+        overtimeMapper.lockEmployee(employeeId);
+
         int overlapCount =
                 overtimeMapper.countOverlappingOvertimes(
                         employeeId,
@@ -58,7 +61,11 @@ public class OvertimeService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<Overtime> content = overtimeMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = overtimeMapper.countByEmployeeId(employeeId);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
@@ -79,7 +86,7 @@ public class OvertimeService {
                                 () -> new IllegalArgumentException("해당 연장근무 신청 내역을 찾을 수 없습니다."));
 
         if (!overtime.getEmployeeId().equals(employeeId)) {
-            throw new com.reverse.core.exception.BadRequestException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (overtime.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 취소할 수 있습니다.");
@@ -103,7 +110,11 @@ public class OvertimeService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<Overtime> content = overtimeMapper.findAll(status, limit, offset);
         long totalElements = overtimeMapper.countAll(status);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);

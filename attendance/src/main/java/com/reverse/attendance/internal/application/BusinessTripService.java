@@ -55,7 +55,11 @@ public class BusinessTripService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<BusinessTrip> content = businessTripMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = businessTripMapper.countByEmployeeId(employeeId);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
@@ -76,7 +80,7 @@ public class BusinessTripService {
                         .orElseThrow(() -> new IllegalArgumentException("해당 신청 내역을 찾을 수 없습니다."));
 
         if (!trip.getEmployeeId().equals(employeeId)) {
-            throw new com.reverse.core.exception.BadRequestException("본인의 신청 건만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 신청 건만 취소할 수 있습니다.");
         }
         if (trip.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("결재 대기 상태인 건만 즉시 취소할 수 있습니다.");
@@ -101,7 +105,11 @@ public class BusinessTripService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<BusinessTrip> content = businessTripMapper.findAll(status, limit, offset);
         long totalElements = businessTripMapper.countAll(status);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);

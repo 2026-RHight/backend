@@ -9,10 +9,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConditionalOnProperty(
         name = "spring.task.scheduling.enabled",
         havingValue = "true",
-        matchIfMissing = true) // default
-// true,
-// but
-// allows
-// overriding
-// to false
+        matchIfMissing = false) // default
+// false,
+// must be
+// explicitly
+// enabled
 public class SchedulingConfig {}

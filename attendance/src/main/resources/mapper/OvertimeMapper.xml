@@ -12,6 +12,13 @@
                  )
     </insert>
 
+    <select id="lockEmployee" resultType="java.lang.Integer">
+        SELECT 1
+        FROM employee
+        WHERE employee_id = #{employeeId}
+        FOR UPDATE
+    </select>
+
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
             overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
@@ -19,7 +26,7 @@
             approval_status as approvalStatus, reject_reason as rejectReason
         FROM overtime_request
         WHERE employee_id = #{employeeId}
-        ORDER BY start_time DESC
+        ORDER BY start_time DESC, overtime_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -57,7 +64,7 @@
                 approval_status = #{approvalStatus}
             </if>
         </where>
-        ORDER BY start_time DESC
+        ORDER BY start_time DESC, overtime_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 

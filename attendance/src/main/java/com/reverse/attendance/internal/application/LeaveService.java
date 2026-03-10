@@ -128,7 +128,11 @@ public class LeaveService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<LeaveRequest> content =
                 leaveMapper.findLeaveRequestsByEmployeeId(employeeId, limit, offset);
         long totalElements = leaveMapper.countByEmployeeId(employeeId);
@@ -151,7 +155,7 @@ public class LeaveService {
                         .orElseThrow(() -> new IllegalArgumentException("해당 휴가 내역을 찾을 수 없습니다."));
 
         if (!request.getEmployeeId().equals(employeeId)) {
-            throw new com.reverse.core.exception.BadRequestException("본인의 휴가만 취소할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("본인의 휴가만 취소할 수 있습니다.");
         }
 
         if (request.getLeaveStatus() != LeaveStatus.PENDING) {
@@ -177,7 +181,11 @@ public class LeaveService {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
-        int offset = (page - 1) * size;
+        long offsetLong = (long) (page - 1) * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
         List<LeaveRequest> content = leaveMapper.findAllLeaveRequests(status, limit, offset);
         long totalElements = leaveMapper.countAll(status);
         return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
