@@ -99,8 +99,8 @@
     </select>
 
     <insert id="insertHrFile" useGeneratedKeys="true" keyProperty="hrFileId">
-        INSERT INTO hr_file (file_url, file_title)
-        VALUES (#{fileUrl}, #{fileTitle})
+        INSERT INTO hr_file (file_key, file_url, file_title)
+        VALUES (#{fileKey}, #{fileUrl}, #{fileTitle})
     </insert>
 
     <insert id="insertSkill" useGeneratedKeys="true" keyProperty="skillId">
@@ -129,6 +129,42 @@
                  )
     </insert>
 
+    <insert id="insertCertificateRequest" useGeneratedKeys="true" keyProperty="requestId">
+        INSERT INTO certificate_request (
+            employee_id,
+            certificate_type,
+            purpose,
+            submit_to,
+            status,
+            requested_at,
+            issued_at,
+            hr_file_id,
+            fail_reason
+        ) VALUES (
+            #{employeeId},
+            #{certificateType},
+            #{purpose},
+            #{submitTo},
+            #{status},
+            #{requestedAt},
+            #{issuedAt},
+            #{hrFileId},
+            #{failReason}
+        )
+    </insert>
+
+    <select id="findCertificateRequestsByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.CertificateRequestHistoryRow">
+        SELECT cr.request_id AS requestId,
+               cr.certificate_type AS certificateType,
+               cr.status AS status,
+               DATE_FORMAT(COALESCE(cr.issued_at, cr.requested_at), '%Y.%m.%d') AS issuedDate
+        FROM certificate_request cr
+        WHERE cr.employee_id = #{employeeId}
+        ORDER BY COALESCE(cr.issued_at, cr.requested_at) DESC, cr.request_id DESC
+    </select>
+
     <update id="updateBasicInfo">
         UPDATE employee
         SET email = #{email},
@@ -146,6 +182,7 @@
     <select id="findSkillFileByIdAndEmployeeId"
             resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
         SELECT f.hr_file_id AS hrFileId,
+               f.file_key   AS fileKey,
                f.file_url   AS fileUrl,
                f.file_title AS fileTitle
         FROM employee_skill_credential s
@@ -165,12 +202,28 @@
     <select id="findCareerFileByIdAndEmployeeId"
             resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
         SELECT f.hr_file_id AS hrFileId,
+               f.file_key   AS fileKey,
                f.file_url   AS fileUrl,
                f.file_title AS fileTitle
         FROM employee_career_details c
                  LEFT JOIN hr_file f ON f.hr_file_id = c.hr_file_id
         WHERE c.employee_id = #{employeeId}
           AND c.career_id = #{careerId}
+        LIMIT 1
+    </select>
+
+    <select id="findCertificateFileByRequestIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrFileRow">
+        SELECT f.hr_file_id AS hrFileId,
+               f.file_key   AS fileKey,
+               f.file_url   AS fileUrl,
+               f.file_title AS fileTitle
+        FROM certificate_request cr
+                 JOIN hr_file f ON f.hr_file_id = cr.hr_file_id
+        WHERE cr.employee_id = #{employeeId}
+          AND cr.request_id = #{requestId}
+          AND cr.status = 'ISSUED'
+          AND cr.hr_file_id IS NOT NULL
         LIMIT 1
     </select>
 
@@ -188,6 +241,8 @@
                    (SELECT COUNT(*) FROM employee_skill_credential s WHERE s.hr_file_id = #{hrFileId})
                        +
                    (SELECT COUNT(*) FROM employee_career_details c WHERE c.hr_file_id = #{hrFileId})
+                       +
+                   (SELECT COUNT(*) FROM certificate_request cr WHERE cr.hr_file_id = #{hrFileId})
                    ) AS refCount
     </select>
 

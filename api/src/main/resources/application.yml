@@ -33,9 +33,7 @@ security:
   enc:
     key-base64: ${SECURITY_ENC_KEY_BASE64}
   cors:
-    allowed-origins:
-      http://localhost:8080
-      http://api.beyond21.iptime.org
+    allowed-origins: http://localhost:5173, http://127.0.0.1:5173, http://localhost:8080, http://www.beyond21.iptime.org:2060, http://www.rhight.kro.kr, https://www.rhight.kro.kr
       
 springdoc:
   api-docs:

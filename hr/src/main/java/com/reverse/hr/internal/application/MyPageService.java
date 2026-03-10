@@ -1,12 +1,18 @@
 package com.reverse.hr.internal.application;
 
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.FieldCryptoService;
+import com.reverse.hr.internal.domain.enums.CertificateRequestStatus;
 import com.reverse.hr.internal.dto.request.ChangeMyPasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
+import com.reverse.hr.internal.dto.request.CreateCertificateRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
+import com.reverse.hr.internal.dto.response.CertificateRequestHistoryResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
+import com.reverse.hr.internal.dto.response.CreateCertificateRequestResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
@@ -15,21 +21,28 @@ import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.MyPageMapper;
 import com.reverse.hr.internal.persistence.param.CareerCreateParam;
+import com.reverse.hr.internal.persistence.param.CertificateRequestCreateParam;
 import com.reverse.hr.internal.persistence.param.SkillCreateParam;
 import com.reverse.hr.internal.persistence.param.UpdateBasicInfoParam;
 import com.reverse.hr.internal.persistence.row.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +57,8 @@ public class MyPageService {
 
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy.MM.dd");
+    private static final DateTimeFormatter FILE_DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50MB
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 20;
@@ -53,6 +68,7 @@ public class MyPageService {
     private static final Set<String> ALLOWED_PROFILE_EXT = Set.of("jpg", "jpeg", "png", "webp");
     private static final Set<String> ALLOWED_PROFILE_CONTENT_TYPE =
             Set.of("image/jpeg", "image/png", "image/webp");
+    private static final long CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS = 300L;
 
     public MyPageHeaderResponseDTO getMyPageHeader(Long employeeId) {
         MyPageHeaderRow row =
@@ -210,6 +226,88 @@ public class MyPageService {
     }
 
     @Transactional
+    public CreateCertificateRequestResponseDTO createCertificateRequest(
+            Long employeeId, CreateCertificateRequestDTO request) {
+        BasicInfoRow basicInfoRow =
+                myPageMapper
+                        .findBasicInfoByEmployeeId(employeeId)
+                        .orElseThrow(() -> new IllegalStateException("기본 정보를 찾을 수 없습니다."));
+
+        HrInfoRow hrInfoRow =
+                myPageMapper
+                        .findHrInfoByEmployeeId(employeeId)
+                        .orElseThrow(() -> new IllegalStateException("인사 정보를 찾을 수 없습니다."));
+
+        LocalDateTime now = LocalDateTime.now();
+        String html = buildCertificateHtml(basicInfoRow, hrInfoRow, request, now);
+        byte[] pdfBytes = buildPdfBytes(html);
+        String fileName =
+                "certificate_"
+                        + request.certificateType().name().toLowerCase()
+                        + "_"
+                        + employeeId
+                        + "_"
+                        + now.format(FILE_DATE_TIME_FORMATTER)
+                        + ".pdf";
+
+        S3FileService.UploadResult uploaded =
+                s3FileService.uploadBytes(
+                        pdfBytes, fileName, "application/pdf", "hr/certificate/" + employeeId);
+        registerRollbackDelete(uploaded.key());
+
+        try {
+            HrFileRow hrFile = new HrFileRow(null, uploaded.key(), uploaded.fileUrl(), fileName);
+            int fileInserted = myPageMapper.insertHrFile(hrFile);
+            if (fileInserted != 1 || hrFile.getHrFileId() == null) {
+                throw new IllegalStateException("증명서 파일 저장 중 오류가 발생했습니다.");
+            }
+
+            CertificateRequestCreateParam param =
+                    new CertificateRequestCreateParam(
+                            null,
+                            employeeId,
+                            request.certificateType(),
+                            request.purpose(),
+                            request.submitTo(),
+                            CertificateRequestStatus.ISSUED,
+                            now,
+                            now,
+                            hrFile.getHrFileId(),
+                            null);
+
+            int inserted = myPageMapper.insertCertificateRequest(param);
+            if (inserted != 1) {
+                throw new IllegalStateException("증명서 발급 이력 저장 중 오류가 발생했습니다.");
+            }
+
+            return new CreateCertificateRequestResponseDTO(
+                    param.getRequestId(),
+                    request.certificateType(),
+                    CertificateRequestStatus.ISSUED,
+                    now.format(DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm")),
+                    hrFile.getHrFileId());
+        } catch (RuntimeException e) {
+            deleteQuietly(uploaded.key());
+            throw e;
+        }
+    }
+
+    public List<CertificateRequestHistoryResponseDTO> getCertificateRequestHistories(
+            Long employeeId) {
+        return myPageMapper.findCertificateRequestsByEmployeeId(employeeId).stream()
+                .map(
+                        row ->
+                                new CertificateRequestHistoryResponseDTO(
+                                        row.requestId(),
+                                        row.certificateType(),
+                                        toCertificateName(row.certificateType()),
+                                        row.issuedDate(),
+                                        row.status(),
+                                        toCertificateStatusName(row.status())))
+                .toList();
+    }
+
+    @Transactional
     public void updateBasicInfo(
             Long employeeId, UpdateBasicInfoRequestDTO request, MultipartFile profileImage) {
         validateUpdateBasicInfoRequest(request);
@@ -233,7 +331,9 @@ public class MyPageService {
         registerRollbackDelete(uploaded.key());
 
         try {
-            HrFileRow hrFile = new HrFileRow(null, uploaded.fileUrl(), uploaded.originalName());
+            HrFileRow hrFile =
+                    new HrFileRow(
+                            null, uploaded.key(), uploaded.fileUrl(), uploaded.originalName());
             int inserted = myPageMapper.insertHrFile(hrFile);
             if (inserted != 1 || hrFile.getHrFileId() == null) {
                 throw new IllegalStateException("프로필 파일 저장 중 오류가 발생했습니다.");
@@ -336,13 +436,26 @@ public class MyPageService {
                 fileRow.getHrFileId(), fileRow.getFileTitle(), fileRow.getFileUrl());
     }
 
+    public String getCertificateDownloadUrl(Long employeeId, Long requestId) {
+        HrFileRow fileRow =
+                myPageMapper
+                        .findCertificateFileByRequestIdAndEmployeeId(employeeId, requestId)
+                        .orElseThrow(() -> new NotFoundException("증명서 파일을 찾을 수 없습니다."));
+        if (fileRow.getFileKey() == null || fileRow.getFileKey().isBlank()) {
+            throw new NotFoundException("증명서 파일을 찾을 수 없습니다.");
+        }
+        return s3FileService.generatePresignedUrl(
+                fileRow.getFileKey(), CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS);
+    }
+
     private EvidenceUploadResult uploadEvidenceFile(
             Long employeeId, MultipartFile file, String baseDir) {
         S3FileService.UploadResult uploaded =
                 s3FileService.upload(file, baseDir + "/" + employeeId);
         registerRollbackDelete(uploaded.key());
 
-        HrFileRow hrFile = new HrFileRow(null, uploaded.fileUrl(), uploaded.originalName());
+        HrFileRow hrFile =
+                new HrFileRow(null, uploaded.key(), uploaded.fileUrl(), uploaded.originalName());
 
         try {
             int inserted = myPageMapper.insertHrFile(hrFile);
@@ -498,7 +611,10 @@ public class MyPageService {
             throw new IllegalStateException("파일 메타 삭제 중 오류가 발생했습니다.");
         }
 
-        String fileUrl = fileRow.getFileUrl();
+        String fileKey = fileRow.getFileKey();
+        if (fileKey == null || fileKey.isBlank()) {
+            return;
+        }
         if (org.springframework.transaction.support.TransactionSynchronizationManager
                 .isActualTransactionActive()) {
             org.springframework.transaction.support.TransactionSynchronizationManager
@@ -507,11 +623,11 @@ public class MyPageService {
                                     .TransactionSynchronization() {
                                 @Override
                                 public void afterCommit() {
-                                    s3FileService.deleteByFileUrl(fileUrl);
+                                    s3FileService.delete(fileKey);
                                 }
                             });
         } else {
-            s3FileService.deleteByFileUrl(fileUrl);
+            s3FileService.delete(fileKey);
         }
     }
 
@@ -568,6 +684,121 @@ public class MyPageService {
         String prefix = digits.substring(0, 3);
         String suffix = digits.substring(digits.length() - 4);
         return prefix + "-****-****-" + suffix;
+    }
+
+    private String buildCertificateHtml(
+            BasicInfoRow basicInfoRow,
+            HrInfoRow hrInfoRow,
+            CreateCertificateRequestDTO request,
+            LocalDateTime issuedAt) {
+        String templatePath = "templates/certificate/employment-ko.html";
+
+        String residentMasked = null;
+        if (basicInfoRow.residentNumberEnc() != null
+                && !basicInfoRow.residentNumberEnc().isBlank()) {
+            residentMasked =
+                    maskResidentNumber(
+                            fieldCryptoService.decrypt(basicInfoRow.residentNumberEnc()));
+        }
+        if (residentMasked == null || residentMasked.isBlank()) {
+            residentMasked = "-";
+        }
+
+        String html = readTemplate(templatePath);
+        return html.replace("${name}", htmlText(basicInfoRow.employeeName()))
+                .replace("${employeeNum}", htmlText(basicInfoRow.employeeNum()))
+                .replace("${residentNumberMasked}", htmlText(residentMasked))
+                .replace("${address}", htmlText(basicInfoRow.address()))
+                .replace("${orgName}", htmlText(hrInfoRow.orgName()))
+                .replace("${rankName}", htmlText(hrInfoRow.rankName()))
+                .replace("${jobName}", htmlText(hrInfoRow.jobName()))
+                .replace("${positionName}", htmlText(hrInfoRow.positionName()))
+                .replace("${hireDate}", htmlText(formatDate(hrInfoRow.hireDate())))
+                .replace(
+                        "${issuedDateKo}",
+                        htmlText(issuedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))))
+                .replace("${submitTo}", htmlText(request.submitTo()))
+                .replace("${purpose}", htmlText(request.purpose()))
+                .replace(
+                        "${employmentPeriodKo}",
+                        htmlText(formatEmploymentPeriodKo(hrInfoRow.hireDate(), LocalDate.now())));
+    }
+
+    private byte[] buildPdfBytes(String html) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            registerPdfFonts(builder);
+            builder.withHtmlContent(html, null);
+            builder.toStream(outputStream);
+            builder.run();
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("증명서 PDF 생성 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    private void registerPdfFonts(PdfRendererBuilder builder) {
+        ClassPathResource resource = new ClassPathResource("fonts/NotoSansKR-Regular.ttf");
+        if (!resource.exists()) {
+            throw new IllegalStateException(
+                    "한글 PDF 폰트를 찾을 수 없습니다. "
+                            + "hr/src/main/resources/fonts/NotoSansKR-Regular.ttf 파일을 확인해주세요.");
+        }
+
+        builder.useFont(
+                () -> {
+                    try {
+                        return resource.getInputStream();
+                    } catch (IOException e) {
+                        throw new IllegalStateException("폰트 파일 로드 실패", e);
+                    }
+                },
+                "NotoSansKR");
+    }
+
+    private String readTemplate(String classpathPath) {
+        try {
+            ClassPathResource resource = new ClassPathResource(classpathPath);
+            try (var inputStream = resource.getInputStream()) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("증명서 템플릿을 읽을 수 없습니다: " + classpathPath, e);
+        }
+    }
+
+    private String formatEmploymentPeriodKo(LocalDate from, LocalDate to) {
+        if (from == null) {
+            return "-";
+        }
+        LocalDate end = to == null ? LocalDate.now() : to;
+        return from.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))
+                + " ~ "
+                + end.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"));
+    }
+
+    private String valueOrDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value;
+    }
+
+    private String htmlText(String value) {
+        return HtmlUtils.htmlEscape(valueOrDash(value));
+    }
+
+    private String toCertificateName(String type) {
+        return switch (type) {
+            case "EMPLOYMENT_KO" -> "재직 증명서";
+            default -> type;
+        };
+    }
+
+    private String toCertificateStatusName(String status) {
+        return switch (status) {
+            case "ISSUED" -> "발급 완료";
+            case "FAILED" -> "발급 실패";
+            default -> status;
+        };
     }
 
     private record EvidenceUploadResult(Long hrFileId, String s3Key) {}

@@ -36,6 +36,7 @@ dependencies {
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
     implementation 'org.springframework.modulith:spring-modulith-starter-core'
     implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
+    implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
     compileOnly 'org.projectlombok:lombok'
     compileOnly 'org.springdoc:springdoc-openapi-starter-common:2.8.0'
     annotationProcessor 'org.projectlombok:lombok'

@@ -5,9 +5,12 @@ import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.MyPageService;
 import com.reverse.hr.internal.dto.request.ChangeMyPasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateCareerRequestDTO;
+import com.reverse.hr.internal.dto.request.CreateCertificateRequestDTO;
 import com.reverse.hr.internal.dto.request.CreateSkillRequestDTO;
 import com.reverse.hr.internal.dto.request.UpdateBasicInfoRequestDTO;
+import com.reverse.hr.internal.dto.response.CertificateRequestHistoryResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
+import com.reverse.hr.internal.dto.response.CreateCertificateRequestResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
@@ -15,8 +18,12 @@ import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import java.net.URI;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -79,6 +86,23 @@ public class MyPageController {
         return ApiResponse.success(myPageService.createCareer(user.getEmployeeId(), request, file));
     }
 
+    @PostMapping("/certificates/requests")
+    @Operation(summary = "증명서 발급 요청")
+    public ApiResponse<CreateCertificateRequestResponseDTO> createCertificateRequest(
+            @AuthenticationPrincipal CustomUser user,
+            @Valid @RequestBody CreateCertificateRequestDTO request) {
+        return ApiResponse.success(
+                myPageService.createCertificateRequest(user.getEmployeeId(), request));
+    }
+
+    @GetMapping("/certificates/requests")
+    @Operation(summary = "증명서 발급 이력 조회")
+    public ApiResponse<List<CertificateRequestHistoryResponseDTO>> getCertificateRequestHistories(
+            @AuthenticationPrincipal CustomUser user) {
+        return ApiResponse.success(
+                myPageService.getCertificateRequestHistories(user.getEmployeeId()));
+    }
+
     @DeleteMapping("/skills/{skillId}")
     @Operation(summary = "역량 정보 삭제")
     public ApiResponse<Void> deleteSkill(
@@ -109,5 +133,13 @@ public class MyPageController {
             @AuthenticationPrincipal CustomUser user, @PathVariable Long careerId) {
         return ApiResponse.success(
                 myPageService.getCareerEvidenceFile(user.getEmployeeId(), careerId));
+    }
+
+    @GetMapping("/certificates/{requestId}/download")
+    @Operation(summary = "증명서 파일 다운로드")
+    public ResponseEntity<Void> downloadCertificate(
+            @AuthenticationPrincipal CustomUser user, @PathVariable Long requestId) {
+        String fileUrl = myPageService.getCertificateDownloadUrl(user.getEmployeeId(), requestId);
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(fileUrl)).build();
     }
 }
