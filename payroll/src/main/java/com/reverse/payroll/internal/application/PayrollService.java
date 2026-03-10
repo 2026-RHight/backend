@@ -3,6 +3,7 @@ package com.reverse.payroll.internal.application;
 import com.reverse.attendance.AttendanceFacade;
 import com.reverse.attendance.dto.response.PayrollAttendanceResponse;
 import com.reverse.core.exception.UnauthorizedException;
+import com.reverse.core.security.FieldCryptoService;
 import com.reverse.payroll.internal.domain.InsuranceRate;
 import com.reverse.payroll.internal.domain.PayrollLedger;
 import com.reverse.payroll.internal.domain.SalarySetting;
@@ -34,6 +35,7 @@ public class PayrollService {
     private final PasswordEncoder passwordEncoder;
     private final AttendanceFacade attendanceFacade;
     private final PdfGenerator pdfGenerator;
+    private final FieldCryptoService fieldCryptoService;
 
     // 월 급여 계산 및 대장 생성
     @Transactional
@@ -131,9 +133,9 @@ public class PayrollService {
                 taxableIncome
                         .multiply(insuranceRate.getHealthInsuranceRate())
                         .setScale(0, RoundingMode.HALF_UP);
-        // 장기요양보험료는 건강보험료의 일정 비율(여기서는 gross의 0.00459%로 정의됨)
+        // 장기요양보험료는 건강보험료의 일정 비율(현재 12.95%)로 계산
         BigDecimal longTermCare =
-                taxableIncome
+                healthInsurance
                         .multiply(insuranceRate.getLongTermCareRate())
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal empInsurance =
@@ -159,6 +161,12 @@ public class PayrollService {
                         .add(localTax);
         BigDecimal netPay = totalPayment.subtract(totalDeduction);
 
+        // 사원 정보(이름, 부서 등) 스냅샷 조회
+        var empInfo =
+                payrollMapper
+                        .findEmployeePayslipInfo(employeeId)
+                        .orElse(new PayrollMapper.EmployeePayslipInfo("사원", "미소속", "직급없음"));
+
         PayrollLedger ledger =
                 PayrollLedger.builder()
                         .employeeId(employeeId)
@@ -177,6 +185,9 @@ public class PayrollService {
                         .netPay(netPay)
                         .isFinalized("Y")
                         .isSent("N")
+                        .employeeNameSnapshot(empInfo.employeeName())
+                        .deptNameSnapshot(empInfo.departmentName())
+                        .positionNameSnapshot(empInfo.positionName())
                         .build();
 
         try {
@@ -241,18 +252,29 @@ public class PayrollService {
         SalarySetting salarySetting =
                 payrollMapper.findSalarySettingByEmployeeId(employeeId, targetDate).orElse(null);
 
-        // 사원 정보(이름, 부서 등) 추가 조회
-        var empInfo =
-                payrollMapper
-                        .findEmployeePayslipInfo(employeeId)
-                        .orElse(new PayrollMapper.EmployeePayslipInfo("사원", "미소속", "직급없음"));
+        // 사원 정보(이름, 부서 등) - 대장 저장 시점의 스냅샷 정보 사용
+        String empName =
+                ledger.getEmployeeNameSnapshot() != null ? ledger.getEmployeeNameSnapshot() : "사원";
+        String deptName =
+                ledger.getDeptNameSnapshot() != null ? ledger.getDeptNameSnapshot() : "미소속";
+        String posName =
+                ledger.getPositionNameSnapshot() != null
+                        ? ledger.getPositionNameSnapshot()
+                        : "직급없음";
+
+        // 계좌번호 복호화
+        String plainAccountNumber = null;
+        if (salarySetting != null && salarySetting.getAccountNumberEnc() != null) {
+            try {
+                plainAccountNumber =
+                        fieldCryptoService.decrypt(salarySetting.getAccountNumberEnc());
+            } catch (Exception e) {
+                plainAccountNumber = "복호화 실패";
+            }
+        }
 
         return PayrollDetailResponse.of(
-                ledger,
-                salarySetting,
-                empInfo.employeeName(),
-                empInfo.departmentName(),
-                empInfo.positionName());
+                ledger, salarySetting, plainAccountNumber, empName, deptName, posName);
     }
 
     // 급여 명세서 PDF 생성
