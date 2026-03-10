@@ -186,10 +186,9 @@ CREATE TABLE IF NOT EXISTS leave_balance (
     base_year INT NOT NULL COMMENT '기준년도',
     total_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '총 발생 연차 (0.5일 단위)',
     used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '사용한 연차 (0.5일 단위)',
-    remaining_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '잔여 연차 (0.5일 단위)',
+    remaining_annual_leave DECIMAL(5,1) AS (total_annual_leave - used_annual_leave) STORED COMMENT '잔여 연차 (0.5일 단위)',
     CONSTRAINT chk_leave_balance_total CHECK (total_annual_leave >= 0.0),
     CONSTRAINT chk_leave_balance_used CHECK (used_annual_leave >= 0.0),
-    CONSTRAINT chk_leave_balance_remaining CHECK (remaining_annual_leave >= 0.0),
     CONSTRAINT chk_leave_balance_used_lte_total CHECK (used_annual_leave <= total_annual_leave),
     CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_leave_balance_emp_year (employee_id, base_year)

@@ -12,6 +12,9 @@ public interface WeeklyWorkScheduleMapper {
 
     void insertSchedule(WeeklyWorkSchedule schedule);
 
+    // 동시성 제어를 위한 직원 락
+    void lockEmployee(@Param("employeeId") Long employeeId);
+
     Optional<WeeklyWorkSchedule> findById(@Param("weeklyId") Long weeklyId);
 
     List<WeeklyWorkSchedule> findByEmployeeId(
@@ -30,6 +33,7 @@ public interface WeeklyWorkScheduleMapper {
 
     int countOverlappingSchedules(
             @Param("employeeId") Long employeeId,
+            @Param("planDate") java.time.LocalDate planDate,
             @Param("startDate") java.time.LocalDateTime startDate,
             @Param("endDate") java.time.LocalDateTime endDate);
 

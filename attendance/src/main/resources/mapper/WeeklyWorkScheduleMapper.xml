@@ -14,6 +14,13 @@
         )
     </insert>
 
+    <select id="lockEmployee" resultType="java.lang.Integer">
+        SELECT 1
+        FROM employee
+        WHERE employee_id = #{employeeId}
+        FOR UPDATE
+    </select>
+
     <select id="findById" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
@@ -46,7 +53,7 @@
             update_at as updatedAt
         FROM weekly_work_schedule
         WHERE employee_id = #{employeeId}
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, weekly_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -83,7 +90,7 @@
                 approval_status = #{status}
             </if>
         </where>
-        ORDER BY start_date DESC
+        ORDER BY start_date DESC, weekly_id DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -101,6 +108,7 @@
         SELECT COUNT(*)
         FROM weekly_work_schedule
         WHERE employee_id = #{employeeId}
+          AND plan_date = #{planDate}
           AND approval_status IN ('PENDING', 'APPROVED')
           AND start_date &lt;= #{endDate}
           AND end_date &gt;= #{startDate}

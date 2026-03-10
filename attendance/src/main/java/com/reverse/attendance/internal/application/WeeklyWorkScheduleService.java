@@ -28,9 +28,15 @@ public class WeeklyWorkScheduleService {
             throw new IllegalArgumentException("유연근무 종료 시간이 시작 시간보다 빠를 수 없습니다.");
         }
 
+        // 동시성(중복 신청) 방지를 위해 직원 기준으로 DB 락 획득
+        scheduleMapper.lockEmployee(employeeId);
+
         int overlapCount =
                 scheduleMapper.countOverlappingSchedules(
-                        employeeId, request.getStartDate(), request.getEndDate());
+                        employeeId,
+                        request.getPlanDate(),
+                        request.getStartDate(),
+                        request.getEndDate());
         if (overlapCount > 0) {
             throw new com.reverse.core.exception.BadRequestException(
                     "해당 기간에 이미 신청했거나 승인된 유연근무가 존재합니다.");

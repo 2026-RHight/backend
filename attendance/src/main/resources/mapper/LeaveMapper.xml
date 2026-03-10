@@ -139,10 +139,10 @@
 
     <insert id="insertNextYearLeaveBalance">
         INSERT IGNORE INTO leave_balance (
-            employee_id, base_year, total_annual_leave, used_annual_leave, remaining_annual_leave
+            employee_id, base_year, total_annual_leave, used_annual_leave
         )
         SELECT
-            employee_id, #{baseYear}, 15.0, 0.0, 15.0
+            employee_id, #{baseYear}, 15.0, 0.0
         FROM employee
         WHERE employ_state = 'WORK'
     </insert>

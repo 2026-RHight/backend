@@ -47,6 +47,9 @@ public class LeaveService {
     // 휴가 신청
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
+        if (request == null) {
+            throw new IllegalArgumentException("휴가 신청 정보는 필수입니다.");
+        }
         int currentYear =
                 request.getStartDate() != null
                         ? request.getStartDate().getYear()
