@@ -311,6 +311,9 @@ CREATE TABLE IF NOT EXISTS salary_setting (
     employee_id BIGINT NOT NULL,
     base_salary DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     meal_allowance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+    bank_name VARCHAR(50) COMMENT '은행명',
+    account_number VARCHAR(50) COMMENT '계좌번호',
+    account_holder VARCHAR(50) COMMENT '예금주',
     apply_start_date DATE,
     apply_end_date DATE,
     CONSTRAINT fk_salary_setting_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)

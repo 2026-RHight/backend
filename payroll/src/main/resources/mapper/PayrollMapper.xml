@@ -5,7 +5,9 @@
 
     <select id="findSalarySettingByEmployeeId" resultType="com.reverse.payroll.internal.domain.SalarySetting">
         SELECT
-            id, employee_id, base_salary, meal_allowance, apply_start_date, apply_end_date
+            id, employee_id, base_salary, meal_allowance,
+            bank_name, account_number, account_holder,
+            apply_start_date, apply_end_date
         FROM salary_setting
         WHERE employee_id = #{employeeId}
             AND apply_start_date &lt;= #{targetDate}
@@ -85,6 +87,18 @@
         SELECT employee_password
         FROM employee
         WHERE employee_id = #{employeeId}
+    </select>
+
+    <select id="findEmployeePayslipInfo" resultType="com.reverse.payroll.internal.persistence.PayrollMapper$EmployeePayslipInfo">
+        SELECT
+            e.employee_name as employeeName,
+            o.org_name as departmentName,
+            p.position_name as positionName
+        FROM employee e
+        LEFT JOIN employee_hr_info h ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON h.org_id = o.org_id
+        LEFT JOIN hr_position p ON h.position_id = p.position_id
+        WHERE e.employee_id = #{employeeId}
     </select>
 
 </mapper>

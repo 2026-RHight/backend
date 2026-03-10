@@ -11,6 +11,12 @@ public class PayrollDetailResponse {
     private Long id;
     private String yearMonth;
 
+    // 사원 정보 (급여명세서용 추가)
+    private String employeeName;
+    private String department;
+    private String position;
+    private String paymentDate;
+
     // 지급 내역
     private BigDecimal salaryAmount; // 기본급
     private BigDecimal overtimeAmount; // 연장수당
@@ -26,6 +32,11 @@ public class PayrollDetailResponse {
     private BigDecimal localTaxAmount; // 지방소득세금액
     private BigDecimal totalDeductionAmount; // 총 공제액 합계
 
+    // 입금 계좌 정보 (ERD 추가분)
+    private String bankName;
+    private String accountNumber;
+    private String accountHolder;
+
     // 세후
     private BigDecimal netPay;
 
@@ -33,6 +44,10 @@ public class PayrollDetailResponse {
     public PayrollDetailResponse(
             Long id,
             String yearMonth,
+            String employeeName,
+            String department,
+            String position,
+            String paymentDate,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
             BigDecimal mealAmount,
@@ -44,9 +59,16 @@ public class PayrollDetailResponse {
             BigDecimal incomeTaxAmount,
             BigDecimal localTaxAmount,
             BigDecimal totalDeductionAmount,
-            BigDecimal netPay) {
+            BigDecimal netPay,
+            String bankName,
+            String accountNumber,
+            String accountHolder) {
         this.id = id;
         this.yearMonth = yearMonth;
+        this.employeeName = employeeName;
+        this.department = department;
+        this.position = position;
+        this.paymentDate = paymentDate;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
         this.mealAmount = mealAmount;
@@ -59,9 +81,21 @@ public class PayrollDetailResponse {
         this.localTaxAmount = localTaxAmount;
         this.totalDeductionAmount = totalDeductionAmount;
         this.netPay = netPay;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
+        return of(ledger, null, null, null, null);
+    }
+
+    public static PayrollDetailResponse of(
+            PayrollLedger ledger,
+            com.reverse.payroll.internal.domain.SalarySetting salarySetting,
+            String employeeName,
+            String department,
+            String position) {
         BigDecimal totalDeduction =
                 safeAdd(
                         ledger.getNationalPensionAmount(),
@@ -71,9 +105,16 @@ public class PayrollDetailResponse {
                         ledger.getIncomeTaxAmount(),
                         ledger.getLocalTaxAmount());
 
+        // 지급일은 통상 해당월 25일로 표기 (가정)
+        String paymentDate = ledger.getYearMonth() + "-25";
+
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
                 .yearMonth(ledger.getYearMonth())
+                .employeeName(employeeName)
+                .department(department)
+                .position(position)
+                .paymentDate(paymentDate)
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())
@@ -86,6 +127,9 @@ public class PayrollDetailResponse {
                 .localTaxAmount(ledger.getLocalTaxAmount())
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
+                .bankName(salarySetting != null ? salarySetting.getBankName() : null)
+                .accountNumber(salarySetting != null ? salarySetting.getAccountNumber() : null)
+                .accountHolder(salarySetting != null ? salarySetting.getAccountHolder() : null)
                 .build();
     }
 

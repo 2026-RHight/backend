@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -94,5 +95,29 @@ public class PayrollController {
             @PathVariable Long employeeId, @RequestParam int year, @RequestParam int month) {
         var ledger = payrollService.calculateAndSavePayroll(employeeId, year, month);
         return ResponseEntity.ok(ledger.getId());
+    }
+
+    // 급여 명세서 다운로드 (PDF)
+    @GetMapping("/download/{ledgerId}")
+    public ResponseEntity<byte[]> downloadPayslipPdf(
+            @AuthenticationPrincipal CustomUser authUser,
+            @PathVariable Long ledgerId,
+            @CookieValue(value = "SALARY_AUTH_TOKEN", required = false) String salaryAuthToken) {
+
+        if (salaryAuthToken == null) {
+            throw new UnauthorizedException("FORBIDDEN", "명세서 다운로드를 위한 비밀번호 인증이 필요합니다.");
+        }
+        jwtTokenProvider.validateSalaryDetailTicket(salaryAuthToken, authUser.getEmployeeId());
+
+        byte[] pdfBytes = payrollService.getPayslipPdf(authUser.getEmployeeId(), ledgerId);
+
+        String filename = "payslip_" + ledgerId + ".pdf";
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 }

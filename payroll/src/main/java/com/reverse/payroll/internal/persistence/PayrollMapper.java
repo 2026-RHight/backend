@@ -39,4 +39,9 @@ public interface PayrollMapper {
 
     // 사원 비밀번호(해시) 조회
     Optional<String> findEmployeePasswordById(@Param("employeeId") Long employeeId);
+
+    // 급여명세서용 사원 기본 정보 조회
+    Optional<EmployeePayslipInfo> findEmployeePayslipInfo(@Param("employeeId") Long employeeId);
+
+    record EmployeePayslipInfo(String employeeName, String departmentName, String positionName) {}
 }

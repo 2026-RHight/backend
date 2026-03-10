@@ -10,11 +10,14 @@ import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
 import com.reverse.payroll.internal.exception.InvalidSalaryPasswordException;
+import com.reverse.payroll.internal.infrastructure.PdfGenerator;
 import com.reverse.payroll.internal.persistence.PayrollMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -30,6 +33,7 @@ public class PayrollService {
     private final PayrollMapper payrollMapper;
     private final PasswordEncoder passwordEncoder;
     private final AttendanceFacade attendanceFacade;
+    private final PdfGenerator pdfGenerator;
 
     // 월 급여 계산 및 대장 생성
     @Transactional
@@ -66,25 +70,57 @@ public class PayrollService {
         BigDecimal baseSalary = salarySetting.getBaseSalary();
         BigDecimal mealAllowance = salarySetting.getMealAllowance();
 
-        // 통상 임금 기준으로 시급 계산
+        // 1. 수당 계산 (기본급 기반 시급 계산)
+        // 월 소정 근로시간 209시간 기준
         BigDecimal hourlyWage = baseSalary.divide(new BigDecimal("209"), 2, RoundingMode.HALF_UP);
 
-        // 연장, 야간, 휴일근무 수당 합산 (통상 1.5배 가산)
-        double extraWorkHours =
-                attendanceInfo.getTotalOvertimeHours()
-                        + attendanceInfo.getNightWorkHours()
-                        + attendanceInfo.getHolidayWorkHours();
-
+        // 연장 수당 (1.5배)
         BigDecimal overtimeAmount =
                 hourlyWage
-                        .multiply(BigDecimal.valueOf(extraWorkHours))
+                        .multiply(BigDecimal.valueOf(attendanceInfo.getTotalOvertimeHours()))
                         .multiply(new BigDecimal("1.5"))
                         .setScale(0, RoundingMode.HALF_UP);
 
-        // TODO: 출장(businessTripDays) 등에 대한 특수 정액 수당 필요시 확장 가능
+        // 야간 수당 (별도 0.5배 가산)
+        BigDecimal nightAmount =
+                hourlyWage
+                        .multiply(BigDecimal.valueOf(attendanceInfo.getNightWorkHours()))
+                        .multiply(new BigDecimal("0.5"))
+                        .setScale(0, RoundingMode.HALF_UP);
 
-        BigDecimal totalPayment = baseSalary.add(overtimeAmount).add(mealAllowance);
-        BigDecimal taxableIncome = baseSalary.add(overtimeAmount); // 식대를 뺀 과세 기준액
+        // 휴일 수당 (1.5배)
+        BigDecimal holidayAmount =
+                hourlyWage
+                        .multiply(BigDecimal.valueOf(attendanceInfo.getHolidayWorkHours()))
+                        .multiply(new BigDecimal("1.5"))
+                        .setScale(0, RoundingMode.HALF_UP);
+
+        BigDecimal totalExtraPayment = overtimeAmount.add(nightAmount).add(holidayAmount);
+
+        // 2. 차감 계산 (일할 계산)
+        // 한달 유급 일수 대략 30일(또는 근무일 20.9일) 기준. 여기서는 20.9시간/8시간 = 26.125일 정도로 잡거나 단순하게 30일
+        // 기준.
+        // 통상적으로 무급 휴가/결근은 '일급' 기반 차감
+        BigDecimal dailyWage = baseSalary.divide(new BigDecimal("30"), 0, RoundingMode.HALF_UP);
+        BigDecimal absenceDeduction =
+                dailyWage
+                        .multiply(BigDecimal.valueOf(attendanceInfo.getAbsentDays()))
+                        .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal unpaidLeaveDeduction =
+                dailyWage
+                        .multiply(BigDecimal.valueOf(attendanceInfo.getUnpaidLeaveDays()))
+                        .setScale(0, RoundingMode.HALF_UP);
+
+        // 총 지급액 = 기본급 + 제수당 + 식대 - (무급분 차감)
+        BigDecimal totalPayment =
+                baseSalary
+                        .add(totalExtraPayment)
+                        .add(mealAllowance)
+                        .subtract(absenceDeduction)
+                        .subtract(unpaidLeaveDeduction);
+
+        // 과세 대상 금액 (식대 제외)
+        BigDecimal taxableIncome = totalPayment.subtract(mealAllowance);
 
         // 공제 금액(4대보험) 계산
         BigDecimal nationalPension =
@@ -95,8 +131,9 @@ public class PayrollService {
                 taxableIncome
                         .multiply(insuranceRate.getHealthInsuranceRate())
                         .setScale(0, RoundingMode.HALF_UP);
+        // 장기요양보험료는 건강보험료의 일정 비율(여기서는 gross의 0.00459%로 정의됨)
         BigDecimal longTermCare =
-                healthInsurance
+                taxableIncome
                         .multiply(insuranceRate.getLongTermCareRate())
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal empInsurance =
@@ -104,7 +141,7 @@ public class PayrollService {
                         .multiply(insuranceRate.getEmpInsuranceRate())
                         .setScale(0, RoundingMode.HALF_UP);
 
-        // 소득세
+        // 소득세 (간이세액표 대신 3.3% placeholder 사용)
         BigDecimal incomeTax =
                 taxableIncome.multiply(new BigDecimal("0.033")).setScale(0, RoundingMode.HALF_UP);
         BigDecimal localTax =
@@ -128,7 +165,7 @@ public class PayrollService {
                         .insuranceId(insuranceRate.getInsuranceId())
                         .yearMonth(yearMonth)
                         .salaryAmount(baseSalary)
-                        .overtimeAmount(overtimeAmount)
+                        .overtimeAmount(totalExtraPayment)
                         .mealAmount(mealAllowance)
                         .totalPayment(totalPayment)
                         .nationalPensionAmount(nationalPension)
@@ -190,12 +227,41 @@ public class PayrollService {
         PayrollLedger ledger =
                 payrollMapper
                         .findPayrollLedgerById(ledgerId)
-                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 급여 명세서입니다."));
+                        .orElseThrow(
+                                () ->
+                                        new com.reverse.core.exception.NotFoundException(
+                                                "존재하지 않는 급여 명세서입니다."));
 
         if (!ledger.getEmployeeId().equals(employeeId)) {
             throw new UnauthorizedException("FORBIDDEN", "본인의 급여 명세서만 조회할 수 있습니다.");
         }
 
-        return PayrollDetailResponse.from(ledger);
+        // 해당 월에 적용되었던 급여 설정을 가져와서 은행 정보 추출
+        LocalDate targetDate = LocalDate.parse(ledger.getYearMonth() + "-01");
+        SalarySetting salarySetting =
+                payrollMapper.findSalarySettingByEmployeeId(employeeId, targetDate).orElse(null);
+
+        // 사원 정보(이름, 부서 등) 추가 조회
+        var empInfo =
+                payrollMapper
+                        .findEmployeePayslipInfo(employeeId)
+                        .orElse(new PayrollMapper.EmployeePayslipInfo("사원", "미소속", "직급없음"));
+
+        return PayrollDetailResponse.of(
+                ledger,
+                salarySetting,
+                empInfo.employeeName(),
+                empInfo.departmentName(),
+                empInfo.positionName());
+    }
+
+    // 급여 명세서 PDF 생성
+    public byte[] getPayslipPdf(Long employeeId, Long ledgerId) {
+        PayrollDetailResponse detail = getPayrollDetail(employeeId, ledgerId);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("payroll", detail);
+
+        return pdfGenerator.generatePdfFromHtml("payroll/payslip", data);
     }
 }
