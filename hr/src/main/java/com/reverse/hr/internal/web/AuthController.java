@@ -11,7 +11,6 @@ import com.reverse.hr.internal.dto.response.LoginResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -46,18 +45,11 @@ public class AuthController {
         return ApiResponse.success();
     }
 
-    @Transactional
-    public void logout(String authorization) {
-        String token = extractToken(authorization);
-        tokenBlacklistStore.blacklist(token);
-    }
-
-    // accessToken 헤더 제거
-    private String extractToken(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new UnauthorizedException("만료된 토큰입니다.");
-        }
-        return authorization.substring(7);
+    @Operation(summary = "로그아웃")
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestHeader("Authorization") String authorization) {
+        authService.logout(authorization);
+        return ApiResponse.success();
     }
 
     private String extractBearerToken(String authorization) {

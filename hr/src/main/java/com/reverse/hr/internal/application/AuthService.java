@@ -1,7 +1,9 @@
 package com.reverse.hr.internal.application;
 
+import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.JwtTokenProvider;
+import com.reverse.core.security.TokenBlacklistStore;
 import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.dto.request.LoginRequestDTO;
@@ -14,6 +16,7 @@ import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +30,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ResidentHashService residentHashService;
-
+    private final ApplicationEventPublisher eventPublisher;
+    private final TokenBlacklistStore tokenBlacklistStore;
     private static final java.security.SecureRandom SECURE_RANDOM =
             new java.security.SecureRandom();
 
@@ -117,24 +121,9 @@ public class AuthService {
             throw new UnauthorizedException(AuthErrorCode.AUTH_LOGIN_FAILED, "인증 정보가 올바르지 않습니다.");
         }
 
-        // 5) 비밀번호를 사번으로 초기화(평문 저장 금지)
-        String encodedInitPassword = passwordEncoder.encode(user.employeeNum());
-
-        // TODO(클로이): 이메일 전송 로직 추가 후 사번 초기화 삭제
-        //        // 5) 임시 비밀번호 생성 후 이메일 전송 방식 추후
-        //        String tempPassword = generateTempPassword(); // 12~16자, 영문+숫자+특수
-        //        String encoded = passwordEncoder.encode(tempPassword);
-
-        //        int updated = authMapper.updatePasswordAndInitialState(
-        //                user.employeeId(),
-        //                passwordEncoder,
-        //                true
-        //        );
-        //
-        //        int inserted = authMapper.insertPasswordHistory(
-        //                user.employeeId(),
-        //                passwordEncoder
-        //        );
+        // 5) 임시 비밀번호 생성 후 해시 저장
+        String tempPassword = generateTempPassword();
+        String encodedInitPassword = passwordEncoder.encode(tempPassword);
 
         int updated =
                 authMapper.updatePasswordAndInitialState(
@@ -144,6 +133,18 @@ public class AuthService {
 
         if (updated != 1 || inserted != 1) {
             throw new IllegalStateException("비밀번호 초기화 처리 중 오류가 발생했습니다.");
+        }
+
+        if (user.email() != null && !user.email().isBlank()) {
+            eventPublisher.publishEvent(
+                    new EmailSendEvent(
+                            user.email(),
+                            "[RHight] 비밀번호 초기화 안내",
+                            "<p>비밀번호가 초기화되었습니다.</p>"
+                                    + "<p>임시 비밀번호: <b>"
+                                    + tempPassword
+                                    + "</b></p>"
+                                    + "<p>로그인 후 반드시 비밀번호를 변경해 주세요.</p>"));
         }
     }
 
@@ -214,6 +215,20 @@ public class AuthService {
                         profileRow.jobName());
 
         return new LoginResponseDTO(false, accessToken, null, profile);
+    }
+
+    @Transactional
+    public void logout(String authorization) {
+        String token = extractToken(authorization);
+        tokenBlacklistStore.blacklist(token);
+    }
+
+    // accessToken 헤더 제거
+    private String extractToken(String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            throw new UnauthorizedException("만료된 토큰입니다.");
+        }
+        return authorization.substring(7);
     }
 
     /**

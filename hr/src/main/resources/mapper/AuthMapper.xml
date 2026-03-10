@@ -63,7 +63,8 @@
             resultType="com.reverse.hr.internal.persistence.row.InitializeUserRow">
         SELECT employee_id          AS employeeId,
                employee_num         AS employeeNum,
-               resident_number_hash AS residentNumberHash
+               resident_number_hash AS residentNumberHash,
+               email                AS email
         FROM employee
         WHERE employee_num = #{employeeNum}
     </select>
