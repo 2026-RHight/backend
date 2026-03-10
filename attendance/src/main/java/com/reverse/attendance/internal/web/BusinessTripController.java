@@ -5,6 +5,7 @@ import com.reverse.attendance.internal.domain.BusinessTrip;
 import com.reverse.attendance.internal.dto.request.BusinessTripApplyRequest;
 import com.reverse.attendance.internal.dto.request.BusinessTripProcessRequest;
 import com.reverse.core.security.CustomUser;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ public class BusinessTripController {
     private final BusinessTripService businessTripService;
 
     // 사용자 : 내 신청 내역 조회
+    @Operation(summary = "내 출장/외근 신청 내역 조회", description = "사용자 본인의 출장 및 외근 신청 내역을 조회합니다.")
     @GetMapping("/my-requests")
     public ResponseEntity<com.reverse.core.response.PageResponse<BusinessTrip>> getMyTrips(
             @AuthenticationPrincipal CustomUser user,
@@ -29,6 +31,7 @@ public class BusinessTripController {
     }
 
     // 사용자 : 내 신청 건수 상태별 요약
+    @Operation(summary = "출장/외근 상태별 건수 요약", description = "사용자 본인의 출장 및 외근 신청 건수를 상태별로 요약합니다.")
     @GetMapping("/status-counts")
     public ResponseEntity<com.reverse.attendance.internal.dto.response.RequestStatusCountResponse>
             getMyRequestStatusCounts(@AuthenticationPrincipal CustomUser user) {
@@ -37,6 +40,7 @@ public class BusinessTripController {
     }
 
     // 사용자 : 외근/출장 신청
+    @Operation(summary = "외근/출장 신청", description = "사용자가 새로운 외근 및 출장을 신청합니다.")
     @PostMapping("/apply")
     public ResponseEntity<String> applyTrip(
             @Valid @RequestBody BusinessTripApplyRequest request,
@@ -45,6 +49,7 @@ public class BusinessTripController {
         return ResponseEntity.ok("외근/출장 신청이 완료되었습니다.");
     }
 
+    @Operation(summary = "외근/출장 신청 취소", description = "결재 대기 중인 외근 및 출장 신청을 취소합니다.")
     @PutMapping("/{tripId}/cancel")
     public ResponseEntity<String> cancelTrip(
             @PathVariable Long tripId, @AuthenticationPrincipal CustomUser user) {
@@ -53,6 +58,7 @@ public class BusinessTripController {
     }
 
     // 관리자 : 전체 리스트 조회
+    @Operation(summary = "모든 출장/외근 내역 조회 (관리자)", description = "관리자가 모든 직원의 출장 및 외근 내역을 조회합니다.")
     @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/admin/requests")
     public ResponseEntity<com.reverse.core.response.PageResponse<BusinessTrip>> getAllTrips(
@@ -63,6 +69,7 @@ public class BusinessTripController {
     }
 
     // 관리자 : 승인/반려 결재
+    @Operation(summary = "출장/외근 결재 (관리자)", description = "관리자가 직원의 출장 및 외근 신청을 승인하거나 반려합니다.")
     @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/admin/process")
     public ResponseEntity<String> processTrip(@RequestBody BusinessTripProcessRequest request) {

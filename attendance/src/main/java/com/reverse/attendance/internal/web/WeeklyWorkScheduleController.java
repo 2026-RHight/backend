@@ -5,6 +5,7 @@ import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
 import com.reverse.core.security.CustomUser;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ public class WeeklyWorkScheduleController {
     private final WeeklyWorkScheduleService scheduleService;
 
     // 유연근무 신청
+    @Operation(summary = "유연근무 신청", description = "사용자가 새로운 유연근무를 신청합니다.")
     @PostMapping
     public ResponseEntity<String> applySchedule(
             @Valid @RequestBody WeeklyWorkScheduleApplyRequest request,
@@ -29,6 +31,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 내 신청 내역 조회
+    @Operation(summary = "내 유연근무 신청 내역 조회", description = "사용자 본인의 유연근무 신청 내역을 조회합니다.")
     @GetMapping("/my")
     public ResponseEntity<com.reverse.core.response.PageResponse<WeeklyWorkSchedule>>
             getMySchedules(
@@ -39,6 +42,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 내 신청 건수 상태별 요약
+    @Operation(summary = "유연근무 상태별 건수 요약", description = "사용자 본인의 유연근무 신청 건수를 상태별로 요약합니다.")
     @GetMapping("/status-counts")
     public ResponseEntity<com.reverse.attendance.internal.dto.response.RequestStatusCountResponse>
             getMyRequestStatusCounts(@AuthenticationPrincipal CustomUser user) {
@@ -46,6 +50,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 신청 취소
+    @Operation(summary = "유연근무 신청 취소", description = "결재 대기 중인 유연근무 신청을 취소합니다.")
     @PutMapping("/{weeklyId}/cancel")
     public ResponseEntity<String> cancelSchedule(
             @PathVariable Long weeklyId, @AuthenticationPrincipal CustomUser user) {
@@ -54,6 +59,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 부서원 신청 내역 조회 (팀장/관리자)
+    @Operation(summary = "모든 유연근무 신청 내역 조회 (관리자)", description = "관리자가 모든 직원의 유연근무 신청 내역을 조회합니다.")
     @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @GetMapping("/team")
     public ResponseEntity<com.reverse.core.response.PageResponse<WeeklyWorkSchedule>>
@@ -65,6 +71,7 @@ public class WeeklyWorkScheduleController {
     }
 
     // 결재 처리 (승인/반려 - 팀장/관리자용)
+    @Operation(summary = "유연근무 결재 (관리자)", description = "관리자가 직원의 유연근무 신청을 승인하거나 반려합니다.")
     @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
     @PutMapping("/process")
     public ResponseEntity<String> processSchedule(

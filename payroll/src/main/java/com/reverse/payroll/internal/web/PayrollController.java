@@ -7,6 +7,7 @@ import com.reverse.payroll.internal.application.PayrollService;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class PayrollController {
     private final JwtTokenProvider jwtTokenProvider;
 
     // 급여 명세서 조회 전 비밀번호 검증
+    @Operation(summary = "급여 비밀번호 검증", description = "급여 명세서 조회를 위한 2차 인증(비밀번호)을 수행합니다.")
     @PostMapping("/verify-password")
     public ResponseEntity<Boolean> verifySalaryPassword(
             @AuthenticationPrincipal CustomUser authUser,
@@ -51,6 +53,7 @@ public class PayrollController {
     }
 
     // 최근 급여 목록 6개월 조회
+    @Operation(summary = "최근 급여 목록 조회", description = "기본 최근 6개월간의 급여 목록을 조회합니다.")
     @GetMapping("/recent")
     public ResponseEntity<List<PayrollListResponse>> getRecentPayrolls(
             @AuthenticationPrincipal CustomUser authUser,
@@ -61,6 +64,7 @@ public class PayrollController {
     }
 
     // 연도별 급여 목록 조회
+    @Operation(summary = "연도별 급여 목록 조회", description = "지정된 연도의 모든 급여 목록을 조회합니다.")
     @GetMapping("/year/{year}")
     public ResponseEntity<List<PayrollListResponse>> getPayrollsByYear(
             @AuthenticationPrincipal CustomUser authUser, @PathVariable String year) {
@@ -70,6 +74,7 @@ public class PayrollController {
     }
 
     // 급여 명세서 상세 조회
+    @Operation(summary = "급여 명세서 상세 조회", description = "본인의 특정 월 급여 명세서 상세 내역을 조회합니다.")
     @GetMapping("/details/{ledgerId}")
     public ResponseEntity<PayrollDetailResponse> getPayrollDetail(
             @AuthenticationPrincipal CustomUser authUser,
@@ -89,6 +94,7 @@ public class PayrollController {
     }
 
     // 급여 대장 생성 (Admin)
+    @Operation(summary = "급여 대장 생성 (Admin)", description = "특정 사원의 지정된 연월 급여 대장을 생성 및 계산합니다.")
     @PostMapping("/calculate/{employeeId}")
     @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
     public ResponseEntity<Long> calculateAndSavePayroll(
@@ -98,6 +104,7 @@ public class PayrollController {
     }
 
     // 급여 명세서 다운로드 (PDF)
+    @Operation(summary = "급여 명세서 PDF 다운로드", description = "비밀번호 인증 후 급여 명세서를 PDF 형식으로 다운로드합니다.")
     @GetMapping("/download/{ledgerId}")
     public ResponseEntity<byte[]> downloadPayslipPdf(
             @AuthenticationPrincipal CustomUser authUser,
