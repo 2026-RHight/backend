@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.DashboardMapper">
+    <select id="findDashboard"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.Dashboard">
+        SELECT p.employee_id,
+               p.work_item,
+               DATE(p.created_at) AS created_at,
+               p.expected_end_date,
+               p.status,
+               p.achievement_rate,
+               m.score,
+               p.feedback
+        FROM performance p
+        LEFT JOIN monthly_performance m
+               ON m.employee_id = p.employee_id
+              AND m.year = YEAR(p.end_date)
+              AND m.month = MONTH(p.end_date)
+        WHERE p.employee_id = #{id}
+          AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        ORDER BY p.created_at DESC
+    </select>
+
+    <select id="countEvaluatorPendingDashboard"
+            parameterType="long"
+            resultType="long">
+        SELECT COUNT(DISTINCT p.performance_id)
+        FROM performance p
+        INNER JOIN evaluation e
+                ON e.employee_id = p.employee_id
+               AND e.evaluator_id = #{employeeId}
+        INNER JOIN performance_attachment pa
+                ON pa.performance_id = p.performance_id
+        WHERE p.status = 'ACTIVE'
+          AND pa.confirmed_at IS NULL
+    </select>
+</mapper>

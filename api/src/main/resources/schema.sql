@@ -497,3 +497,139 @@ CREATE TABLE IF NOT EXISTS rtw_detail (
     PRIMARY KEY (approval_id),
     CONSTRAINT fk_rtw_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
 );
+
+-- ==========================================
+-- 성과(Performance) 모듈 테이블
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS performance (
+    performance_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    work_item ENUM('PERSONAL','TEAM') NOT NULL,
+    start_date DATE NULL,
+    expected_end_date DATE NULL,
+    end_date DATE NULL,
+    work_detail TEXT NULL,
+    status ENUM('WAITING','ACTIVE','ENDED') NOT NULL DEFAULT 'ACTIVE',
+    achievement_rate INT NOT NULL DEFAULT 0,
+    difficulty_score INT NOT NULL DEFAULT 5,
+    comment TEXT NULL,
+    feedback TEXT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (performance_id),
+    KEY idx_performance_employee (employee_id),
+    KEY idx_performance_status (status),
+    KEY idx_performance_end_date (end_date),
+    CONSTRAINT fk_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS performance_personal (
+    performance_id BIGINT NOT NULL,
+    expected_value TEXT NULL,
+    result_summary TEXT NULL,
+    growth_point TEXT NULL,
+    improvement TEXT NULL,
+    PRIMARY KEY (performance_id),
+    CONSTRAINT fk_performance_personal_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS performance_team (
+    performance_id BIGINT NOT NULL,
+    weight INT NULL,
+    team_result_summary TEXT NULL,
+    special_point TEXT NULL,
+    PRIMARY KEY (performance_id),
+    CONSTRAINT fk_performance_team_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS performance_attachment (
+    attachment_id BIGINT NOT NULL AUTO_INCREMENT,
+    performance_id BIGINT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_url TEXT NOT NULL,
+    confirmed_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (attachment_id),
+    KEY idx_performance_attachment_performance (performance_id),
+    CONSTRAINT fk_performance_attachment_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS evaluation (
+    eval_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    evaluator_id BIGINT NOT NULL,
+    year INT NOT NULL,
+    evaluation_score INT NULL,
+    confirmed_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (eval_id),
+    KEY idx_evaluation_employee (employee_id),
+    KEY idx_evaluation_evaluator (evaluator_id),
+    UNIQUE KEY uk_evaluation_employee_year_evaluator (employee_id, year, evaluator_id),
+    CONSTRAINT fk_evaluation_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_evaluation_evaluator_employee FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS monthly_performance (
+    monthly_performance_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    year INT NOT NULL,
+    month INT NOT NULL,
+    score INT NOT NULL,
+    calculated_at DATETIME NOT NULL,
+    PRIMARY KEY (monthly_performance_id),
+    UNIQUE KEY uk_monthly_performance_employee_year_month (employee_id, year, month),
+    KEY idx_monthly_performance_employee (employee_id),
+    CONSTRAINT fk_monthly_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS peer_review (
+    peer_review_id BIGINT NOT NULL AUTO_INCREMENT,
+    eval_id BIGINT NOT NULL,
+    reviewer_id BIGINT NOT NULL,
+    communication_score INT NULL,
+    solving_score INT NULL,
+    responsibility_score INT NULL,
+    team_contribution INT NULL,
+    culture_contribution INT NULL,
+    comment TEXT NULL,
+    eval_year INT NOT NULL,
+    created_at DATETIME NOT NULL,
+    PRIMARY KEY (peer_review_id),
+    UNIQUE KEY ux_peer_review_eval_reviewer (eval_id, reviewer_id),
+    KEY idx_peer_review_eval (eval_id),
+    KEY idx_peer_review_reviewer (reviewer_id),
+    CONSTRAINT fk_peer_review_evaluation FOREIGN KEY (eval_id) REFERENCES evaluation(eval_id) ON DELETE CASCADE,
+    CONSTRAINT fk_peer_review_reviewer FOREIGN KEY (reviewer_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS team_evaluation (
+    team_evaluation_id BIGINT NOT NULL AUTO_INCREMENT,
+    evaluator_id BIGINT NOT NULL,
+    appraisee_id BIGINT NOT NULL,
+    evaluation_year INT NOT NULL,
+    performance_eval TEXT NULL,
+    work_attitude_eval TEXT NULL,
+    teamwork_eval TEXT NULL,
+    solving_eval TEXT NULL,
+    performance_score INT NULL,
+    performance_comment TEXT NULL,
+    attitude_score INT NULL,
+    attitude_comment TEXT NULL,
+    collaboration_score INT NULL,
+    collaboration_comment TEXT NULL,
+    creativity_score INT NULL,
+    creativity_comment TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (team_evaluation_id),
+    KEY idx_team_evaluation_evaluator (evaluator_id),
+    KEY idx_team_evaluation_appraisee (appraisee_id),
+    KEY idx_team_evaluation_year (evaluation_year),
+    UNIQUE KEY uk_team_evaluation_evaluator_appraisee_year (evaluator_id, appraisee_id, evaluation_year),
+    CONSTRAINT fk_team_evaluation_evaluator FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_team_evaluation_appraisee FOREIGN KEY (appraisee_id) REFERENCES employee(employee_id)
+);

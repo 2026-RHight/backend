@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.PerformanceViewMapper">
+
+    <select id="countPendingApprovalItems" parameterType="long" resultType="int">
+        SELECT COUNT(*)
+        FROM performance p
+        INNER JOIN evaluation e
+            ON e.employee_id = p.employee_id
+           AND e.evaluator_id = #{employeeId}
+        WHERE p.status = 'WAITING'
+    </select>
+
+    <select id="findTrendPoints"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceTrendPoint">
+        SELECT CONCAT(MONTH(base.target_date), '월') AS monthLabel,
+               ROUND(AVG(COALESCE(base.score, 0))) AS score
+        FROM (
+            SELECT COALESCE(mp.calculated_at, p.end_date, p.created_at) AS target_date,
+                   COALESCE(mp.score, p.achievement_rate, 0) AS score
+            FROM performance p
+            LEFT JOIN monthly_performance mp
+              ON mp.employee_id = p.employee_id
+             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+            WHERE p.employee_id = #{employeeId}
+              AND COALESCE(p.end_date, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        ) base
+        GROUP BY YEAR(base.target_date), MONTH(base.target_date)
+        ORDER BY YEAR(base.target_date), MONTH(base.target_date)
+    </select>
+
+    <select id="findDashboardFeedbacks"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.PerformanceFeedbackResponse">
+        SELECT p.performance_id AS id,
+               COALESCE(NULLIF(p.feedback, ''), NULLIF(p.comment, ''), '등록된 피드백이 없습니다.') AS text,
+               '시스템' AS author,
+               DATE_FORMAT(COALESCE(p.end_date, p.created_at), '%Y.%m.%d') AS date,
+               p.performance_id AS inquiryItemId,
+               COALESCE(NULLIF(p.work_detail, ''), p.title) AS detail
+        FROM performance p
+        WHERE p.employee_id = #{employeeId}
+          AND (NULLIF(p.feedback, '') IS NOT NULL OR NULLIF(p.comment, '') IS NOT NULL)
+        ORDER BY COALESCE(p.end_date, p.created_at) DESC
+        LIMIT 5
+    </select>
+
+    <sql id="targetEmployeeCondition">
+        <choose>
+            <when test="isAdmin and targetEmployeeId != null">
+                p.employee_id = #{targetEmployeeId}
+            </when>
+            <otherwise>
+                p.employee_id = #{viewerEmployeeId}
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="findInquiryItems"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.dto.response.PerformanceInquiryItemResponse">
+        SELECT p.performance_id AS id,
+               CASE WHEN p.work_item = 'TEAM' THEN 'Team' ELSE 'Individual' END AS type,
+               p.title,
+               LEFT(COALESCE(p.work_detail, ''), 24) AS coreTask,
+               CASE
+                   WHEN p.start_date IS NOT NULL AND p.end_date IS NOT NULL
+                       THEN CONCAT(DATE_FORMAT(p.start_date, '%Y.%m.%d'), ' ~ ', DATE_FORMAT(p.end_date, '%Y.%m.%d'))
+                   WHEN p.start_date IS NOT NULL
+                       THEN DATE_FORMAT(p.start_date, '%Y.%m.%d')
+                   ELSE DATE_FORMAT(p.created_at, '%Y.%m.%d')
+               END AS date,
+               CASE
+                   WHEN p.status = 'ENDED' THEN '완료'
+                   WHEN p.status = 'WAITING' THEN '대기'
+                   ELSE '진행중'
+               END AS status,
+               COALESCE(p.achievement_rate, 0) AS progress,
+               e.employee_name AS employeeName,
+               p.employee_id AS employeeId,
+               COALESCE(NULLIF(p.work_detail, ''), p.title) AS description,
+               COALESCE(NULLIF(pt.team_result_summary, ''), NULLIF(pp.result_summary, ''), NULLIF(p.comment, ''), '-') AS achievement
+        FROM performance p
+        INNER JOIN employee e ON e.employee_id = p.employee_id
+        LEFT JOIN performance_personal pp ON pp.performance_id = p.performance_id
+        LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
+        WHERE <include refid="targetEmployeeCondition"/>
+        ORDER BY p.created_at DESC
+    </select>
+
+    <select id="findMonthlyMyScores"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceMonthlyPoint">
+        SELECT YEAR(base.target_date) AS scoreYear,
+               MONTH(base.target_date) AS scoreMonth,
+               ROUND(AVG(base.score)) AS score
+        FROM (
+            SELECT COALESCE(mp.calculated_at, p.end_date, p.created_at) AS target_date,
+                   COALESCE(mp.score, p.achievement_rate, 0) AS score
+            FROM performance p
+            LEFT JOIN monthly_performance mp
+              ON mp.employee_id = p.employee_id
+             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+            WHERE <include refid="targetEmployeeCondition"/>
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
+        ) base
+        GROUP BY YEAR(base.target_date), MONTH(base.target_date)
+        ORDER BY YEAR(base.target_date), MONTH(base.target_date)
+    </select>
+
+    <select id="findMonthlyTeamScores"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceMonthlyPoint">
+        SELECT YEAR(base.target_date) AS scoreYear,
+               MONTH(base.target_date) AS scoreMonth,
+               ROUND(AVG(base.score)) AS score
+        FROM (
+            SELECT COALESCE(mp.calculated_at, p.end_date, p.created_at) AS target_date,
+                   COALESCE(mp.score, p.achievement_rate, 0) AS score
+            FROM employee_hr_info target_info
+            INNER JOIN employee_hr_info team_info
+                ON team_info.org_id = target_info.org_id
+            INNER JOIN performance p
+                ON p.employee_id = team_info.employee_id
+            LEFT JOIN monthly_performance mp
+              ON mp.employee_id = p.employee_id
+             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+            WHERE target_info.employee_id = #{targetEmployeeId}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
+              AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) < #{windowEndExclusive}
+        ) base
+        GROUP BY YEAR(base.target_date), MONTH(base.target_date)
+        ORDER BY YEAR(base.target_date), MONTH(base.target_date)
+    </select>
+
+    <select id="findMonthlyDetailItems"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceMonthlyDetailRow">
+        SELECT p.performance_id AS id,
+               CASE WHEN p.work_item = 'TEAM' THEN 'team' ELSE 'individual' END AS type,
+               p.title,
+               CASE
+                   WHEN p.start_date IS NOT NULL AND p.end_date IS NOT NULL
+                       THEN CONCAT(DATE_FORMAT(p.start_date, '%m.%d'), ' ~ ', DATE_FORMAT(p.end_date, '%m.%d'))
+                   WHEN p.start_date IS NOT NULL
+                       THEN DATE_FORMAT(p.start_date, '%m.%d')
+                   ELSE DATE_FORMAT(p.created_at, '%m.%d')
+               END AS date,
+               COALESCE(p.achievement_rate, 0) AS progress,
+               COALESCE(mp.score, p.achievement_rate, 0) AS score,
+               COALESCE(NULLIF(p.work_detail, ''), p.title) AS description,
+               COALESCE(NULLIF(pt.team_result_summary, ''), NULLIF(pp.result_summary, ''), NULLIF(p.comment, ''), '-') AS achievement,
+               NULLIF(COALESCE(p.feedback, p.comment), '') AS feedbackText,
+               '시스템' AS feedbackAuthor,
+               DATE_FORMAT(COALESCE(p.end_date, p.created_at), '%Y.%m.%d') AS feedbackDate
+        FROM performance p
+        LEFT JOIN performance_personal pp ON pp.performance_id = p.performance_id
+        LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
+        LEFT JOIN monthly_performance mp
+          ON mp.employee_id = p.employee_id
+         AND mp.year = #{targetYear}
+         AND mp.month = #{targetMonth}
+        WHERE <include refid="targetEmployeeCondition"/>
+          AND YEAR(COALESCE(p.end_date, p.created_at)) = #{targetYear}
+          AND MONTH(COALESCE(p.end_date, p.created_at)) = #{targetMonth}
+        ORDER BY COALESCE(p.end_date, p.created_at) DESC
+    </select>
+
+    <select id="findApprovalItems"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.PerformanceApprovalItemResponse">
+        SELECT p.performance_id AS id,
+               e.employee_name AS user,
+               o.org_name AS dept,
+               p.title,
+               DATE_FORMAT(p.created_at, '%Y.%m.%d') AS date,
+               '대기' AS status,
+               CASE WHEN p.work_item = 'TEAM' THEN '팀 성과' ELSE '개인 성과' END AS type,
+               CASE WHEN COALESCE(p.achievement_rate, 0) > 0 THEN CONCAT(p.achievement_rate, '%') ELSE NULL END AS achievement,
+               COALESCE(p.achievement_rate, 0) AS progress
+        FROM performance p
+        INNER JOIN evaluation ev
+            ON ev.employee_id = p.employee_id
+           AND ev.evaluator_id = #{employeeId}
+        INNER JOIN employee e ON e.employee_id = p.employee_id
+        LEFT JOIN employee_hr_info ehr ON ehr.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = ehr.org_id
+        WHERE p.status = 'WAITING'
+        ORDER BY p.created_at DESC
+    </select>
+
+    <update id="updatePerformanceResult" parameterType="map">
+        UPDATE performance
+        SET achievement_rate = COALESCE(#{progress}, achievement_rate),
+            end_date = COALESCE(end_date, CURDATE()),
+            status = 'ENDED',
+            comment = COALESCE(#{comment}, comment)
+        WHERE performance_id = #{performanceId}
+          AND status = 'ACTIVE'
+    </update>
+
+    <update id="updatePersonalResult" parameterType="map">
+        UPDATE performance_personal
+        SET result_summary = COALESCE(#{resultSummary}, result_summary),
+            growth_point = COALESCE(#{growthPoint}, growth_point),
+            improvement = COALESCE(#{improvementPoint}, improvement)
+        WHERE performance_id = #{performanceId}
+    </update>
+
+    <update id="updateTeamResult" parameterType="map">
+        UPDATE performance_team
+        SET team_result_summary = COALESCE(#{resultSummary}, team_result_summary),
+            special_point = COALESCE(#{resultNote}, special_point)
+        WHERE performance_id = #{performanceId}
+    </update>
+
+    <update id="approvePerformance" parameterType="map">
+        UPDATE performance
+        SET status = 'ENDED',
+            end_date = COALESCE(end_date, CURDATE()),
+            feedback = COALESCE(#{comment}, feedback)
+        WHERE performance_id = #{performanceId}
+          AND status = 'WAITING'
+          AND EXISTS (
+              SELECT 1
+              FROM evaluation ev
+              WHERE ev.employee_id = performance.employee_id
+                AND ev.evaluator_id = #{employeeId}
+          )
+    </update>
+
+    <update id="rejectPerformance" parameterType="map">
+        UPDATE performance
+        SET status = 'ACTIVE',
+            feedback = COALESCE(#{comment}, feedback)
+        WHERE performance_id = #{performanceId}
+          AND status = 'WAITING'
+          AND EXISTS (
+              SELECT 1
+              FROM evaluation ev
+              WHERE ev.employee_id = performance.employee_id
+                AND ev.evaluator_id = #{employeeId}
+          )
+    </update>
+
+    <select id="countOwnedPerformance"
+            parameterType="map"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM performance
+        WHERE performance_id = #{performanceId}
+          AND employee_id = #{employeeId}
+    </select>
+
+    <select id="findTeamEvaluationTargets"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceTeamEvaluationTargetRow">
+        SELECT e.employee_id AS id,
+               e.employee_name AS name,
+               COALESCE(j.job_name, '팀원') AS role,
+               COALESCE(o.org_name, '소속팀') AS department,
+               CASE
+                   WHEN EXISTS (
+                       SELECT 1
+                       FROM team_evaluation te_done
+                       WHERE te_done.evaluator_id = #{employeeId}
+                         AND te_done.appraisee_id = e.employee_id
+                         AND te_done.evaluation_year = YEAR(CURDATE())
+                   ) THEN '완료'
+                   WHEN EXISTS (
+                       SELECT 1
+                       FROM performance p_wait
+                       WHERE p_wait.employee_id = e.employee_id
+                         AND p_wait.status = 'WAITING'
+                   ) THEN '진행 중'
+                   ELSE '평가 대기'
+               END AS status,
+               ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
+               ROUND(AVG((COALESCE(pr.communication_score, 0) + COALESCE(pr.solving_score, 0) + COALESCE(pr.responsibility_score, 0) + COALESCE(pr.team_contribution, 0)) / 4), 1) AS peerReviewScore,
+               ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
+               ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
+               ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
+               ROUND(AVG(COALESCE(pr.solving_score, 0)), 1) AS creativityAvg
+        FROM employee_hr_info my_info
+        INNER JOIN employee_hr_info member_info
+            ON member_info.org_id = my_info.org_id
+           AND member_info.employee_id != #{employeeId}
+        INNER JOIN employee e ON e.employee_id = member_info.employee_id
+        LEFT JOIN job j ON j.job_id = member_info.job_id
+        LEFT JOIN organization o ON o.org_id = member_info.org_id
+        LEFT JOIN performance p ON p.employee_id = e.employee_id
+        LEFT JOIN evaluation ev ON ev.employee_id = e.employee_id
+        LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
+        WHERE my_info.employee_id = #{employeeId}
+        GROUP BY e.employee_id, e.employee_name, j.job_name, o.org_name
+        ORDER BY e.employee_name
+    </select>
+
+    <select id="findPeerReviewTargets"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.PerformancePeerReviewTargetResponse">
+        SELECT e.employee_id AS id,
+               e.employee_name AS name,
+               COALESCE(o.org_name, '소속팀') AS team,
+               CASE
+                   WHEN EXISTS (
+                       SELECT 1
+                       FROM peer_review pr
+                       WHERE pr.reviewer_id = #{employeeId}
+                         AND pr.eval_id IN (
+                             SELECT ev.eval_id FROM evaluation ev WHERE ev.employee_id = e.employee_id
+                         )
+                   ) THEN TRUE
+                   ELSE FALSE
+               END AS evaluated
+        FROM employee_hr_info my_info
+        INNER JOIN employee_hr_info member_info
+            ON member_info.org_id = my_info.org_id
+           AND member_info.employee_id != #{employeeId}
+        INNER JOIN employee e ON e.employee_id = member_info.employee_id
+        LEFT JOIN organization o ON o.org_id = member_info.org_id
+        WHERE my_info.employee_id = #{employeeId}
+        ORDER BY e.employee_name
+    </select>
+
+    <select id="findPeerReviewableEvaluationId" parameterType="long" resultType="long">
+        SELECT ev.eval_id
+        FROM evaluation ev
+        WHERE ev.employee_id = #{appraiseeId}
+          AND ev.confirmed_at IS NULL
+        ORDER BY ev.year DESC, ev.created_at DESC
+        LIMIT 1
+    </select>
+
+    <select id="findManagedTeams" parameterType="long" resultType="string">
+        SELECT DISTINCT COALESCE(o.org_name, '소속팀') AS teamName
+        FROM employee_hr_info my_info
+        INNER JOIN employee_hr_info member_info
+            ON member_info.org_id = my_info.org_id
+        LEFT JOIN organization o ON o.org_id = member_info.org_id
+        WHERE my_info.employee_id = #{employeeId}
+        ORDER BY teamName
+    </select>
+
+    <select id="findTeamStatsMembers"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceTeamStatsMemberRow">
+        SELECT e.employee_id AS id,
+               e.employee_name AS name,
+               COALESCE(j.job_name, '팀원') AS role,
+               COALESCE(o.org_name, '소속팀') AS department,
+               ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
+               ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
+               ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
+               ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
+               ROUND(AVG(COALESCE(pr.solving_score, 0)), 1) AS creativityAvg
+        FROM employee_hr_info my_info
+        INNER JOIN employee_hr_info member_info
+            ON member_info.org_id = my_info.org_id
+        INNER JOIN employee e ON e.employee_id = member_info.employee_id
+        LEFT JOIN job j ON j.job_id = member_info.job_id
+        LEFT JOIN organization o ON o.org_id = member_info.org_id
+        LEFT JOIN performance p ON p.employee_id = e.employee_id
+        LEFT JOIN evaluation ev ON ev.employee_id = e.employee_id
+        LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
+        WHERE my_info.employee_id = #{employeeId}
+          AND (#{teamName} IS NULL OR o.org_name = #{teamName})
+        GROUP BY e.employee_id, e.employee_name, j.job_name, o.org_name
+        ORDER BY e.employee_name
+    </select>
+
+    <select id="findTeamStatsTasks"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$PerformanceTeamStatsTaskRow">
+        SELECT e.employee_id AS employeeId,
+               p.performance_id AS performanceId,
+               p.title,
+               CASE
+                   WHEN p.status = 'ENDED' THEN 'completed'
+                   ELSE 'in_progress'
+               END AS status,
+               DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt
+        FROM employee_hr_info my_info
+        INNER JOIN employee_hr_info member_info
+            ON member_info.org_id = my_info.org_id
+        INNER JOIN employee e ON e.employee_id = member_info.employee_id
+        LEFT JOIN organization o ON o.org_id = member_info.org_id
+        INNER JOIN performance p ON p.employee_id = e.employee_id
+        WHERE my_info.employee_id = #{employeeId}
+          AND (#{teamName} IS NULL OR o.org_name = #{teamName})
+        ORDER BY e.employee_id, p.created_at DESC
+    </select>
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.PeerReviewMapper">
+    <insert id="savePeerReview"
+            parameterType="com.reverse.performance.internal.dto.request.PeerReviewRequest">
+        INSERT INTO peer_review(
+            eval_id, reviewer_id, communication_Score,
+            solving_score, responsibility_score, team_contribution, culture_contribution,
+            comment, eval_year, created_at
+        )VALUES (
+            #{evalId}, #{reviewerId}, #{communicationScore},
+            #{solvingScore}, #{responsibilityScore}, #{teamContribution}, #{cultureContribution},
+            #{comment}, #{evalYear}, NOW()
+            )
+    </insert>
+
+    <select id="countByEvalIdAndReviewerId" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM peer_review
+        WHERE eval_id = #{evalId}
+          AND reviewer_id = #{reviewerId}
+    </select>
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.CheckPerformanceMapper">
+    <select id="findPersonalPerformance"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.dto.response.PersonalPerformanceResponse">
+        SELECT p.start_date, p.end_date, p.achievement_rate, p.work_detail, p.comment
+        FROM performance p
+        <where>
+            p.employee_id = #{id}
+            <if test="workItem != null">
+                AND p.work_item = #{workItem, typeHandler=org.apache.ibatis.type.EnumTypeHandler}
+            </if>
+            <if test="workItem == null">
+                AND p.work_item = 'PERSONAL'
+            </if>
+        </where>
+    </select>
+
+    <select id="findTeamPerformance"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.dto.response.TeamPerformanceResponse">
+        SELECT p.start_date, p.end_date, p.achievement_rate, p.work_detail, p.comment
+        FROM performance p
+        WHERE p.employee_id = #{id}
+          AND p.work_item = 'TEAM'
+    </select>
+</mapper>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.ConfirmUpdateMapper">
+    <update id="updatePerformance"
+            parameterType="map">
+        UPDATE performance
+        SET end_date = COALESCE(end_date, NOW()),
+            status = 'ENDED'
+        WHERE performance_id = #{performanceId}
+          AND EXISTS (
+              SELECT 1
+              FROM evaluation e
+              WHERE e.employee_id = performance.employee_id
+                AND e.evaluator_id = #{evaluatorId}
+          )
+    </update>
+</mapper>

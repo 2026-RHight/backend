@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.WaitingPerformanceMapper">
+    <select id="findWaitingPerformance"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.dto.response.AppraiseePerformance">
+        SELECT #{employeeId} AS evaluator_id,
+               p.employee_id,
+               p.title,
+               p.start_date,
+               p.end_date,
+               DATE(p.created_at) AS created_at,
+               p.work_item,
+               p.achievement_rate,
+               p.work_detail
+        FROM performance p
+        WHERE EXISTS (
+                SELECT 1
+                FROM evaluation e
+                WHERE e.employee_id = p.employee_id
+                  AND e.evaluator_id = #{employeeId}
+        )
+          AND p.status = 'WAITING'
+        ORDER BY p.created_at DESC
+    </select>
+</mapper>
