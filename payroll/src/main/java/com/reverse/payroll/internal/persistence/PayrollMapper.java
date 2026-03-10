@@ -32,7 +32,7 @@ public interface PayrollMapper {
 
     // 특정 사원급여 명세서 조회
     Optional<PayrollLedger> findPayrollLedgerByYearMonth(
-            @Param("employeeId") Long employeeId, @Param("yearMonth") String yearMonth);
+            @Param("employeeId") Long employeeId, @Param("targetMonth") String targetMonth);
 
     // 급여대장 저장
     void insertPayrollLedger(PayrollLedger payrollLedger);

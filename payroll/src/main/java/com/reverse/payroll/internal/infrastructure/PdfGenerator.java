@@ -1,10 +1,12 @@
 package com.reverse.payroll.internal.infrastructure;
 
+import com.lowagie.text.pdf.BaseFont;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -26,16 +28,23 @@ public class PdfGenerator {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             ITextRenderer renderer = new ITextRenderer();
 
-            // 한글 폰트 설정 (폰트 파일이 실존해야 함)
-            // 실제 운영시에는 /resources/fonts/NanumGothic.ttf 와 같이 폰트 파일을 포함시켜야 합니다.
+            // 한글 폰트 설정
             try {
                 ITextFontResolver fontResolver = renderer.getFontResolver();
-                String fontPath = "fonts/NanumGothic.ttf"; // resources 기준 경로 예시
-                // fontResolver.addFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-                log.info(
-                        "PDF Font Resolver initialized. Note: Korean support requires .ttf font registration.");
+                // 폰트 파일은 src/main/resources/fonts/nanum.ttf 에 위치해야 함 (AppleGothic.ttf 복사본)
+                ClassPathResource fontResource = new ClassPathResource("fonts/nanum.ttf");
+                if (fontResource.exists()) {
+                    String fontPath = fontResource.getURL().toString();
+                    // 'NanumGothic'은 HTML의 font-family와 일치해야 함 (TTF 내부의 이름이 사용됨)
+                    fontResolver.addFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+                    log.info("PDF Font registered: NanumGothic from {}", fontPath);
+                } else {
+                    throw new IllegalStateException(
+                            "PDF 한글 폰트 파일을 찾을 수 없습니다. (classpath:fonts/nanum.ttf)");
+                }
             } catch (Exception e) {
-                log.warn("Failed to register custom font for PDF: {}", e.getMessage());
+                if (e instanceof IllegalStateException) throw (IllegalStateException) e;
+                throw new IllegalStateException("PDF 한글 폰트 등록에 실패했습니다.", e);
             }
 
             renderer.setDocumentFromString(htmlContent);

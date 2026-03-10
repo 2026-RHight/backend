@@ -54,7 +54,7 @@
             COUNT(CASE WHEN status = 'VACATION' THEN 1 END) as vacationCount
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{yearMonth}
+        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
     </select>
 
     <select id="findMonthlyRecords" resultType="com.reverse.attendance.internal.domain.Attendance">
@@ -69,7 +69,7 @@
             modify_reason as modifyReason
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{yearMonth}
+        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>

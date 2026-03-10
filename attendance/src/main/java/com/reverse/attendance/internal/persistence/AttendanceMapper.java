@@ -22,12 +22,12 @@ public interface AttendanceMapper {
 
     // 특정 월의 상태별 통계 조회
     AttendanceSummaryResponse countMonthlySummary(
-            @Param("employeeId") Long employeeId, @Param("yearMonth") String yearMonth);
+            @Param("employeeId") Long employeeId, @Param("targetMonth") String targetMonth);
 
     // 특정 월의 근태 기록 리스트 조회
     List<Attendance> findMonthlyRecords(
             @Param("employeeId") Long employeeId,
-            @Param("yearMonth") String yearMonth,
+            @Param("targetMonth") String targetMonth,
             @Param("status") String status);
 
     // 급여 정산용 근태 통계 조회
