@@ -32,6 +32,7 @@
             work_form as workForm,
             schedule_title as scheduleTitle,
             memo as memo,
+            reject_reason as rejectReason,
             created_at as createdAt,
             updated_at as updatedAt
         FROM weekly_work_schedule
@@ -49,12 +50,33 @@
             work_form as workForm,
             schedule_title as scheduleTitle,
             memo as memo,
+            reject_reason as rejectReason,
             created_at as createdAt,
             updated_at as updatedAt
         FROM weekly_work_schedule
         WHERE employee_id = #{employeeId}
         ORDER BY start_date DESC, weekly_id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findByEmployeeIdAndPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            reject_reason as rejectReason,
+            created_at as createdAt,
+            updated_at as updatedAt
+        FROM weekly_work_schedule
+        WHERE employee_id = #{employeeId}
+          AND plan_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY plan_date ASC, weekly_id ASC
     </select>
 
     <select id="findApprovedByEmployeeIdAndPlanDate" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
@@ -68,6 +90,7 @@
             work_form as workForm,
             schedule_title as scheduleTitle,
             memo as memo,
+            reject_reason as rejectReason,
             created_at as createdAt,
             updated_at as updatedAt
         FROM weekly_work_schedule
@@ -87,6 +110,10 @@
     <update id="updateStatusIfPending">
         UPDATE weekly_work_schedule
         SET approval_status = #{approvalStatus},
+            reject_reason = CASE
+                WHEN #{approvalStatus} = 'REJECTED' THEN #{rejectReason}
+                ELSE NULL
+            END,
             updated_at = NOW()
         WHERE weekly_id = #{weeklyId}
         AND approval_status = 'PENDING'
@@ -94,25 +121,59 @@
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
-            weekly_id as weeklyId,
-            employee_id as employeeId,
-            start_date as startDate,
-            end_date as endDate,
-            approval_status as approvalStatus,
-            plan_date as planDate,
-            work_form as workForm,
-            schedule_title as scheduleTitle,
-            memo as memo,
-            created_at as createdAt,
-            updated_at as updatedAt
-        FROM weekly_work_schedule
+            w.weekly_id as weeklyId,
+            w.employee_id as employeeId,
+            w.start_date as startDate,
+            w.end_date as endDate,
+            w.approval_status as approvalStatus,
+            w.plan_date as planDate,
+            w.work_form as workForm,
+            w.schedule_title as scheduleTitle,
+            w.memo as memo,
+            w.reject_reason as rejectReason,
+            e.employee_name as employeeName,
+            COALESCE(o.org_name, '미소속') as departmentName,
+            COALESCE(p.position_name, '직원') as positionName,
+            w.created_at as createdAt,
+            w.updated_at as updatedAt
+        FROM weekly_work_schedule w
+        JOIN employee e ON e.employee_id = w.employee_id
+        LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
         <where>
             <if test="status != null and status != ''">
-                approval_status = #{status}
+                w.approval_status = #{status}
             </if>
         </where>
-        ORDER BY start_date DESC, weekly_id DESC
+        ORDER BY w.start_date DESC, w.weekly_id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findTeamSchedulesByPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            w.weekly_id as weeklyId,
+            w.employee_id as employeeId,
+            w.start_date as startDate,
+            w.end_date as endDate,
+            w.approval_status as approvalStatus,
+            w.plan_date as planDate,
+            w.work_form as workForm,
+            w.schedule_title as scheduleTitle,
+            w.memo as memo,
+            w.reject_reason as rejectReason,
+            e.employee_name as employeeName,
+            COALESCE(o.org_name, '미소속') as departmentName,
+            COALESCE(p.position_name, '직원') as positionName,
+            w.created_at as createdAt,
+            w.updated_at as updatedAt
+        FROM weekly_work_schedule w
+        JOIN employee e ON e.employee_id = w.employee_id
+        LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        WHERE w.plan_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY w.plan_date ASC, e.employee_name ASC, w.weekly_id ASC
     </select>
 
     <select id="countAll" resultType="long">

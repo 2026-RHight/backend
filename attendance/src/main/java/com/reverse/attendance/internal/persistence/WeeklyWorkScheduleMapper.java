@@ -25,10 +25,19 @@ public interface WeeklyWorkScheduleMapper {
             @Param("limit") int limit,
             @Param("offset") int offset);
 
+    List<WeeklyWorkSchedule> findByEmployeeIdAndPlanDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
+
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     List<WeeklyWorkSchedule> findAll(
             @Param("status") String status, @Param("limit") int limit, @Param("offset") int offset);
+
+    List<WeeklyWorkSchedule> findTeamSchedulesByPlanDateRange(
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
 
     long countAll(@Param("status") String status);
 

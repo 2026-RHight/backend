@@ -19,6 +19,10 @@ public class WeeklyWorkSchedule {
     private String workForm; // OFFICE, REMOTE 등
     private String scheduleTitle;
     private String memo;
+    private String rejectReason;
+    private String employeeName;
+    private String departmentName;
+    private String positionName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -33,6 +37,10 @@ public class WeeklyWorkSchedule {
             String workForm,
             String scheduleTitle,
             String memo,
+            String rejectReason,
+            String employeeName,
+            String departmentName,
+            String positionName,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
 
@@ -45,6 +53,10 @@ public class WeeklyWorkSchedule {
         this.workForm = workForm;
         this.scheduleTitle = scheduleTitle;
         this.memo = memo;
+        this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
+        this.departmentName = departmentName;
+        this.positionName = positionName;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }

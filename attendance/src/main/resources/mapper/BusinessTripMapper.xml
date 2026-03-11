@@ -30,6 +30,18 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="findByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
+        SELECT
+            trip_id as tripId, employee_id as employeeId, trip_type as tripType,
+            destination as destination, start_datetime as startDatetime, end_datetime as endDatetime,
+            reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
+        FROM business_trip_request
+        WHERE employee_id = #{employeeId}
+          AND start_datetime &lt;= #{endDate}
+          AND end_datetime &gt;= #{startDate}
+        ORDER BY start_datetime ASC, trip_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM business_trip_request
