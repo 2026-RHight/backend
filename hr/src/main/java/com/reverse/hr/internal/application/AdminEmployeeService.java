@@ -8,6 +8,8 @@ import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.domain.enums.RecruitType;
 import com.reverse.hr.internal.domain.enums.SensitiveFieldType;
+import com.reverse.hr.internal.dto.request.AdminEmployeeCreateRequestDTO;
+import com.reverse.hr.internal.dto.response.AdminEmployeeCreateResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeListItemResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminSensitiveValueResponseDTO;
@@ -18,8 +20,17 @@ import com.reverse.hr.internal.persistence.row.AdminEmployeeDetailRow;
 import com.reverse.hr.internal.persistence.row.CareerItemRow;
 import com.reverse.hr.internal.persistence.row.HrFileRow;
 import com.reverse.hr.internal.persistence.row.SkillItemRow;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,9 +39,117 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminEmployeeService {
 
+    private static final String DEFAULT_EVALUATEE_ROLE_CODE = "EVALUATEE";
+    private static final String DEFAULT_PROFILE_FILE_URL =
+            "https://static.rhight.local/profiles/default.png";
+    private static final String DEFAULT_PROFILE_FILE_TITLE = "기본 프로필 이미지";
+    private static final String EMPLOYEE_NUM_DATE_PATTERN = "%1$ty%1$tm%1$td";
+    private static final int TEMP_PASSWORD_LENGTH = 14;
+    private static final String TEMP_PASSWORD_CHARS =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
+
     private final AdminEmployeeMapper adminEmployeeMapper;
     private final MyPageMapper myPageMapper;
     private final FieldCryptoService fieldCryptoService;
+    private final ResidentHashService residentHashService;
+    private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Transactional
+    public AdminEmployeeCreateResponseDTO createEmployee(AdminEmployeeCreateRequestDTO request) {
+        validateReferenceIds(
+                request.orgId(),
+                request.jobId(),
+                request.positionId(),
+                request.rankId(),
+                request.areaId());
+
+        Long evaluateeRoleId = adminEmployeeMapper.findRoleIdByCode(DEFAULT_EVALUATEE_ROLE_CODE);
+        if (evaluateeRoleId == null) {
+            throw new IllegalStateException("기본 권한(EVALUATEE)을 찾을 수 없습니다.");
+        }
+
+        Set<Long> roleIds =
+                request.roleIds().stream()
+                        .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+        roleIds.add(evaluateeRoleId);
+        validateRoleIds(roleIds);
+
+        String employeeNum = generateEmployeeNum(request.hireDate());
+        String tempPassword = generateTempPassword();
+        String encodedPassword = passwordEncoder.encode(tempPassword);
+
+        String accountEnc = fieldCryptoService.encrypt(request.accountNumber());
+        String accountHash = sha256(request.accountNumber());
+        String residentEnc = fieldCryptoService.encrypt(request.residentNumber());
+        String residentHash = residentHashService.hash(request.residentNumber());
+
+        adminEmployeeMapper.insertDefaultProfileFile(
+                DEFAULT_PROFILE_FILE_URL, DEFAULT_PROFILE_FILE_TITLE);
+        Long profileId = adminEmployeeMapper.findLastInsertedHrFileId();
+        if (profileId == null || profileId < 1) {
+            throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.");
+        }
+
+        int insertedEmployee =
+                adminEmployeeMapper.insertEmployee(
+                        employeeNum,
+                        request.employeeName(),
+                        encodedPassword,
+                        request.phone(),
+                        request.extensionNum(),
+                        request.email(),
+                        request.address(),
+                        request.birthDate(),
+                        request.bankName(),
+                        accountEnc,
+                        accountHash,
+                        residentEnc,
+                        residentHash,
+                        true,
+                        request.employeeState(),
+                        request.hireDate(),
+                        profileId);
+        if (insertedEmployee != 1) {
+            throw new IllegalStateException("사원 기본 정보 저장 중 오류가 발생했습니다.");
+        }
+
+        Long employeeId = adminEmployeeMapper.findLastInsertedEmployeeId();
+        if (employeeId == null || employeeId < 1) {
+            throw new IllegalStateException("사원 ID 생성 중 오류가 발생했습니다.");
+        }
+
+        int insertedHrInfo =
+                adminEmployeeMapper.insertEmployeeHrInfo(
+                        employeeId,
+                        request.orgId(),
+                        request.hireDate(),
+                        request.positionId(),
+                        request.rankId(),
+                        request.jobId(),
+                        request.employType(),
+                        request.recruitType(),
+                        request.areaId());
+        if (insertedHrInfo != 1) {
+            throw new IllegalStateException("인사 정보 저장 중 오류가 발생했습니다.");
+        }
+
+        for (Long roleId : roleIds) {
+            int insertedRole = adminEmployeeMapper.insertEmployeeRole(employeeId, roleId);
+            if (insertedRole != 1) {
+                throw new IllegalStateException("권한 저장 중 오류가 발생했습니다.");
+            }
+        }
+
+        int insertedPasswordHistory =
+                adminEmployeeMapper.insertPasswordHistory(employeeId, encodedPassword);
+        if (insertedPasswordHistory != 1) {
+            throw new IllegalStateException("비밀번호 이력 저장 중 오류가 발생했습니다.");
+        }
+
+        return new AdminEmployeeCreateResponseDTO(
+                employeeId, employeeNum, request.employeeName(), true);
+    }
 
     public PageResponse<AdminEmployeeListItemResponseDTO> getEmployees(
             String keyword,
@@ -264,5 +383,70 @@ public class AdminEmployeeService {
         String prefix = digits.substring(0, 3);
         String suffix = digits.substring(digits.length() - 4);
         return prefix + "-****-****-" + suffix;
+    }
+
+    private void validateReferenceIds(
+            Long orgId, Long jobId, Long positionId, Long rankId, Long areaId) {
+        if (adminEmployeeMapper.existsOrganization(orgId) != 1) {
+            throw new NotFoundException("ORG_NOT_FOUND", "유효한 조직이 아닙니다.");
+        }
+        if (adminEmployeeMapper.existsJob(jobId) != 1) {
+            throw new NotFoundException("JOB_NOT_FOUND", "유효한 직무가 아닙니다.");
+        }
+        if (adminEmployeeMapper.existsPosition(positionId) != 1) {
+            throw new NotFoundException("POSITION_NOT_FOUND", "유효한 직책이 아닙니다.");
+        }
+        if (adminEmployeeMapper.existsRank(rankId) != 1) {
+            throw new NotFoundException("RANK_NOT_FOUND", "유효한 직급이 아닙니다.");
+        }
+        if (adminEmployeeMapper.existsWorkingArea(areaId) != 1) {
+            throw new NotFoundException("AREA_NOT_FOUND", "유효한 근무지가 아닙니다.");
+        }
+    }
+
+    private void validateRoleIds(Set<Long> roleIds) {
+        if (roleIds.isEmpty()) {
+            throw new IllegalArgumentException("최소 1개 이상의 권한이 필요합니다.");
+        }
+        for (Long roleId : roleIds) {
+            if (roleId == null || roleId < 1 || adminEmployeeMapper.existsRole(roleId) != 1) {
+                throw new NotFoundException("ROLE_NOT_FOUND", "유효하지 않은 권한이 포함되어 있습니다.");
+            }
+        }
+    }
+
+    private String generateEmployeeNum(LocalDate hireDate) {
+        String datePrefix = String.format(Locale.KOREA, EMPLOYEE_NUM_DATE_PATTERN, hireDate);
+        for (int i = 0; i < 50; i++) {
+            int suffix = secureRandom.nextInt(10_000);
+            String employeeNum = datePrefix + String.format(Locale.KOREA, "%04d", suffix);
+            if (adminEmployeeMapper.existsEmployeeNum(employeeNum) == 0) {
+                return employeeNum;
+            }
+        }
+        throw new IllegalStateException("사번 생성에 실패했습니다. 다시 시도해주세요.");
+    }
+
+    private String generateTempPassword() {
+        StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            int index = secureRandom.nextInt(TEMP_PASSWORD_CHARS.length());
+            builder.append(TEMP_PASSWORD_CHARS.charAt(index));
+        }
+        return builder.toString();
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashed) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("해시 알고리즘 초기화에 실패했습니다.", e);
+        }
     }
 }

@@ -7,7 +7,9 @@ import com.reverse.hr.internal.application.AdminEmployeeService;
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.SensitiveFieldType;
+import com.reverse.hr.internal.dto.request.AdminEmployeeCreateRequestDTO;
 import com.reverse.hr.internal.dto.request.AdminEmployeeRevealRequestDTO;
+import com.reverse.hr.internal.dto.response.AdminEmployeeCreateResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeListItemResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminSensitiveValueResponseDTO;
@@ -28,6 +30,14 @@ import org.springframework.web.bind.annotation.*;
 public class AdminEmployeeController {
 
     private final AdminEmployeeService adminEmployeeService;
+
+    @PostMapping
+    @Operation(summary = "인사관리자 신규 사원 등록")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC')")
+    public ApiResponse<AdminEmployeeCreateResponseDTO> createEmployee(
+            @Valid @RequestBody AdminEmployeeCreateRequestDTO request) {
+        return ApiResponse.success(adminEmployeeService.createEmployee(request));
+    }
 
     @GetMapping
     @Operation(summary = "인사관리자 전 사원 목록 조회")

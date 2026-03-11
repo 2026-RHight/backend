@@ -17,6 +17,7 @@ import com.reverse.hr.internal.persistence.row.InitializeUserRow;
 import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
 import com.reverse.hr.internal.persistence.row.LoginViewRow;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,10 @@ public class AuthService {
                                                 "아이디 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(request.password(), user.password())) {
+            throw new UnauthorizedException(
+                    AuthErrorCode.AUTH_LOGIN_FAILED, "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
+        if (user.hireDate() != null && user.hireDate().isAfter(LocalDate.now())) {
             throw new UnauthorizedException(
                     AuthErrorCode.AUTH_LOGIN_FAILED, "아이디 또는 비밀번호가 올바르지 않습니다.");
         }

@@ -5,6 +5,160 @@
 
 <mapper namespace="com.reverse.hr.internal.persistence.AdminEmployeeMapper">
 
+    <select id="existsOrganization" resultType="int">
+        SELECT COUNT(*)
+        FROM organization
+        WHERE org_id = #{orgId}
+          AND is_active = TRUE
+    </select>
+
+    <select id="existsJob" resultType="int">
+        SELECT COUNT(*)
+        FROM job
+        WHERE job_id = #{jobId}
+    </select>
+
+    <select id="existsPosition" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_position
+        WHERE position_id = #{positionId}
+    </select>
+
+    <select id="existsRank" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_rank
+        WHERE rank_id = #{rankId}
+    </select>
+
+    <select id="existsWorkingArea" resultType="int">
+        SELECT COUNT(*)
+        FROM working_area
+        WHERE area_id = #{areaId}
+    </select>
+
+    <select id="existsRole" resultType="int">
+        SELECT COUNT(*)
+        FROM role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <select id="findRoleIdByCode" resultType="long">
+        SELECT role_id
+        FROM role
+        WHERE role_code = #{roleCode}
+        LIMIT 1
+    </select>
+
+    <select id="existsEmployeeNum" resultType="int">
+        SELECT COUNT(*)
+        FROM employee
+        WHERE employee_num = #{employeeNum}
+    </select>
+
+    <insert id="insertDefaultProfileFile">
+        INSERT INTO hr_file (
+            file_url,
+            file_title
+        ) VALUES (
+            #{fileUrl},
+            #{fileTitle}
+        )
+    </insert>
+
+    <select id="findLastInsertedHrFileId" resultType="long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <insert id="insertEmployee">
+        INSERT INTO employee (
+            employee_num,
+            employee_name,
+            employee_password,
+            phone,
+            ext,
+            email,
+            address,
+            birth_date,
+            bank_name,
+            account_number_enc,
+            account_number_hash,
+            resident_number_enc,
+            resident_number_hash,
+            initial_state,
+            employ_state,
+            hire_date,
+            profile_id
+        ) VALUES (
+            #{employeeNum},
+            #{employeeName},
+            #{employeePassword},
+            #{phone},
+            #{extensionNum},
+            #{email},
+            #{address},
+            #{birthDate},
+            #{bankName},
+            #{accountNumberEnc},
+            #{accountNumberHash},
+            #{residentNumberEnc},
+            #{residentNumberHash},
+            #{initialState},
+            #{employeeState},
+            #{hireDate},
+            #{profileId}
+        )
+    </insert>
+
+    <select id="findLastInsertedEmployeeId" resultType="long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <insert id="insertEmployeeHrInfo">
+        INSERT INTO employee_hr_info (
+            employee_id,
+            org_id,
+            effective_from,
+            position_id,
+            rank_id,
+            job_id,
+            employ_type,
+            recruit_type,
+            area_id
+        ) VALUES (
+            #{employeeId},
+            #{orgId},
+            #{effectiveFrom},
+            #{positionId},
+            #{rankId},
+            #{jobId},
+            #{employType},
+            #{recruitType},
+            #{areaId}
+        )
+    </insert>
+
+    <insert id="insertEmployeeRole">
+        INSERT INTO employee_role (
+            employee_id,
+            role_id
+        ) VALUES (
+            #{employeeId},
+            #{roleId}
+        )
+    </insert>
+
+    <insert id="insertPasswordHistory">
+        INSERT INTO password_history (
+            employee_id,
+            password_hash,
+            change_at
+        ) VALUES (
+            #{employeeId},
+            #{passwordHash},
+            NOW()
+        )
+    </insert>
+
     <sql id="employeeFilter">
         <where>
             <if test="keyword != null and keyword != ''">
