@@ -279,6 +279,8 @@ public class AttendanceSyncService {
                         .afterCheckInTime(after != null ? after.getCheckInTime() : null)
                         .beforeCheckOutTime(before != null ? before.getCheckOutTime() : null)
                         .afterCheckOutTime(after != null ? after.getCheckOutTime() : null)
+                        .beforeTardyReason(before != null ? before.getTardyReason() : null)
+                        .afterTardyReason(after != null ? after.getTardyReason() : null)
                         .beforeStatus(before != null ? before.getStatus() : null)
                         .afterStatus(after != null ? after.getStatus() : null)
                         .beforeClosed(before != null ? before.getClosed() : null)

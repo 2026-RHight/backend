@@ -113,11 +113,16 @@ public class OvertimeService {
 
     @Transactional(readOnly = true)
     public PageResponse<OvertimeResponse> getAllOvertimes(String status, int page, int size) {
-        if (status != null && !status.trim().isEmpty()) {
-            try {
-                ApprovalStatus.valueOf(status);
-            } catch (IllegalArgumentException e) {
-                throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
             }
         }
         page = Math.max(1, page);
@@ -173,7 +178,14 @@ public class OvertimeService {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
         if (request.isApprove()) {
-            attendanceSyncService.syncApprovedOvertime(overtime);
+            Overtime approvedOvertime =
+                    overtimeMapper
+                            .findById(overtime.getOvertimeId())
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "승인된 연장근무 신청 내역을 다시 조회할 수 없습니다."));
+            attendanceSyncService.syncApprovedOvertime(approvedOvertime);
         }
     }
 }

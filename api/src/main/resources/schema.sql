@@ -199,6 +199,8 @@ CREATE TABLE IF NOT EXISTS attendance_history (
     after_check_in_time TIME NULL,
     before_check_out_time TIME NULL,
     after_check_out_time TIME NULL,
+    before_tardy_reason VARCHAR(255) NULL,
+    after_tardy_reason VARCHAR(255) NULL,
     before_status VARCHAR(20) NULL,
     after_status VARCHAR(20) NULL,
     before_closed BOOLEAN NULL,
@@ -212,6 +214,8 @@ CREATE TABLE IF NOT EXISTS attendance_history (
 );
 
 ALTER TABLE attendance_history
+    ADD COLUMN IF NOT EXISTS before_tardy_reason VARCHAR(255) NULL AFTER after_check_out_time,
+    ADD COLUMN IF NOT EXISTS after_tardy_reason VARCHAR(255) NULL AFTER before_tardy_reason,
     ADD COLUMN IF NOT EXISTS before_closed BOOLEAN NULL AFTER after_status,
     ADD COLUMN IF NOT EXISTS after_closed BOOLEAN NULL AFTER before_closed;
 
@@ -240,6 +244,30 @@ ALTER TABLE attendance_policy
     ADD COLUMN IF NOT EXISTS std_end_time TIME NULL AFTER std_start_time,
     ADD COLUMN IF NOT EXISTS break_time_start TIME NULL AFTER core_time_end,
     ADD COLUMN IF NOT EXISTS break_time_end TIME NULL AFTER break_time_start;
+
+DELETE ap1
+FROM attendance_policy ap1
+JOIN attendance_policy ap2
+    ON ap1.employee_id = ap2.employee_id
+   AND ap1.policy_id > ap2.policy_id
+WHERE ap1.employee_id IS NOT NULL;
+
+DELETE FROM attendance_policy
+WHERE employee_id IS NULL;
+
+UPDATE attendance_policy
+SET std_start_time = COALESCE(std_start_time, '09:00:00'),
+    std_end_time = COALESCE(std_end_time, '18:00:00')
+WHERE std_start_time IS NULL
+   OR std_end_time IS NULL;
+
+ALTER TABLE attendance_policy
+    MODIFY COLUMN employee_id BIGINT NOT NULL,
+    MODIFY COLUMN std_start_time TIME NOT NULL,
+    MODIFY COLUMN std_end_time TIME NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_attendance_policy_employee
+    ON attendance_policy (employee_id);
 
 -- 휴가 신청 내역
 CREATE TABLE IF NOT EXISTS leave_request (

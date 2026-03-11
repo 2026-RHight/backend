@@ -120,11 +120,16 @@ public class WeeklyWorkScheduleService {
     @Transactional(readOnly = true)
     public PageResponse<WeeklyWorkScheduleResponse> getAllSchedules(
             String status, int page, int size) {
-        if (status != null && !status.trim().isEmpty()) {
-            try {
-                ApprovalStatus.valueOf(status);
-            } catch (IllegalArgumentException e) {
-                throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
             }
         }
         page = Math.max(1, page);
@@ -160,11 +165,6 @@ public class WeeklyWorkScheduleService {
 
         ApprovalStatus newStatus =
                 request.isApprove() ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED;
-
-        if (!request.isApprove() && (schedule.getApprovalStatus() == ApprovalStatus.APPROVED)) {
-            throw new com.reverse.core.exception.BadRequestException(
-                    "이미 승인된 유연근무는 반려로 되돌릴 수 없습니다.");
-        }
 
         WeeklyWorkSchedule processedSchedule =
                 WeeklyWorkSchedule.builder()

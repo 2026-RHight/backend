@@ -4,11 +4,13 @@ import com.reverse.payroll.internal.domain.PayrollLedger;
 import com.reverse.payroll.internal.domain.SalarySetting;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 public class PayrollDetailResponse {
+    private static final int PAYMENT_DAY = 25;
 
     private Long id;
     private String yearMonth;
@@ -112,8 +114,7 @@ public class PayrollDetailResponse {
                 ledger.getAccountHolderSnapshot() != null
                         ? ledger.getAccountHolderSnapshot()
                         : (salarySetting != null ? salarySetting.getAccountHolder() : null);
-        String paymentDate =
-                LocalDate.parse(ledger.getTargetMonth() + "-01").withDayOfMonth(25).toString();
+        String paymentDate = resolvePaymentDate(ledger.getTargetMonth());
 
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
@@ -138,6 +139,14 @@ public class PayrollDetailResponse {
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
                 .build();
+    }
+
+    private static String resolvePaymentDate(String targetMonth) {
+        try {
+            return LocalDate.parse(targetMonth + "-01").withDayOfMonth(PAYMENT_DAY).toString();
+        } catch (DateTimeParseException e) {
+            throw new IllegalStateException("잘못된 급여 대상 월 형식입니다: " + targetMonth, e);
+        }
     }
 
     private static BigDecimal safeAdd(BigDecimal... values) {

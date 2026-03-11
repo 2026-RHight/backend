@@ -111,11 +111,16 @@ public class BusinessTripService {
     // 팀원 전체 내역 조회 (관리자용)
     @Transactional(readOnly = true)
     public PageResponse<BusinessTripResponse> getAllTrips(String status, int page, int size) {
-        if (status != null && !status.trim().isEmpty()) {
-            try {
-                ApprovalStatus.valueOf(status);
-            } catch (IllegalArgumentException e) {
-                throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
             }
         }
         page = Math.max(1, page);
@@ -172,7 +177,11 @@ public class BusinessTripService {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
         if (request.isApprove()) {
-            attendanceSyncService.syncApprovedBusinessTrip(trip);
+            BusinessTrip approvedTrip =
+                    businessTripMapper
+                            .findById(trip.getTripId())
+                            .orElseThrow(() -> new IllegalStateException("승인된 출장 정보를 찾을 수 없습니다."));
+            attendanceSyncService.syncApprovedBusinessTrip(approvedTrip);
         }
     }
 }

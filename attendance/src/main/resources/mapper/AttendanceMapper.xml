@@ -2,7 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.reverse.attendance.internal.persistence.AttendanceMapper">
+    <mapper namespace="com.reverse.attendance.internal.persistence.AttendanceMapper">
+
+    <sql id="monthRangeCondition">
+        work_date &gt;= CONCAT(#{targetMonth}, '-01')
+        AND work_date &lt; DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
+    </sql>
 
     <insert id="insertCheckIn" useGeneratedKeys="true" keyProperty="attendanceId">
         INSERT INTO attendance_record (
@@ -88,7 +93,7 @@
             holiday_work_hours as holidayWorkHours,
             is_unpaid_leave as unpaidLeave
         FROM attendance_record
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        WHERE <include refid="monthRangeCondition"/>
         ORDER BY work_date ASC, attendance_id ASC
     </select>
 
@@ -130,7 +135,7 @@
             holiday_work_hours as holidayWorkHours,
             is_unpaid_leave as unpaidLeave
         FROM attendance_record
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        WHERE <include refid="monthRangeCondition"/>
           AND check_in_time IS NOT NULL
           AND check_out_time IS NULL
           AND COALESCE(is_closed, FALSE) = FALSE
@@ -165,7 +170,7 @@
             COUNT(CASE WHEN status IN ('VACATION', 'HALF_VACATION') THEN 1 END) as vacationCount
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        AND <include refid="monthRangeCondition"/>
     </select>
 
     <select id="countCompanyMonthlySummary" resultType="com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse">
@@ -176,7 +181,7 @@
             COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absentCount,
             COUNT(CASE WHEN status IN ('VACATION', 'HALF_VACATION') THEN 1 END) as vacationCount
         FROM attendance_record
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        WHERE <include refid="monthRangeCondition"/>
     </select>
 
     <select id="findMonthlyRecords" resultType="com.reverse.attendance.internal.domain.Attendance">
@@ -196,7 +201,7 @@
             is_unpaid_leave as unpaidLeave
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        AND <include refid="monthRangeCondition"/>
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
@@ -245,7 +250,8 @@
             JOIN employee e ON e.employee_id = ar.employee_id
             LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
             LEFT JOIN organization o ON o.org_id = h.org_id
-            WHERE DATE_FORMAT(ar.work_date, '%Y-%m') = #{targetMonth}
+            WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
+              AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
             GROUP BY ar.employee_id, e.employee_name, o.org_name
         ) s
         LEFT JOIN (
@@ -283,7 +289,8 @@
                         + COALESCE(ar.holiday_work_hours, 0)
                     ), 2) as weeklyHours
                 FROM attendance_record ar
-                WHERE DATE_FORMAT(ar.work_date, '%Y-%m') = #{targetMonth}
+                WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
+                  AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
                 GROUP BY ar.employee_id, YEARWEEK(ar.work_date, 1)
             ) weekly
             GROUP BY weekly.employee_id
@@ -297,7 +304,8 @@
         FROM (
             SELECT ar.employee_id
             FROM attendance_record ar
-            WHERE DATE_FORMAT(ar.work_date, '%Y-%m') = #{targetMonth}
+            WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
+              AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
             GROUP BY ar.employee_id
         ) t
     </select>
@@ -337,7 +345,7 @@
         UPDATE attendance_record
         SET status = 'EARLY_LEAVE',
             modify_reason = 'Monthly Close Auto Closed'
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        WHERE <include refid="monthRangeCondition"/>
           AND check_in_time IS NOT NULL
           AND check_out_time IS NULL
           AND COALESCE(is_closed, FALSE) = FALSE
@@ -350,21 +358,28 @@
                 WHEN modify_reason IS NULL OR modify_reason = '' THEN 'Monthly Close Finalized'
                 ELSE modify_reason
             END
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        WHERE <include refid="monthRangeCondition"/>
           AND COALESCE(is_closed, FALSE) = FALSE
     </update>
 
     <update id="reopenMonthlyRecords">
         UPDATE attendance_record
-        SET is_closed = FALSE
-        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        SET is_closed = FALSE,
+            modify_reason = CASE
+                WHEN modify_reason IS NULL OR modify_reason = '' THEN 'Monthly Reopen Finalized'
+                ELSE CONCAT(modify_reason, ' | Monthly Reopen Finalized')
+            END
+        WHERE <include refid="monthRangeCondition"/>
           AND COALESCE(is_closed, FALSE) = TRUE
     </update>
 
     <update id="updateOvertimeHours">
         UPDATE attendance_record
         SET overtime_hours = #{overtimeHours},
-            modify_reason = #{modifyReason}
+            modify_reason = CASE
+                WHEN modify_reason IS NULL OR modify_reason = '' THEN #{modifyReason}
+                ELSE CONCAT(modify_reason, ' | ', #{modifyReason})
+            END
         WHERE employee_id = #{employeeId}
           AND work_date = #{workDate}
           AND COALESCE(is_closed, FALSE) = FALSE

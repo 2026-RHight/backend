@@ -23,6 +23,8 @@ public class AttendanceHistoryResponse {
     private LocalTime afterCheckInTime;
     private LocalTime beforeCheckOutTime;
     private LocalTime afterCheckOutTime;
+    private String beforeTardyReason;
+    private String afterTardyReason;
     private AttendanceStatus beforeStatus;
     private AttendanceStatus afterStatus;
     private Boolean beforeClosed;
@@ -42,6 +44,8 @@ public class AttendanceHistoryResponse {
                 .afterCheckInTime(history.getAfterCheckInTime())
                 .beforeCheckOutTime(history.getBeforeCheckOutTime())
                 .afterCheckOutTime(history.getAfterCheckOutTime())
+                .beforeTardyReason(history.getBeforeTardyReason())
+                .afterTardyReason(history.getAfterTardyReason())
                 .beforeStatus(history.getBeforeStatus())
                 .afterStatus(history.getAfterStatus())
                 .beforeClosed(history.getBeforeClosed())

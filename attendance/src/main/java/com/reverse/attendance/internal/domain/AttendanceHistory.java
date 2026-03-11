@@ -23,6 +23,8 @@ public class AttendanceHistory {
     private LocalTime afterCheckInTime;
     private LocalTime beforeCheckOutTime;
     private LocalTime afterCheckOutTime;
+    private String beforeTardyReason;
+    private String afterTardyReason;
     private AttendanceStatus beforeStatus;
     private AttendanceStatus afterStatus;
     private Boolean beforeClosed;
@@ -42,6 +44,8 @@ public class AttendanceHistory {
             LocalTime afterCheckInTime,
             LocalTime beforeCheckOutTime,
             LocalTime afterCheckOutTime,
+            String beforeTardyReason,
+            String afterTardyReason,
             AttendanceStatus beforeStatus,
             AttendanceStatus afterStatus,
             Boolean beforeClosed,
@@ -58,6 +62,8 @@ public class AttendanceHistory {
         this.afterCheckInTime = afterCheckInTime;
         this.beforeCheckOutTime = beforeCheckOutTime;
         this.afterCheckOutTime = afterCheckOutTime;
+        this.beforeTardyReason = beforeTardyReason;
+        this.afterTardyReason = afterTardyReason;
         this.beforeStatus = beforeStatus;
         this.afterStatus = afterStatus;
         this.beforeClosed = beforeClosed;
