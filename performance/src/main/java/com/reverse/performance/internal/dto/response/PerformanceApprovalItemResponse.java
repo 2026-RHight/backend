@@ -9,4 +9,5 @@ public record PerformanceApprovalItemResponse(
         String status,
         String type,
         String achievement,
-        Integer progress) {}
+        Integer progress,
+        String phase) {}
