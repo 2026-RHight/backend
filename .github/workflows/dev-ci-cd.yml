@@ -90,23 +90,26 @@ jobs:
               --restart unless-stopped \
               -p 80:8080 \
               -e SPRING_PROFILES_ACTIVE=$PROFILE \
-              -e DEV_DB_URL='${{ secrets.DEV_DB_URL }}' \
-              -e DEV_DB_USER='${{ secrets.DEV_DB_USER }}' \
-              -e DEV_DB_PASSWORD='${{ secrets.DEV_DB_PASSWORD }}' \
-              -e SECURITY_HASH_PEPPER='${{ secrets.SECURITY_HASH_PEPPER }}' \
-              -e SECURITY_ENC_KEY_BASE64='${{ secrets.SECURITY_ENC_KEY_BASE64 }}' \
-              -e DEV_S3_ENDPOINT='${{ secrets.DEV_S3_ENDPOINT }}' \
-              -e DEV_S3_REGION='${{ secrets.DEV_S3_REGION }}' \
-              -e DEV_S3_BUCKET='${{ secrets.DEV_S3_BUCKET }}' \
-              -e DEV_S3_KEY='${{ secrets.DEV_S3_KEY }}' \
-              -e DEV_S3_SECRET='${{ secrets.DEV_S3_SECRET }}' \
-              -e AWS_MAIL_HOST='${{ secrets.AWS_MAIL_HOST }}' \
-              -e AWS_MAIL_PORT='${{ secrets.AWS_MAIL_PORT }}' \
-              -e AWS_MAIL_USERNAME='${{ secrets.AWS_MAIL_USERNAME }}' \
-              -e AWS_MAIL_PASSWORD='${{ secrets.AWS_MAIL_PASSWORD }}' \
-              -e AWS_MAIL_FROM='${{ secrets.AWS_MAIL_FROM }}' \
-              -e DEV_JWT_SECRET='${{ secrets.DEV_JWT_SECRET }}' \
-              -e DEV_JWT_EXPIRATION='${{ secrets.DEV_JWT_EXPIRATION }}' \
-              -e DEV_JWT_REFRESH_EXPIRATION='${{ secrets.DEV_JWT_REFRESH_EXPIRATION }}' \
+              -e DEV_DB_URL="${{ secrets.DEV_DB_URL }}" \
+              -e DEV_DB_USER="${{ secrets.DEV_DB_USER }}" \
+              -e DEV_DB_PASSWORD="${{ secrets.DEV_DB_PASSWORD }}" \
+              -e DEV_REDIS_HOST="${{ secrets.DEV_REDIS_HOST }}" \
+              -e DEV_REDIS_PORT="${{ secrets.DEV_REDIS_PORT }}" \
+              -e DEV_REDIS_PASSWORD="${{ secrets.DEV_REDIS_PASSWORD }}" \
+              -e SECURITY_HASH_PEPPER="${{ secrets.SECURITY_HASH_PEPPER }}" \
+              -e SECURITY_ENC_KEY_BASE64="${{ secrets.SECURITY_ENC_KEY_BASE64 }}" \
+              -e DEV_S3_ENDPOINT="${{ secrets.DEV_S3_ENDPOINT }}" \
+              -e DEV_S3_REGION="${{ secrets.DEV_S3_REGION }}" \
+              -e DEV_S3_BUCKET="${{ secrets.DEV_S3_BUCKET }}" \
+              -e DEV_S3_KEY="${{ secrets.DEV_S3_KEY }}" \
+              -e DEV_S3_SECRET="${{ secrets.DEV_S3_SECRET }}" \
+              -e AWS_MAIL_HOST="${{ secrets.AWS_MAIL_HOST }}" \
+              -e AWS_MAIL_PORT="${{ secrets.AWS_MAIL_PORT }}" \
+              -e AWS_MAIL_USERNAME="${{ secrets.AWS_MAIL_USERNAME }}" \
+              -e AWS_MAIL_PASSWORD="${{ secrets.AWS_MAIL_PASSWORD }}" \
+              -e AWS_MAIL_FROM="${{ secrets.AWS_MAIL_FROM }}" \
+              -e DEV_JWT_SECRET="${{ secrets.DEV_JWT_SECRET }}" \
+              -e DEV_JWT_EXPIRATION="${{ secrets.DEV_JWT_EXPIRATION }}" \
+              -e DEV_JWT_REFRESH_EXPIRATION="${{ secrets.DEV_JWT_REFRESH_EXPIRATION }}" \
               ${{ env.IMAGE_REPO }}:${{ github.sha }}
             docker image prune -f

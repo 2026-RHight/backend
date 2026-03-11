@@ -13,6 +13,12 @@ spring:
       ddl-auto: none # 운영은 실수를 막기 위해 무조건 validate
     show-sql: false
 
+  data:
+    redis:
+      host: ${PROD_REDIS_HOST}
+      port: ${PROD_REDIS_PORT}
+      password: ${PROD_REDIS_PASSWORD}
+
   mail:
     host: ${AWS_MAIL_HOST}
     port: ${AWS_MAIL_PORT}
