@@ -433,7 +433,6 @@ public class PayrollService {
 
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
-
     @Transactional
     public AdminPayrollSendResponse markPayrollLedgerSent(Long ledgerId) {
         PayrollLedger ledger =
@@ -451,7 +450,6 @@ public class PayrollService {
         if (sentCount == 1) {
             eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledgerId));
         }
-
         return AdminPayrollSendResponse.builder()
                 .ledgerId(ledgerId)
                 .targetMonth(ledger.getTargetMonth())
@@ -491,7 +489,6 @@ public class PayrollService {
             eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledger.getId()));
             sentCount++;
         }
-
         return AdminPayrollSendResponse.builder()
                 .targetMonth(targetMonth)
                 .sentCount(sentCount)
@@ -762,12 +759,23 @@ public class PayrollService {
     }
 
     private BigDecimal calculateMonthlyIncomeTax(BigDecimal monthlyTaxableIncome) {
+        if (monthlyTaxableIncome == null
+                || monthlyTaxableIncome.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
         BigDecimal annualTaxableIncome = monthlyTaxableIncome.multiply(new BigDecimal("12"));
         BigDecimal annualIncomeTax = calculateAnnualProgressiveIncomeTax(annualTaxableIncome);
-        return annualIncomeTax.divide(new BigDecimal("12"), 0, RoundingMode.HALF_UP);
+        return annualIncomeTax
+                .max(BigDecimal.ZERO)
+                .divide(new BigDecimal("12"), 0, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateAnnualProgressiveIncomeTax(BigDecimal annualTaxableIncome) {
+        if (annualTaxableIncome == null || annualTaxableIncome.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
         if (annualTaxableIncome.compareTo(new BigDecimal("14000000")) <= 0) {
             return annualTaxableIncome.multiply(new BigDecimal("0.06"));
         }
