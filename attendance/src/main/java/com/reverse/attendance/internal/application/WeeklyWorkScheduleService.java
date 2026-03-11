@@ -278,8 +278,7 @@ public class WeeklyWorkScheduleService {
                                             .planDate(planDate)
                                             .requestedEmployeeCount(requestedEmployeeCount)
                                             .approvedEmployeeCount(approvedEmployeeCount)
-                                            .coreTimeShortageRisk(
-                                                    coreCoverageCount > 0 && coreCoverageCount < 2)
+                                            .coreTimeShortageRisk(coreCoverageCount < 2)
                                             .entries(
                                                     entries.stream()
                                                             .map(

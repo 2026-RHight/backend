@@ -110,7 +110,10 @@
     <update id="updateStatusIfPending">
         UPDATE weekly_work_schedule
         SET approval_status = #{approvalStatus},
-            reject_reason = #{rejectReason},
+            reject_reason = CASE
+                WHEN #{approvalStatus} = 'REJECTED' THEN #{rejectReason}
+                ELSE NULL
+            END,
             updated_at = NOW()
         WHERE weekly_id = #{weeklyId}
         AND approval_status = 'PENDING'

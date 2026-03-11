@@ -18,6 +18,7 @@ import com.reverse.attendance.internal.persistence.AttendanceMapper;
 import com.reverse.attendance.internal.persistence.AttendancePolicyMapper;
 import com.reverse.attendance.internal.persistence.BusinessTripMapper;
 import com.reverse.attendance.internal.persistence.OvertimeMapper;
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -393,11 +394,24 @@ public class AttendanceService {
         if (attendance.getCheckInTime() == null || attendance.getCheckOutTime() == null) {
             return 0;
         }
-        return Math.max(
-                0,
-                (attendance.getCheckOutTime().toSecondOfDay()
-                                - attendance.getCheckInTime().toSecondOfDay())
-                        / 60);
+        int baseWorkedMinutes =
+                Math.max(
+                        0,
+                        (attendance.getCheckOutTime().toSecondOfDay()
+                                        - attendance.getCheckInTime().toSecondOfDay())
+                                / 60);
+
+        return baseWorkedMinutes
+                + toMinutes(attendance.getOvertimeHours())
+                + toMinutes(attendance.getNightWorkHours())
+                + toMinutes(attendance.getHolidayWorkHours());
+    }
+
+    private int toMinutes(BigDecimal hours) {
+        if (hours == null) {
+            return 0;
+        }
+        return hours.multiply(BigDecimal.valueOf(60)).intValue();
     }
 
     private AttendanceCalendarEventResponse toAttendanceEvent(Attendance attendance) {
