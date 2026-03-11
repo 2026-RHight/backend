@@ -4,8 +4,11 @@ import com.reverse.attendance.internal.domain.Overtime;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
 import com.reverse.attendance.internal.dto.request.OvertimeProcessRequest;
+import com.reverse.attendance.internal.dto.response.OvertimeResponse;
 import com.reverse.attendance.internal.persistence.OvertimeMapper;
+import com.reverse.core.response.PageResponse;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OvertimeService {
 
     private final OvertimeMapper overtimeMapper;
+    private final AttendanceSyncService attendanceSyncService;
 
     @Transactional
     public void applyOvertime(OvertimeApplyRequest request, Long employeeId) {
@@ -56,8 +60,7 @@ public class OvertimeService {
     }
 
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<Overtime> getMyOvertimes(
-            Long employeeId, int page, int size) {
+    public PageResponse<OvertimeResponse> getMyOvertimes(Long employeeId, int page, int size) {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -68,7 +71,11 @@ public class OvertimeService {
         int offset = (int) offsetLong;
         List<Overtime> content = overtimeMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = overtimeMapper.countByEmployeeId(employeeId);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(OvertimeResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     @Transactional(readOnly = true)
@@ -105,8 +112,19 @@ public class OvertimeService {
     }
 
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<Overtime> getAllOvertimes(
-            String status, int page, int size) {
+    public PageResponse<OvertimeResponse> getAllOvertimes(String status, int page, int size) {
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
+            }
+        }
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -117,7 +135,11 @@ public class OvertimeService {
         int offset = (int) offsetLong;
         List<Overtime> content = overtimeMapper.findAll(status, limit, offset);
         long totalElements = overtimeMapper.countAll(status);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(OvertimeResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     @Transactional
@@ -154,6 +176,16 @@ public class OvertimeService {
         int updatedRows = overtimeMapper.updateStatusIfPending(processedOvertime);
         if (updatedRows == 0) {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
+        }
+        if (request.isApprove()) {
+            Overtime approvedOvertime =
+                    overtimeMapper
+                            .findById(overtime.getOvertimeId())
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalStateException(
+                                                    "승인된 연장근무 신청 내역을 다시 조회할 수 없습니다."));
+            attendanceSyncService.syncApprovedOvertime(approvedOvertime);
         }
     }
 }

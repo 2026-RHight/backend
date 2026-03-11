@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.AttendanceHistoryMapper">
+
+    <insert id="insertHistory" useGeneratedKeys="true" keyProperty="historyId">
+        INSERT INTO attendance_history (
+            attendance_id,
+            employee_id,
+            actor_employee_id,
+            action_type,
+            reason,
+            work_date,
+            before_check_in_time,
+            after_check_in_time,
+            before_check_out_time,
+            after_check_out_time,
+            before_tardy_reason,
+            after_tardy_reason,
+            before_status,
+            after_status,
+            before_closed,
+            after_closed,
+            created_at
+        ) VALUES (
+            #{attendanceId},
+            #{employeeId},
+            #{actorEmployeeId},
+            #{actionType},
+            #{reason},
+            #{workDate},
+            #{beforeCheckInTime},
+            #{afterCheckInTime},
+            #{beforeCheckOutTime},
+            #{afterCheckOutTime},
+            #{beforeTardyReason},
+            #{afterTardyReason},
+            #{beforeStatus},
+            #{afterStatus},
+            #{beforeClosed},
+            #{afterClosed},
+            NOW()
+        )
+    </insert>
+
+    <select id="findHistory" resultType="com.reverse.attendance.internal.domain.AttendanceHistory">
+        SELECT
+            history_id as historyId,
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            actor_employee_id as actorEmployeeId,
+            action_type as actionType,
+            reason as reason,
+            work_date as workDate,
+            before_check_in_time as beforeCheckInTime,
+            after_check_in_time as afterCheckInTime,
+            before_check_out_time as beforeCheckOutTime,
+            after_check_out_time as afterCheckOutTime,
+            before_tardy_reason as beforeTardyReason,
+            after_tardy_reason as afterTardyReason,
+            before_status as beforeStatus,
+            after_status as afterStatus,
+            before_closed as beforeClosed,
+            after_closed as afterClosed,
+            created_at as createdAt
+        FROM attendance_history
+        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        <if test="employeeId != null">
+            AND employee_id = #{employeeId}
+        </if>
+        ORDER BY created_at DESC, history_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countHistory" resultType="long">
+        SELECT COUNT(*)
+        FROM attendance_history
+        WHERE DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        <if test="employeeId != null">
+            AND employee_id = #{employeeId}
+        </if>
+    </select>
+
+</mapper>

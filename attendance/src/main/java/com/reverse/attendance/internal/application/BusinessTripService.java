@@ -4,8 +4,11 @@ import com.reverse.attendance.internal.domain.BusinessTrip;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.BusinessTripApplyRequest;
 import com.reverse.attendance.internal.dto.request.BusinessTripProcessRequest;
+import com.reverse.attendance.internal.dto.response.BusinessTripResponse;
 import com.reverse.attendance.internal.persistence.BusinessTripMapper;
+import com.reverse.core.response.PageResponse;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BusinessTripService {
 
     private final BusinessTripMapper businessTripMapper;
+    private final AttendanceSyncService attendanceSyncService;
 
     // 외근/출장 신청
     @Transactional
@@ -53,8 +57,7 @@ public class BusinessTripService {
 
     // 내 신청 내역 조회
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<BusinessTrip> getMyTrips(
-            Long employeeId, int page, int size) {
+    public PageResponse<BusinessTripResponse> getMyTrips(Long employeeId, int page, int size) {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -65,7 +68,11 @@ public class BusinessTripService {
         int offset = (int) offsetLong;
         List<BusinessTrip> content = businessTripMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = businessTripMapper.countByEmployeeId(employeeId);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(BusinessTripResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     @Transactional(readOnly = true)
@@ -103,8 +110,19 @@ public class BusinessTripService {
 
     // 팀원 전체 내역 조회 (관리자용)
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<BusinessTrip> getAllTrips(
-            String status, int page, int size) {
+    public PageResponse<BusinessTripResponse> getAllTrips(String status, int page, int size) {
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
+            }
+        }
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -115,7 +133,11 @@ public class BusinessTripService {
         int offset = (int) offsetLong;
         List<BusinessTrip> content = businessTripMapper.findAll(status, limit, offset);
         long totalElements = businessTripMapper.countAll(status);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(BusinessTripResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     // 결재 처리 (관리자)
@@ -153,6 +175,13 @@ public class BusinessTripService {
         int updatedRows = businessTripMapper.updateStatusIfPending(processedTrip);
         if (updatedRows == 0) {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
+        }
+        if (request.isApprove()) {
+            BusinessTrip approvedTrip =
+                    businessTripMapper
+                            .findById(trip.getTripId())
+                            .orElseThrow(() -> new IllegalStateException("승인된 출장 정보를 찾을 수 없습니다."));
+            attendanceSyncService.syncApprovedBusinessTrip(approvedTrip);
         }
     }
 }

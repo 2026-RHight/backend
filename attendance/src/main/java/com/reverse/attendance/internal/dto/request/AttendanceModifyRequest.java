@@ -1,6 +1,7 @@
 package com.reverse.attendance.internal.dto.request;
 
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.Getter;
@@ -17,6 +18,9 @@ public class AttendanceModifyRequest {
     private LocalTime newCheckInTime;
     private LocalTime newCheckOutTime;
     private AttendanceStatus newStatus;
+
+    @Size(max = 255)
+    private String newTardyReason;
 
     private String modifyReason;
 }

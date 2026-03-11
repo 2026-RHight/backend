@@ -5,8 +5,11 @@ import com.reverse.attendance.internal.domain.enums.LeaveStatus;
 import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
+import com.reverse.attendance.internal.dto.response.LeaveRequestResponse;
 import com.reverse.attendance.internal.persistence.LeaveMapper;
+import com.reverse.core.response.PageResponse;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LeaveService {
 
     private final LeaveMapper leaveMapper;
-    private final com.reverse.attendance.internal.persistence.AttendanceMapper attendanceMapper;
+    private final AttendanceSyncService attendanceSyncService;
 
     // 연차 현황 조회 (지정 연도)
     @Transactional(readOnly = true)
@@ -126,7 +129,7 @@ public class LeaveService {
 
     // 나의 휴가 내역 리스트 조회
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<LeaveRequest> getMyLeaveRequests(
+    public PageResponse<LeaveRequestResponse> getMyLeaveRequests(
             Long employeeId, int page, int size) {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
@@ -139,7 +142,11 @@ public class LeaveService {
         List<LeaveRequest> content =
                 leaveMapper.findLeaveRequestsByEmployeeId(employeeId, limit, offset);
         long totalElements = leaveMapper.countByEmployeeId(employeeId);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(LeaveRequestResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     // 휴가 신청 내역 상태별 집계
@@ -179,8 +186,20 @@ public class LeaveService {
     }
 
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<LeaveRequest> getAllTeamLeaveRequests(
+    public PageResponse<LeaveRequestResponse> getAllTeamLeaveRequests(
             String status, int page, int size) {
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = LeaveStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
+            }
+        }
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -191,7 +210,11 @@ public class LeaveService {
         int offset = (int) offsetLong;
         List<LeaveRequest> content = leaveMapper.findAllLeaveRequests(status, limit, offset);
         long totalElements = leaveMapper.countAll(status);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(LeaveRequestResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     // 관리자용 휴가 승인/반려
@@ -231,54 +254,8 @@ public class LeaveService {
         if (updatedRows == 0) {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
         }
-        // 휴가 승인 시, AttendanceService의 기능을 활용해 자동 기록 생성
         if (request.isApprove()) {
-            com.reverse.attendance.internal.domain.enums.AttendanceStatus statusToSet =
-                    (leaveRequest.getLeaveType()
-                                    == com.reverse.attendance.internal.domain.enums.LeaveType
-                                            .ANNUAL)
-                            ? com.reverse.attendance.internal.domain.enums.AttendanceStatus.VACATION
-                            : com.reverse.attendance.internal.domain.enums.AttendanceStatus
-                                    .HALF_VACATION;
-
-            java.time.LocalDate ptr = leaveRequest.getStartDate();
-            while (!ptr.isAfter(leaveRequest.getEndDate())) {
-                java.time.DayOfWeek dayOfWeek = ptr.getDayOfWeek();
-                if (dayOfWeek != java.time.DayOfWeek.SATURDAY
-                        && dayOfWeek != java.time.DayOfWeek.SUNDAY) {
-
-                    // 해당 일자의 근태 기록이 이미 있다면 업데이트, 없다면 새로 INSERT
-                    java.util.Optional<com.reverse.attendance.internal.domain.Attendance>
-                            existingRecord =
-                                    attendanceMapper.findByEmployeeIdAndWorkDate(
-                                            leaveRequest.getEmployeeId(), ptr);
-
-                    if (existingRecord.isPresent()) {
-                        com.reverse.attendance.internal.domain.Attendance rec =
-                                existingRecord.get();
-                        com.reverse.attendance.internal.domain.Attendance updatedRec =
-                                com.reverse.attendance.internal.domain.Attendance.builder()
-                                        .attendanceId(rec.getAttendanceId())
-                                        .employeeId(rec.getEmployeeId())
-                                        .workDate(rec.getWorkDate())
-                                        .checkInTime(rec.getCheckInTime())
-                                        .checkOutTime(rec.getCheckOutTime())
-                                        .status(statusToSet)
-                                        .modifyReason("휴가 승인으로 인한 자동 변경")
-                                        .build();
-                        attendanceMapper.updateAttendanceByAdmin(updatedRec);
-                    } else {
-                        com.reverse.attendance.internal.domain.Attendance newRec =
-                                com.reverse.attendance.internal.domain.Attendance.builder()
-                                        .employeeId(leaveRequest.getEmployeeId())
-                                        .workDate(ptr)
-                                        .status(statusToSet)
-                                        .build();
-                        attendanceMapper.insertCheckIn(newRec);
-                    }
-                }
-                ptr = ptr.plusDays(1);
-            }
+            attendanceSyncService.syncApprovedLeave(leaveRequest);
         }
     }
 }

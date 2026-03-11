@@ -701,15 +701,56 @@ INSERT INTO employee (
 -- ==========================================
 
 -- 연차 부여
-INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (1, 15.0);
-INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (2, 20.0);
+INSERT INTO leave_balance (employee_id, base_year, total_annual_leave, used_annual_leave)
+SELECT e.employee_id, 2026, 15.0, 0.0
+FROM employee e
+WHERE e.employee_num = 'EMP2026001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM leave_balance lb
+      WHERE lb.employee_id = e.employee_id
+        AND lb.base_year = 2026
+  );
+
+INSERT INTO leave_balance (employee_id, base_year, total_annual_leave, used_annual_leave)
+SELECT e.employee_id, 2026, 20.0, 0.0
+FROM employee e
+WHERE e.employee_num = 'EMP2026002'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM leave_balance lb
+      WHERE lb.employee_id = e.employee_id
+        AND lb.base_year = 2026
+  );
 
 -- 출퇴근 기록
-INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
-VALUES (1, '2026-03-04', '2026-03-04 08:50:00', '2026-03-04 18:05:00', 'NORMAL', NULL, NULL);
+INSERT INTO attendance_record (
+    employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason,
+    overtime_hours, night_work_hours, holiday_work_hours, is_unpaid_leave, is_closed
+)
+SELECT e.employee_id, '2026-03-04', '08:50:00', '18:05:00', 'NORMAL', NULL, NULL, 0.0, 0.0, 0.0, FALSE, FALSE
+FROM employee e
+WHERE e.employee_num = 'EMP2026001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM attendance_record ar
+      WHERE ar.employee_id = e.employee_id
+        AND ar.work_date = '2026-03-04'
+  );
 
-INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
-VALUES (2, '2026-03-04', '2026-03-04 09:15:00', NULL, 'TARDY', '지하철 연착', NULL);
+INSERT INTO attendance_record (
+    employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason,
+    overtime_hours, night_work_hours, holiday_work_hours, is_unpaid_leave, is_closed
+)
+SELECT e.employee_id, '2026-03-04', '09:15:00', NULL, 'TARDY', '지하철 연착', NULL, 0.0, 0.0, 0.0, FALSE, FALSE
+FROM employee e
+WHERE e.employee_num = 'EMP2026002'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM attendance_record ar
+      WHERE ar.employee_id = e.employee_id
+        AND ar.work_date = '2026-03-04'
+  );
 
 
 -- ==========================================
@@ -1497,4 +1538,3 @@ SELECT
     'https://cdn.rhight.local/certificate/employment_ko_2402040001_20260205.pdf',
     'employment_ko_2402040001_20260205.pdf'
 WHERE NOT EXISTS (SELECT 1 FROM hr_file WHERE hr_file_id = 301);
-

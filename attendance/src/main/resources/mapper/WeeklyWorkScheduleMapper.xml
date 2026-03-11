@@ -33,7 +33,7 @@
             schedule_title as scheduleTitle,
             memo as memo,
             created_at as createdAt,
-            update_at as updatedAt
+            updated_at as updatedAt
         FROM weekly_work_schedule
         WHERE weekly_id = #{weeklyId}
     </select>
@@ -50,11 +50,32 @@
             schedule_title as scheduleTitle,
             memo as memo,
             created_at as createdAt,
-            update_at as updatedAt
+            updated_at as updatedAt
         FROM weekly_work_schedule
         WHERE employee_id = #{employeeId}
         ORDER BY start_date DESC, weekly_id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findApprovedByEmployeeIdAndPlanDate" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            created_at as createdAt,
+            updated_at as updatedAt
+        FROM weekly_work_schedule
+        WHERE employee_id = #{employeeId}
+          AND plan_date = #{planDate}
+          AND approval_status = 'APPROVED'
+        ORDER BY weekly_id DESC
+        LIMIT 1
     </select>
 
     <select id="countByEmployeeId" resultType="long">
@@ -66,7 +87,7 @@
     <update id="updateStatusIfPending">
         UPDATE weekly_work_schedule
         SET approval_status = #{approvalStatus},
-            update_at = NOW()
+            updated_at = NOW()
         WHERE weekly_id = #{weeklyId}
         AND approval_status = 'PENDING'
     </update>
@@ -83,7 +104,7 @@
             schedule_title as scheduleTitle,
             memo as memo,
             created_at as createdAt,
-            update_at as updatedAt
+            updated_at as updatedAt
         FROM weekly_work_schedule
         <where>
             <if test="status != null and status != ''">

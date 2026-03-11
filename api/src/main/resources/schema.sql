@@ -1,6 +1,5 @@
 CREATE TABLE IF NOT EXISTS hr_file (
                                     hr_file_id BIGINT NOT NULL AUTO_INCREMENT,
-                                    file_key VARCHAR(1024) NULL,
                                     file_url TEXT NOT NULL,
                                     file_title VARCHAR(255) NULL,
     PRIMARY KEY (hr_file_id)
@@ -183,19 +182,59 @@ CREATE TABLE IF NOT EXISTS attendance_record (
     work_date DATE NOT NULL,
     check_in_time TIME,
     check_out_time TIME,
-    status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
+    status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가), HALF_VACATION(반차), BUSINESS_TRIP(출장/외근)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',
     modify_reason VARCHAR(255) COMMENT '관리자 수정 사유',
     overtime_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '연장 근무 시간',
     night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '야간 근무 시간',
     holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '휴일 근무 시간',
     is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE COMMENT '무급 휴가 여부',
+    is_closed BOOLEAN NOT NULL DEFAULT FALSE COMMENT '월 마감 여부',
     CONSTRAINT chk_attendance_record_overtime_hours CHECK (overtime_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT chk_attendance_record_night_work_hours CHECK (night_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT chk_attendance_record_holiday_work_hours CHECK (holiday_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_attendance_employee_date (employee_id, work_date)
 );
+
+ALTER TABLE attendance_record
+    ADD COLUMN IF NOT EXISTS overtime_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER modify_reason,
+    ADD COLUMN IF NOT EXISTS night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER overtime_hours,
+    ADD COLUMN IF NOT EXISTS holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER night_work_hours,
+    ADD COLUMN IF NOT EXISTS is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE AFTER holiday_work_hours,
+    ADD COLUMN IF NOT EXISTS is_closed BOOLEAN NOT NULL DEFAULT FALSE AFTER is_unpaid_leave;
+
+CREATE TABLE IF NOT EXISTS attendance_history (
+    history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    attendance_id BIGINT NULL,
+    employee_id BIGINT NOT NULL,
+    actor_employee_id BIGINT NULL COMMENT '수정/처리 주체 사번',
+    action_type VARCHAR(50) NOT NULL COMMENT 'ADMIN_MODIFY, LEAVE_APPROVED, OVERTIME_APPROVED 등',
+    reason VARCHAR(255) NULL COMMENT '처리 사유',
+    work_date DATE NOT NULL,
+    before_check_in_time TIME NULL,
+    after_check_in_time TIME NULL,
+    before_check_out_time TIME NULL,
+    after_check_out_time TIME NULL,
+    before_tardy_reason VARCHAR(255) NULL,
+    after_tardy_reason VARCHAR(255) NULL,
+    before_status VARCHAR(20) NULL,
+    after_status VARCHAR(20) NULL,
+    before_closed BOOLEAN NULL,
+    after_closed BOOLEAN NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_attendance_history_employee_date (employee_id, work_date),
+    KEY idx_attendance_history_attendance (attendance_id),
+    CONSTRAINT fk_attendance_history_attendance FOREIGN KEY (attendance_id) REFERENCES attendance_record(attendance_id),
+    CONSTRAINT fk_attendance_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_attendance_history_actor FOREIGN KEY (actor_employee_id) REFERENCES employee(employee_id)
+);
+
+ALTER TABLE attendance_history
+    ADD COLUMN IF NOT EXISTS before_tardy_reason VARCHAR(255) NULL AFTER after_check_out_time,
+    ADD COLUMN IF NOT EXISTS after_tardy_reason VARCHAR(255) NULL AFTER before_tardy_reason,
+    ADD COLUMN IF NOT EXISTS before_closed BOOLEAN NULL AFTER after_status,
+    ADD COLUMN IF NOT EXISTS after_closed BOOLEAN NULL AFTER before_closed;
 
 -- 사원별 총 연차 관리 (연도별 이력 관리)
 CREATE TABLE IF NOT EXISTS leave_balance (
@@ -211,6 +250,41 @@ CREATE TABLE IF NOT EXISTS leave_balance (
     CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_leave_balance_emp_year (employee_id, base_year)
 );
+
+ALTER TABLE leave_balance
+    ADD COLUMN IF NOT EXISTS base_year INT NOT NULL DEFAULT 2026 AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 AFTER total_annual_leave;
+
+ALTER TABLE attendance_policy
+    ADD COLUMN IF NOT EXISTS employee_id BIGINT NULL AFTER policy_id,
+    ADD COLUMN IF NOT EXISTS std_start_time TIME NULL AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS std_end_time TIME NULL AFTER std_start_time,
+    ADD COLUMN IF NOT EXISTS break_time_start TIME NULL AFTER core_time_end,
+    ADD COLUMN IF NOT EXISTS break_time_end TIME NULL AFTER break_time_start;
+
+DELETE ap1
+FROM attendance_policy ap1
+JOIN attendance_policy ap2
+    ON ap1.employee_id = ap2.employee_id
+   AND ap1.policy_id > ap2.policy_id
+WHERE ap1.employee_id IS NOT NULL;
+
+DELETE FROM attendance_policy
+WHERE employee_id IS NULL;
+
+UPDATE attendance_policy
+SET std_start_time = COALESCE(std_start_time, '09:00:00'),
+    std_end_time = COALESCE(std_end_time, '18:00:00')
+WHERE std_start_time IS NULL
+   OR std_end_time IS NULL;
+
+ALTER TABLE attendance_policy
+    MODIFY COLUMN employee_id BIGINT NOT NULL,
+    MODIFY COLUMN std_start_time TIME NOT NULL,
+    MODIFY COLUMN std_end_time TIME NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_attendance_policy_employee
+    ON attendance_policy (employee_id);
 
 -- 휴가 신청 내역
 CREATE TABLE IF NOT EXISTS leave_request (
@@ -268,6 +342,9 @@ CREATE TABLE IF NOT EXISTS weekly_work_schedule (
     updated_at DATETIME,
     CONSTRAINT fk_weekly_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
+
+ALTER TABLE weekly_work_schedule
+    ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
 
 
 -- 팀원이 작성한 자격증/경력 관련 테이블
@@ -339,7 +416,7 @@ CREATE TABLE IF NOT EXISTS insurance_rate (
     apply_year INT NOT NULL,
     national_pension_rate DECIMAL(7,5) NOT NULL DEFAULT 0.04500,
     health_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.03545,
-    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.12950, -- 건강보험료의 12.95% (2024년~ 기준)
+    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.13140,
     emp_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00900,
     UNIQUE KEY uk_insurance_rate_year (apply_year)
 );
@@ -348,7 +425,7 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     employee_id BIGINT NOT NULL,
     insurance_id BIGINT,
-    target_month VARCHAR(7) NOT NULL, -- e.g., '2024-03'
+    target_month VARCHAR(7) NOT NULL COMMENT '정산 대상 월, 예: 2024-03',
     salary_amount DECIMAL(15,2) DEFAULT 0.00,
     overtime_amount DECIMAL(15,2) DEFAULT 0.00,
     meal_amount DECIMAL(15,2) DEFAULT 0.00,
@@ -362,12 +439,12 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     emp_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
     income_tax_amount DECIMAL(15,2) DEFAULT 0.00,
     local_tax_amount DECIMAL(15,2) DEFAULT 0.00,
-    employee_name_snapshot VARCHAR(100),
-    dept_name_snapshot VARCHAR(255),
-    position_name_snapshot VARCHAR(255),
-    bank_name_snapshot VARCHAR(50),
-    account_number_snapshot_enc TEXT,
-    account_holder_snapshot VARCHAR(100),
+    employee_name_snapshot VARCHAR(100) NULL,
+    dept_name_snapshot VARCHAR(255) NULL,
+    position_name_snapshot VARCHAR(100) NULL,
+    bank_name_snapshot VARCHAR(100) NULL,
+    account_number_snapshot_enc VARCHAR(255) NULL,
+    account_holder_snapshot VARCHAR(100) NULL,
     UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, target_month),
     KEY idx_payroll_ledger_target_month (target_month),
     CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
@@ -391,46 +468,6 @@ CREATE TABLE IF NOT EXISTS event_publication (
     completion_date DATETIME(6) NULL,
     serialized_event TEXT NOT NULL,
     PRIMARY KEY (id)
-);
-
--- 증명서 정책/발급 관련 테이블
-CREATE TABLE IF NOT EXISTS policy (
-    policy_id BIGINT NOT NULL AUTO_INCREMENT,
-    policy_type ENUM('CERTIFICATE') NOT NULL,
-    policy_title VARCHAR(255) NOT NULL,
-    created_at DATETIME NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    PRIMARY KEY (policy_id)
-);
-
-CREATE TABLE IF NOT EXISTS policy_version (
-    policy_version_id BIGINT NOT NULL AUTO_INCREMENT,
-    policy_id BIGINT NOT NULL,
-    version_no INT NOT NULL,
-    content TEXT NOT NULL,
-    change_summary TEXT NULL,
-    employee_id BIGINT NOT NULL,
-    changed_at DATETIME NOT NULL,
-    effective_from DATE NOT NULL,
-    PRIMARY KEY (policy_version_id),
-    CONSTRAINT fk_policy_version_policy FOREIGN KEY (policy_id) REFERENCES policy(policy_id),
-    CONSTRAINT fk_policy_version_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
-);
-
-CREATE TABLE IF NOT EXISTS certificate_request (
-    request_id BIGINT NOT NULL AUTO_INCREMENT,
-    employee_id BIGINT NOT NULL,
-    certificate_type ENUM('EMPLOYMENT_KO') NOT NULL,
-    purpose VARCHAR(255) NOT NULL,
-    submit_to VARCHAR(255) NOT NULL,
-    status ENUM('ISSUED','FAILED') NOT NULL,
-    requested_at DATETIME NOT NULL,
-    issued_at DATETIME NULL,
-    hr_file_id BIGINT NULL,
-    fail_reason VARCHAR(255) NULL,
-    PRIMARY KEY (request_id),
-    CONSTRAINT fk_certificate_request_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
-    CONSTRAINT fk_certificate_request_file FOREIGN KEY (hr_file_id) REFERENCES hr_file(hr_file_id)
 );
 
 CREATE TABLE IF NOT EXISTS electronic_approval (
@@ -560,140 +597,4 @@ CREATE TABLE IF NOT EXISTS rtw_detail (
     reason TEXT NOT NULL,
     PRIMARY KEY (approval_id),
     CONSTRAINT fk_rtw_detail_approval FOREIGN KEY (approval_id) REFERENCES electronic_approval(approval_id) ON DELETE CASCADE
-);
-
--- ==========================================
--- 성과(Performance) 모듈 테이블
--- ==========================================
-
-CREATE TABLE IF NOT EXISTS performance (
-    performance_id BIGINT NOT NULL AUTO_INCREMENT,
-    employee_id BIGINT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    work_item ENUM('PERSONAL','TEAM') NOT NULL,
-    start_date DATE NULL,
-    expected_end_date DATE NULL,
-    end_date DATE NULL,
-    work_detail TEXT NULL,
-    status ENUM('WAITING','ACTIVE','ENDED') NOT NULL DEFAULT 'ACTIVE',
-    achievement_rate INT NOT NULL DEFAULT 0,
-    difficulty_score INT NOT NULL DEFAULT 5,
-    comment TEXT NULL,
-    feedback TEXT NULL,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (performance_id),
-    KEY idx_performance_employee (employee_id),
-    KEY idx_performance_status (status),
-    KEY idx_performance_end_date (end_date),
-    CONSTRAINT fk_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
-);
-
-CREATE TABLE IF NOT EXISTS performance_personal (
-    performance_id BIGINT NOT NULL,
-    expected_value TEXT NULL,
-    result_summary TEXT NULL,
-    growth_point TEXT NULL,
-    improvement TEXT NULL,
-    PRIMARY KEY (performance_id),
-    CONSTRAINT fk_performance_personal_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS performance_team (
-    performance_id BIGINT NOT NULL,
-    weight INT NULL,
-    team_result_summary TEXT NULL,
-    special_point TEXT NULL,
-    PRIMARY KEY (performance_id),
-    CONSTRAINT fk_performance_team_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS performance_attachment (
-    attachment_id BIGINT NOT NULL AUTO_INCREMENT,
-    performance_id BIGINT NOT NULL,
-    file_name VARCHAR(255) NOT NULL,
-    file_url TEXT NOT NULL,
-    confirmed_at DATETIME NULL,
-    created_at DATETIME NOT NULL,
-    PRIMARY KEY (attachment_id),
-    KEY idx_performance_attachment_performance (performance_id),
-    CONSTRAINT fk_performance_attachment_performance FOREIGN KEY (performance_id) REFERENCES performance(performance_id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS evaluation (
-    eval_id BIGINT NOT NULL AUTO_INCREMENT,
-    employee_id BIGINT NOT NULL,
-    evaluator_id BIGINT NOT NULL,
-    year INT NOT NULL,
-    evaluation_score INT NULL,
-    confirmed_at DATETIME NULL,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (eval_id),
-    KEY idx_evaluation_employee (employee_id),
-    KEY idx_evaluation_evaluator (evaluator_id),
-    UNIQUE KEY uk_evaluation_employee_year_evaluator (employee_id, year, evaluator_id),
-    CONSTRAINT fk_evaluation_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
-    CONSTRAINT fk_evaluation_evaluator_employee FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id)
-);
-
-CREATE TABLE IF NOT EXISTS monthly_performance (
-    monthly_performance_id BIGINT NOT NULL AUTO_INCREMENT,
-    employee_id BIGINT NOT NULL,
-    year INT NOT NULL,
-    month INT NOT NULL,
-    score INT NOT NULL,
-    calculated_at DATETIME NOT NULL,
-    PRIMARY KEY (monthly_performance_id),
-    UNIQUE KEY uk_monthly_performance_employee_year_month (employee_id, year, month),
-    KEY idx_monthly_performance_employee (employee_id),
-    CONSTRAINT fk_monthly_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
-);
-
-CREATE TABLE IF NOT EXISTS peer_review (
-    peer_review_id BIGINT NOT NULL AUTO_INCREMENT,
-    eval_id BIGINT NOT NULL,
-    reviewer_id BIGINT NOT NULL,
-    communication_score INT NULL,
-    solving_score INT NULL,
-    responsibility_score INT NULL,
-    team_contribution INT NULL,
-    culture_contribution INT NULL,
-    comment TEXT NULL,
-    eval_year INT NOT NULL,
-    created_at DATETIME NOT NULL,
-    PRIMARY KEY (peer_review_id),
-    UNIQUE KEY ux_peer_review_eval_reviewer (eval_id, reviewer_id),
-    KEY idx_peer_review_eval (eval_id),
-    KEY idx_peer_review_reviewer (reviewer_id),
-    CONSTRAINT fk_peer_review_evaluation FOREIGN KEY (eval_id) REFERENCES evaluation(eval_id) ON DELETE CASCADE,
-    CONSTRAINT fk_peer_review_reviewer FOREIGN KEY (reviewer_id) REFERENCES employee(employee_id)
-);
-
-CREATE TABLE IF NOT EXISTS team_evaluation (
-    team_evaluation_id BIGINT NOT NULL AUTO_INCREMENT,
-    evaluator_id BIGINT NOT NULL,
-    appraisee_id BIGINT NOT NULL,
-    evaluation_year INT NOT NULL,
-    performance_eval TEXT NULL,
-    work_attitude_eval TEXT NULL,
-    teamwork_eval TEXT NULL,
-    solving_eval TEXT NULL,
-    performance_score INT NULL,
-    performance_comment TEXT NULL,
-    attitude_score INT NULL,
-    attitude_comment TEXT NULL,
-    collaboration_score INT NULL,
-    collaboration_comment TEXT NULL,
-    creativity_score INT NULL,
-    creativity_comment TEXT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NULL,
-    PRIMARY KEY (team_evaluation_id),
-    KEY idx_team_evaluation_evaluator (evaluator_id),
-    KEY idx_team_evaluation_appraisee (appraisee_id),
-    KEY idx_team_evaluation_year (evaluation_year),
-    UNIQUE KEY uk_team_evaluation_evaluator_appraisee_year (evaluator_id, appraisee_id, evaluation_year),
-    CONSTRAINT fk_team_evaluation_evaluator FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id),
-    CONSTRAINT fk_team_evaluation_appraisee FOREIGN KEY (appraisee_id) REFERENCES employee(employee_id)
 );

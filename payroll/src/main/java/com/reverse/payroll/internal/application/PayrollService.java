@@ -88,21 +88,21 @@ public class PayrollService {
         // 연장 수당 (1.5배)
         BigDecimal overtimeAmount =
                 hourlyWage
-                        .multiply(BigDecimal.valueOf(attendanceInfo.getTotalOvertimeHours()))
+                        .multiply(attendanceInfo.getTotalOvertimeHours())
                         .multiply(new BigDecimal("1.5"))
                         .setScale(0, RoundingMode.HALF_UP);
 
         // 야간 수당 (별도 0.5배 가산)
         BigDecimal nightAmount =
                 hourlyWage
-                        .multiply(BigDecimal.valueOf(attendanceInfo.getNightWorkHours()))
+                        .multiply(attendanceInfo.getNightWorkHours())
                         .multiply(new BigDecimal("0.5"))
                         .setScale(0, RoundingMode.HALF_UP);
 
         // 휴일 수당 (1.5배)
         BigDecimal holidayAmount =
                 hourlyWage
-                        .multiply(BigDecimal.valueOf(attendanceInfo.getHolidayWorkHours()))
+                        .multiply(attendanceInfo.getHolidayWorkHours())
                         .multiply(new BigDecimal("1.5"))
                         .setScale(0, RoundingMode.HALF_UP);
 
@@ -119,7 +119,7 @@ public class PayrollService {
                         .setScale(0, RoundingMode.HALF_UP);
         BigDecimal unpaidLeaveDeduction =
                 dailyWage
-                        .multiply(BigDecimal.valueOf(attendanceInfo.getUnpaidLeaveDays()))
+                        .multiply(attendanceInfo.getUnpaidLeaveDays())
                         .setScale(0, RoundingMode.HALF_UP);
 
         // 총 지급액 = 기본급 + 제수당 + 식대 - (무급분 차감)

@@ -4,8 +4,11 @@ import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
+import com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse;
 import com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper;
+import com.reverse.core.response.PageResponse;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class WeeklyWorkScheduleService {
 
     private final WeeklyWorkScheduleMapper scheduleMapper;
+    private final AttendanceSyncService attendanceSyncService;
 
     @Transactional
     public void applySchedule(WeeklyWorkScheduleApplyRequest request, Long employeeId) {
@@ -58,7 +62,7 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getMySchedules(
+    public PageResponse<WeeklyWorkScheduleResponse> getMySchedules(
             Long employeeId, int page, int size) {
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
@@ -71,7 +75,11 @@ public class WeeklyWorkScheduleService {
         List<WeeklyWorkSchedule> content =
                 scheduleMapper.findByEmployeeId(employeeId, limit, offset);
         long totalElements = scheduleMapper.countByEmployeeId(employeeId);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(WeeklyWorkScheduleResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     @Transactional(readOnly = true)
@@ -110,8 +118,20 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public com.reverse.core.response.PageResponse<WeeklyWorkSchedule> getAllSchedules(
+    public PageResponse<WeeklyWorkScheduleResponse> getAllSchedules(
             String status, int page, int size) {
+        if (status != null) {
+            status = status.trim();
+            if (status.isEmpty()) {
+                status = null;
+            } else {
+                try {
+                    status = ApprovalStatus.valueOf(status).name();
+                } catch (IllegalArgumentException e) {
+                    throw new com.reverse.core.exception.BadRequestException("유효하지 않은 결재 상태입니다.");
+                }
+            }
+        }
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -122,7 +142,11 @@ public class WeeklyWorkScheduleService {
         int offset = (int) offsetLong;
         List<WeeklyWorkSchedule> content = scheduleMapper.findAll(status, limit, offset);
         long totalElements = scheduleMapper.countAll(status);
-        return com.reverse.core.response.PageResponse.of(content, page, size, totalElements);
+        return PageResponse.of(
+                content.stream().map(WeeklyWorkScheduleResponse::from).collect(Collectors.toList()),
+                page,
+                size,
+                totalElements);
     }
 
     @Transactional
@@ -151,6 +175,9 @@ public class WeeklyWorkScheduleService {
         int updatedRows = scheduleMapper.updateStatusIfPending(processedSchedule);
         if (updatedRows == 0) {
             throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
+        }
+        if (request.isApprove()) {
+            attendanceSyncService.recordApprovedWeeklySchedule(schedule);
         }
     }
 }

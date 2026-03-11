@@ -1,21 +1,26 @@
 package com.reverse.payroll.internal.dto.response;
 
 import com.reverse.payroll.internal.domain.PayrollLedger;
+import com.reverse.payroll.internal.domain.SalarySetting;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 public class PayrollDetailResponse {
+    private static final int PAYMENT_DAY = 25;
 
     private Long id;
-    private String targetMonth;
-
-    // 사원 정보 (급여명세서용 추가)
+    private String yearMonth;
     private String employeeName;
     private String department;
     private String position;
     private String paymentDate;
+    private String bankName;
+    private String accountNumber;
+    private String accountHolder;
 
     // 지급 내역
     private BigDecimal salaryAmount; // 기본급
@@ -32,22 +37,20 @@ public class PayrollDetailResponse {
     private BigDecimal localTaxAmount; // 지방소득세금액
     private BigDecimal totalDeductionAmount; // 총 공제액 합계
 
-    // 입금 계좌 정보 (ERD 추가분)
-    private String bankName;
-    private String accountNumber;
-    private String accountHolder;
-
     // 세후
     private BigDecimal netPay;
 
     @Builder
     public PayrollDetailResponse(
             Long id,
-            String targetMonth,
+            String yearMonth,
             String employeeName,
             String department,
             String position,
             String paymentDate,
+            String bankName,
+            String accountNumber,
+            String accountHolder,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
             BigDecimal mealAmount,
@@ -59,16 +62,16 @@ public class PayrollDetailResponse {
             BigDecimal incomeTaxAmount,
             BigDecimal localTaxAmount,
             BigDecimal totalDeductionAmount,
-            BigDecimal netPay,
-            String bankName,
-            String accountNumber,
-            String accountHolder) {
+            BigDecimal netPay) {
         this.id = id;
-        this.targetMonth = targetMonth;
+        this.yearMonth = yearMonth;
         this.employeeName = employeeName;
         this.department = department;
         this.position = position;
         this.paymentDate = paymentDate;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
         this.mealAmount = mealAmount;
@@ -81,9 +84,6 @@ public class PayrollDetailResponse {
         this.localTaxAmount = localTaxAmount;
         this.totalDeductionAmount = totalDeductionAmount;
         this.netPay = netPay;
-        this.bankName = bankName;
-        this.accountNumber = accountNumber;
-        this.accountHolder = accountHolder;
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
@@ -92,11 +92,11 @@ public class PayrollDetailResponse {
 
     public static PayrollDetailResponse of(
             PayrollLedger ledger,
-            com.reverse.payroll.internal.domain.SalarySetting salarySetting,
+            SalarySetting salarySetting,
             String plainAccountNumber,
-            String employeeName,
-            String department,
-            String position) {
+            String empName,
+            String deptName,
+            String posName) {
         BigDecimal totalDeduction =
                 safeAdd(
                         ledger.getNationalPensionAmount(),
@@ -106,16 +106,26 @@ public class PayrollDetailResponse {
                         ledger.getIncomeTaxAmount(),
                         ledger.getLocalTaxAmount());
 
-        // 지급일은 통상 해당월 25일로 표기 (가정)
-        String paymentDate = ledger.getTargetMonth() + "-25";
+        String bankName =
+                ledger.getBankNameSnapshot() != null
+                        ? ledger.getBankNameSnapshot()
+                        : (salarySetting != null ? salarySetting.getBankName() : null);
+        String accountHolder =
+                ledger.getAccountHolderSnapshot() != null
+                        ? ledger.getAccountHolderSnapshot()
+                        : (salarySetting != null ? salarySetting.getAccountHolder() : null);
+        String paymentDate = resolvePaymentDate(ledger.getTargetMonth());
 
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
-                .targetMonth(ledger.getTargetMonth())
-                .employeeName(employeeName)
-                .department(department)
-                .position(position)
+                .yearMonth(ledger.getTargetMonth())
+                .employeeName(empName)
+                .department(deptName)
+                .position(posName)
                 .paymentDate(paymentDate)
+                .bankName(bankName)
+                .accountNumber(plainAccountNumber)
+                .accountHolder(accountHolder)
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())
@@ -128,16 +138,15 @@ public class PayrollDetailResponse {
                 .localTaxAmount(ledger.getLocalTaxAmount())
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
-                .bankName(
-                        ledger.getBankNameSnapshot() != null
-                                ? ledger.getBankNameSnapshot()
-                                : (salarySetting != null ? salarySetting.getBankName() : null))
-                .accountNumber(plainAccountNumber)
-                .accountHolder(
-                        ledger.getAccountHolderSnapshot() != null
-                                ? ledger.getAccountHolderSnapshot()
-                                : (salarySetting != null ? salarySetting.getAccountHolder() : null))
                 .build();
+    }
+
+    private static String resolvePaymentDate(String targetMonth) {
+        try {
+            return LocalDate.parse(targetMonth + "-01").withDayOfMonth(PAYMENT_DAY).toString();
+        } catch (DateTimeParseException e) {
+            throw new IllegalStateException("잘못된 급여 대상 월 형식입니다: " + targetMonth, e);
+        }
     }
 
     private static BigDecimal safeAdd(BigDecimal... values) {

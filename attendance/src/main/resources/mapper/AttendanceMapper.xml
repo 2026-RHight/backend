@@ -2,14 +2,59 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.reverse.attendance.internal.persistence.AttendanceMapper">
+    <mapper namespace="com.reverse.attendance.internal.persistence.AttendanceMapper">
+
+    <sql id="monthRangeCondition">
+        work_date &gt;= CONCAT(#{targetMonth}, '-01')
+        AND work_date &lt; DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
+    </sql>
 
     <insert id="insertCheckIn" useGeneratedKeys="true" keyProperty="attendanceId">
         INSERT INTO attendance_record (
-            employee_id, work_date, check_in_time, status, tardy_reason
+            employee_id, work_date, check_in_time, status, tardy_reason, is_closed
         ) VALUES (
-                    #{employeeId}, #{workDate}, #{checkInTime}, #{status}, #{tardyReason}
+                    #{employeeId}, #{workDate}, #{checkInTime}, #{status}, #{tardyReason}, FALSE
                 )
+    </insert>
+
+    <insert id="insertOrUpdateAttendance" useGeneratedKeys="true" keyProperty="attendanceId">
+        INSERT INTO attendance_record (
+            employee_id,
+            work_date,
+            check_in_time,
+            check_out_time,
+            status,
+            tardy_reason,
+            modify_reason,
+            is_closed,
+            overtime_hours,
+            night_work_hours,
+            holiday_work_hours,
+            is_unpaid_leave
+        ) VALUES (
+            #{employeeId},
+            #{workDate},
+            #{checkInTime},
+            #{checkOutTime},
+            #{status},
+            #{tardyReason},
+            #{modifyReason},
+            COALESCE(#{closed}, FALSE),
+            COALESCE(#{overtimeHours}, 0),
+            COALESCE(#{nightWorkHours}, 0),
+            COALESCE(#{holidayWorkHours}, 0),
+            COALESCE(#{unpaidLeave}, FALSE)
+        )
+        ON DUPLICATE KEY UPDATE
+            check_in_time = VALUES(check_in_time),
+            check_out_time = VALUES(check_out_time),
+            status = VALUES(status),
+            tardy_reason = VALUES(tardy_reason),
+            modify_reason = VALUES(modify_reason),
+            overtime_hours = VALUES(overtime_hours),
+            night_work_hours = VALUES(night_work_hours),
+            holiday_work_hours = VALUES(holiday_work_hours),
+            is_unpaid_leave = VALUES(is_unpaid_leave)
     </insert>
 
     <select id="findByEmployeeIdAndWorkDate" resultType="com.reverse.attendance.internal.domain.Attendance">
@@ -21,10 +66,79 @@
             check_out_time as checkOutTime,
             status as status,
             tardy_reason as tardyReason,
-            modify_reason as modifyReason
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
         FROM attendance_record
         WHERE employee_id = #{employeeId} AND work_date = #{workDate}
         LIMIT 1
+    </select>
+
+    <select id="findAttendancesByMonth" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
+        FROM attendance_record
+        WHERE <include refid="monthRangeCondition"/>
+        ORDER BY work_date ASC, attendance_id ASC
+    </select>
+
+    <select id="findOpenAttendancesByDate" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
+        FROM attendance_record
+        WHERE work_date = #{workDate}
+          AND check_in_time IS NOT NULL
+          AND check_out_time IS NULL
+          AND COALESCE(is_closed, FALSE) = FALSE
+    </select>
+
+    <select id="findOpenAttendancesByMonth" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
+        FROM attendance_record
+        WHERE <include refid="monthRangeCondition"/>
+          AND check_in_time IS NOT NULL
+          AND check_out_time IS NULL
+          AND COALESCE(is_closed, FALSE) = FALSE
     </select>
 
     <update id="updateCheckOut">
@@ -34,6 +148,7 @@
         WHERE employee_id = #{employeeId}
           AND work_date = #{workDate}
           AND check_out_time IS NULL
+          AND COALESCE(is_closed, FALSE) = FALSE
     </update>
 
     <update id="updateAttendanceByAdmin">
@@ -43,6 +158,7 @@
             status = #{status},
             modify_reason = #{modifyReason}
         WHERE attendance_id = #{attendanceId}
+          AND COALESCE(is_closed, FALSE) = FALSE
     </update>
 
     <select id="countMonthlySummary" resultType="com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse">
@@ -51,10 +167,21 @@
             COUNT(CASE WHEN status = 'TARDY' THEN 1 END) as tardyCount,
             COUNT(CASE WHEN status = 'EARLY_LEAVE' THEN 1 END) as earlyLeaveCount,
             COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absentCount,
-            COUNT(CASE WHEN status = 'VACATION' THEN 1 END) as vacationCount
+            COUNT(CASE WHEN status IN ('VACATION', 'HALF_VACATION') THEN 1 END) as vacationCount
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        AND <include refid="monthRangeCondition"/>
+    </select>
+
+    <select id="countCompanyMonthlySummary" resultType="com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse">
+        SELECT
+            COUNT(CASE WHEN status = 'NORMAL' THEN 1 END) as normalCount,
+            COUNT(CASE WHEN status = 'TARDY' THEN 1 END) as tardyCount,
+            COUNT(CASE WHEN status = 'EARLY_LEAVE' THEN 1 END) as earlyLeaveCount,
+            COUNT(CASE WHEN status = 'ABSENT' THEN 1 END) as absentCount,
+            COUNT(CASE WHEN status IN ('VACATION', 'HALF_VACATION') THEN 1 END) as vacationCount
+        FROM attendance_record
+        WHERE <include refid="monthRangeCondition"/>
     </select>
 
     <select id="findMonthlyRecords" resultType="com.reverse.attendance.internal.domain.Attendance">
@@ -66,14 +193,121 @@
             check_out_time as checkOutTime,
             status as status,
             tardy_reason as tardyReason,
-            modify_reason as modifyReason
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
         FROM attendance_record
         WHERE employee_id = #{employeeId}
-        AND DATE_FORMAT(work_date, '%Y-%m') = #{targetMonth}
+        AND <include refid="monthRangeCondition"/>
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
         ORDER BY work_date DESC
+    </select>
+
+    <select id="findMonthlyEmployeeReports" resultType="com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse">
+        SELECT
+            s.employeeId as employeeId,
+            s.employeeName as employeeName,
+            s.departmentName as departmentName,
+            s.normalCount as normalCount,
+            s.tardyCount as tardyCount,
+            s.earlyLeaveCount as earlyLeaveCount,
+            s.absentCount as absentCount,
+            s.vacationCount as vacationCount,
+            s.closedCount as closedCount,
+            s.averageWorkHours as averageWorkHours,
+            CASE
+                WHEN COALESCE(lb.totalAnnualLeave, 0) > 0
+                    THEN ROUND(COALESCE(lr.approvedLeaveDays, 0) / lb.totalAnnualLeave * 100, 2)
+                ELSE 0
+            END as leaveUtilizationRate,
+            COALESCE(w.maxWeeklyWorkHours, 0) as maxWeeklyWorkHours,
+            CASE WHEN COALESCE(w.maxWeeklyWorkHours, 0) > 52 THEN TRUE ELSE FALSE END as weekly52HourExceeded,
+            CASE WHEN COALESCE(w.maxWeeklyWorkHours, 0) >= 48 THEN TRUE ELSE FALSE END as weekly52HourWarning
+        FROM (
+            SELECT
+                ar.employee_id as employeeId,
+                e.employee_name as employeeName,
+                COALESCE(o.org_name, '미소속') as departmentName,
+                COUNT(CASE WHEN ar.status = 'NORMAL' THEN 1 END) as normalCount,
+                COUNT(CASE WHEN ar.status = 'TARDY' THEN 1 END) as tardyCount,
+                COUNT(CASE WHEN ar.status = 'EARLY_LEAVE' THEN 1 END) as earlyLeaveCount,
+                COUNT(CASE WHEN ar.status = 'ABSENT' THEN 1 END) as absentCount,
+                COUNT(CASE WHEN ar.status IN ('VACATION', 'HALF_VACATION') THEN 1 END) as vacationCount,
+                COUNT(CASE WHEN COALESCE(ar.is_closed, FALSE) = TRUE THEN 1 END) as closedCount,
+                ROUND(AVG(
+                    CASE
+                        WHEN ar.check_in_time IS NOT NULL AND ar.check_out_time IS NOT NULL
+                            THEN TIMESTAMPDIFF(MINUTE, ar.check_in_time, ar.check_out_time) / 60.0
+                        ELSE NULL
+                    END
+                ), 2) as averageWorkHours
+            FROM attendance_record ar
+            JOIN employee e ON e.employee_id = ar.employee_id
+            LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+            LEFT JOIN organization o ON o.org_id = h.org_id
+            WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
+              AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
+            GROUP BY ar.employee_id, e.employee_name, o.org_name
+        ) s
+        LEFT JOIN (
+            SELECT
+                employee_id,
+                total_annual_leave as totalAnnualLeave
+            FROM leave_balance
+            WHERE base_year = #{baseYear}
+        ) lb ON lb.employee_id = s.employeeId
+        LEFT JOIN (
+            SELECT
+                employee_id,
+                COALESCE(SUM(used_days), 0) as approvedLeaveDays
+            FROM leave_request
+            WHERE leave_status = 'APPROVED'
+              AND YEAR(start_date) = #{baseYear}
+            GROUP BY employee_id
+        ) lr ON lr.employee_id = s.employeeId
+        LEFT JOIN (
+            SELECT
+                weekly.employee_id as employeeId,
+                MAX(weekly.weeklyHours) as maxWeeklyWorkHours
+            FROM (
+                SELECT
+                    ar.employee_id,
+                    YEARWEEK(ar.work_date, 1) as weekKey,
+                    ROUND(SUM(
+                        CASE
+                            WHEN ar.check_in_time IS NOT NULL AND ar.check_out_time IS NOT NULL
+                                THEN TIMESTAMPDIFF(MINUTE, ar.check_in_time, ar.check_out_time) / 60.0
+                            ELSE 0
+                        END
+                        + COALESCE(ar.overtime_hours, 0)
+                        + COALESCE(ar.night_work_hours, 0)
+                        + COALESCE(ar.holiday_work_hours, 0)
+                    ), 2) as weeklyHours
+                FROM attendance_record ar
+                WHERE ar.work_date >= #{weekRangeStart}
+                  AND ar.work_date < #{weekRangeEnd}
+                GROUP BY ar.employee_id, YEARWEEK(ar.work_date, 1)
+            ) weekly
+            GROUP BY weekly.employee_id
+        ) w ON w.employeeId = s.employeeId
+        ORDER BY s.absentCount DESC, s.tardyCount DESC, s.earlyLeaveCount DESC, s.employeeName ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countMonthlyEmployeeReports" resultType="long">
+        SELECT COUNT(*)
+        FROM (
+            SELECT ar.employee_id
+            FROM attendance_record ar
+            WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
+              AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
+            GROUP BY ar.employee_id
+        ) t
     </select>
 
     <select id="getAttendanceForPayroll" resultType="com.reverse.attendance.dto.PayrollAttendanceResponse">
@@ -86,10 +320,10 @@
             COALESCE(SUM(overtime_hours), 0) as totalOvertimeHours,
             COALESCE(SUM(night_work_hours), 0) as nightWorkHours,
             COALESCE(SUM(holiday_work_hours), 0) as holidayWorkHours,
-            0 as businessTripDays,
             SUM(CASE WHEN status = 'TARDY' THEN 1 ELSE 0 END) as tardyCount,
             SUM(CASE WHEN status = 'EARLY_LEAVE' THEN 1 ELSE 0 END) as earlyLeaveCount,
             SUM(CASE WHEN status = 'ABSENT' THEN 1 ELSE 0 END) as absentDays,
+            SUM(CASE WHEN status = 'BUSINESS_TRIP' THEN 1 ELSE 0 END) as businessTripDays,
             SUM(CASE WHEN status = 'VACATION' AND is_unpaid_leave = FALSE THEN 1 ELSE 0 END) as paidLeaveDays,
             SUM(CASE WHEN status = 'VACATION' AND is_unpaid_leave = TRUE THEN 1 ELSE 0 END) as unpaidLeaveDays
         FROM attendance_record
@@ -105,6 +339,50 @@
         WHERE work_date = #{workDate}
           AND check_in_time IS NOT NULL
           AND check_out_time IS NULL
+    </update>
+
+    <update id="autoCloseMissingCheckOutByMonth">
+        UPDATE attendance_record
+        SET status = 'EARLY_LEAVE',
+            modify_reason = 'Monthly Close Auto Closed'
+        WHERE <include refid="monthRangeCondition"/>
+          AND check_in_time IS NOT NULL
+          AND check_out_time IS NULL
+          AND COALESCE(is_closed, FALSE) = FALSE
+    </update>
+
+    <update id="closeMonthlyRecords">
+        UPDATE attendance_record
+        SET is_closed = TRUE,
+            modify_reason = CASE
+                WHEN modify_reason IS NULL OR modify_reason = '' THEN 'Monthly Close Finalized'
+                ELSE modify_reason
+            END
+        WHERE <include refid="monthRangeCondition"/>
+          AND COALESCE(is_closed, FALSE) = FALSE
+    </update>
+
+    <update id="reopenMonthlyRecords">
+        UPDATE attendance_record
+        SET is_closed = FALSE,
+            modify_reason = CASE
+                WHEN modify_reason IS NULL OR modify_reason = '' THEN 'Monthly Reopen Finalized'
+                ELSE CONCAT(modify_reason, ' | Monthly Reopen Finalized')
+            END
+        WHERE <include refid="monthRangeCondition"/>
+          AND COALESCE(is_closed, FALSE) = TRUE
+    </update>
+
+    <update id="updateOvertimeHours">
+        UPDATE attendance_record
+        SET overtime_hours = #{overtimeHours},
+            modify_reason = CASE
+                WHEN modify_reason IS NULL OR modify_reason = '' THEN #{modifyReason}
+                ELSE CONCAT(modify_reason, ' | ', #{modifyReason})
+            END
+        WHERE employee_id = #{employeeId}
+          AND work_date = #{workDate}
+          AND COALESCE(is_closed, FALSE) = FALSE
     </update>
 
 </mapper>
