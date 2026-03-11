@@ -864,7 +864,7 @@ public class PayrollService {
                 ledger.getDeptNameSnapshot(),
                 ledger.getPositionNameSnapshot(),
                 ledger.getBankNameSnapshot(),
-                decryptAccountNumber(ledger.getAccountNumberSnapshotEnc()),
+                decryptAccountNumberOrThrow(ledger.getAccountNumberSnapshotEnc(), ledger.getId()),
                 ledger.getAccountHolderSnapshot(),
                 ledger.getSalaryAmount(),
                 ledger.getOvertimeAmount(),
@@ -931,6 +931,19 @@ public class PayrollService {
         } catch (Exception e) {
             log.warn("급여대장 계좌번호 복호화 실패", e);
             return null;
+        }
+    }
+
+    private String decryptAccountNumberOrThrow(String accountNumberEnc, Long ledgerId) {
+        if (accountNumberEnc == null || accountNumberEnc.isBlank()) {
+            throw new IllegalStateException("은행이체용 계좌번호가 비어 있습니다. ledgerId=" + ledgerId);
+        }
+
+        try {
+            return fieldCryptoService.decrypt(accountNumberEnc);
+        } catch (Exception e) {
+            log.error("은행이체용 계좌번호 복호화 실패 - ledgerId: {}", ledgerId, e);
+            throw new IllegalStateException("은행이체용 계좌번호를 복호화할 수 없습니다. ledgerId=" + ledgerId, e);
         }
     }
 
