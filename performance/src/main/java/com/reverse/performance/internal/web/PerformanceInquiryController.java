@@ -14,19 +14,18 @@ import com.reverse.performance.internal.dto.response.PersonalPerformanceResponse
 import com.reverse.performance.internal.dto.response.TeamPerformanceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/performance")
@@ -87,14 +86,12 @@ public class PerformanceInquiryController {
     }
 
     @Operation(summary = "성과 결과 등록")
-    @PatchMapping(value = "/result/{performanceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping("/result/{performanceId}")
     public ApiResponse<Void> updateResult(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
-            @RequestPart("request") PerformanceResultUpdateRequest request,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-        performanceInquiryService.updateResult(
-                user.getEmployeeId(), performanceId, request, files == null ? List.of() : files);
+            @Valid @RequestBody PerformanceResultUpdateRequest request) {
+        performanceInquiryService.updateResult(user.getEmployeeId(), performanceId, request);
         return ApiResponse.success();
     }
 
@@ -105,8 +102,16 @@ public class PerformanceInquiryController {
 
     private Long resolveTargetEmployeeId(CustomUser user, Long targetEmployeeId) {
         if (targetEmployeeId == null) {
-            return user.getEmployeeId();
+            return isAdmin(user) || isEvaluator(user) ? null : user.getEmployeeId();
         }
         return targetEmployeeId;
+    }
+
+    private boolean isEvaluator(CustomUser user) {
+        return user.getAuthorities().stream()
+                .anyMatch(
+                        auth ->
+                                "EVALUATOR".equals(auth.getAuthority())
+                                        || "ROLE_EVALUATOR".equals(auth.getAuthority()));
     }
 }

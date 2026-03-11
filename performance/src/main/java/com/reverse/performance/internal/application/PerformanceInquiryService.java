@@ -24,13 +24,62 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 public class PerformanceInquiryService {
 
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
     private final AttachmentMapper attachmentMapper;
     private final PerformanceFileService performanceFileService;
 
     public List<PerformanceInquiryItemResponse> getInquiryItems(
             Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
-        return performanceViewMapper.findInquiryItems(viewerEmployeeId, targetEmployeeId, isAdmin);
+        List<PerformanceViewMapper.InquiryItemRow> rows =
+                resolveInquiryRows(viewerEmployeeId, targetEmployeeId, isAdmin);
+        return rows.stream()
+                .map(
+                        row -> {
+                            PerformanceHrMemberResolver.EmployeeProfileSnapshot profile =
+                                    performanceHrMemberResolver.getEmployeeProfile(
+                                            row.employeeId());
+                            return new PerformanceInquiryItemResponse(
+                                    row.id(),
+                                    row.type(),
+                                    row.title(),
+                                    row.coreTask(),
+                                    row.date(),
+                                    row.status(),
+                                    row.progress(),
+                                    profile == null ? "-" : profile.employeeName(),
+                                    row.employeeId(),
+                                    row.description(),
+                                    row.achievement());
+                        })
+                .toList();
+    }
+
+    private List<PerformanceViewMapper.InquiryItemRow> resolveInquiryRows(
+            Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
+        if (targetEmployeeId != null) {
+            if (!isAdmin
+                    && !targetEmployeeId.equals(viewerEmployeeId)
+                    && !canAccessTarget(viewerEmployeeId, targetEmployeeId)) {
+                throw new ForbiddenException("FORBIDDEN", "조회할 수 없는 팀원 성과입니다.");
+            }
+            return performanceViewMapper.findInquiryItems(
+                    viewerEmployeeId,
+                    targetEmployeeId,
+                    isAdmin || !targetEmployeeId.equals(viewerEmployeeId));
+        }
+
+        if (isAdmin) {
+            return performanceViewMapper.findInquiryItems(viewerEmployeeId, null, true);
+        }
+
+        List<Long> targetIds =
+                performanceViewMapper.findInquiryAccessibleTargetIds(viewerEmployeeId);
+        if (targetIds == null || targetIds.isEmpty()) {
+            return performanceViewMapper.findInquiryItems(
+                    viewerEmployeeId, viewerEmployeeId, false);
+        }
+        return performanceViewMapper.findInquiryItemsByEmployeeIds(targetIds);
     }
 
     @Transactional
@@ -83,6 +132,13 @@ public class PerformanceInquiryService {
         if (authorized == 0) {
             throw new ForbiddenException("FORBIDDEN", "성과 결과를 수정할 권한이 없습니다.");
         }
+    }
+
+    private boolean canAccessTarget(Long viewerEmployeeId, Long targetEmployeeId) {
+        Integer accessible =
+                performanceViewMapper.countInquiryAccessibleTarget(
+                        viewerEmployeeId, targetEmployeeId);
+        return accessible != null && accessible > 0;
     }
 
     private void saveAttachments(Long performanceId, List<MultipartFile> files) {
