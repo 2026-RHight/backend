@@ -10,6 +10,7 @@ import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationTreeNodeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,11 +48,10 @@ public class OrganizationController {
     public ApiResponse<PageResponse<OrganizationMemberResponseDTO>> getMyOrganizationMembers(
             @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) Long orgId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "1") @Min(1) int page) {
         return ApiResponse.success(
                 organizationService.getMyOrganizationMembers(
-                        user.getEmployeeId(), orgId, page, size));
+                        user.getEmployeeId(), orgId, page, 10));
     }
 
     @GetMapping("/members/{targetEmployeeId}/detail")
