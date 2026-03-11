@@ -64,9 +64,9 @@ public class PerformanceService {
         }
 
         PerformanceRequest request = normalizePerformanceRequest(dto.request());
-        if (request.getDifficultyScore() < 1 || request.getDifficultyScore() > 10) {
+        if (request.getDifficultyScore() < 1 || request.getDifficultyScore() > 5) {
             throw new ResponseStatusException(
-                    BAD_REQUEST, "difficultyScore must be between 1 and 10");
+                    BAD_REQUEST, "difficultyScore must be between 1 and 5");
         }
         performanceMapper.savePerformance(employeeId, request);
         Long performanceId = request.getPerformanceId();
@@ -163,6 +163,21 @@ public class PerformanceService {
         }
         TeamEvalRequest normalized =
                 dto.withEvaluationYear(resolveEvaluationYear(dto.evaluationYear()));
+        if (normalized.evaluatorId() == null || normalized.appraiseeId() == null) {
+            throw new ResponseStatusException(
+                    BAD_REQUEST, "evaluatorId and appraiseeId are required");
+        }
+        validateTeamEvaluationScore("performanceScore", normalized.performanceScore());
+        validateTeamEvaluationScore("attitudeScore", normalized.attitudeScore());
+        validateTeamEvaluationScore("collaborationScore", normalized.collaborationScore());
+        validateTeamEvaluationScore("creativityScore", normalized.creativityScore());
+        if (teamEvalMapper.countByEvaluatorIdAndAppraiseeIdAndYear(
+                        normalized.evaluatorId(),
+                        normalized.appraiseeId(),
+                        normalized.evaluationYear())
+                > 0) {
+            throw new PerformanceActionNotAllowedException("이미 팀 평가를 등록했습니다.");
+        }
         teamEvalMapper.saveTeamEval(normalized);
     }
 
@@ -201,7 +216,7 @@ public class PerformanceService {
                 request.getStartDate(),
                 request.getExpectedEndDate(),
                 request.getWorkDetail(),
-                request.getStatus() == null ? Status.ACTIVE : request.getStatus(),
+                request.getStatus() == null ? Status.WAITING : request.getStatus(),
                 request.getAchievementRate() == null ? 0 : request.getAchievementRate(),
                 request.getDifficultyScore() == null ? 5 : request.getDifficultyScore(),
                 request.getComment(),
@@ -214,6 +229,12 @@ public class PerformanceService {
             throw new ResponseStatusException(BAD_REQUEST, "month must be between 1 and 12");
         }
         return new MonthlyScoreCreateRequest(dto.year(), month);
+    }
+
+    private void validateTeamEvaluationScore(String fieldName, Integer score) {
+        if (score == null || score < 1 || score > 5) {
+            throw new ResponseStatusException(BAD_REQUEST, fieldName + " must be between 1 and 5");
+        }
     }
 
     private Integer resolveEvaluationYear(Integer evaluationYear) {

@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PerformanceMonthlyService {
 
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
 
     public PerformanceMonthlyResponse getMonthly(
@@ -35,9 +36,7 @@ public class PerformanceMonthlyService {
                         windowEndExclusive);
         List<PerformanceViewMapper.PerformanceMonthlyPoint> teamPoints =
                 performanceViewMapper.findMonthlyTeamScores(
-                        viewerEmployeeId,
-                        targetEmployeeId,
-                        isAdmin,
+                        resolveTeamEmployeeIds(viewerEmployeeId, targetEmployeeId, isAdmin),
                         windowStart,
                         windowEndExclusive);
 
@@ -142,5 +141,16 @@ public class PerformanceMonthlyService {
 
     private int nvl(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private List<Long> resolveTeamEmployeeIds(
+            Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
+        Long baseEmployeeId =
+                isAdmin && targetEmployeeId != null ? targetEmployeeId : viewerEmployeeId;
+        return performanceHrMemberResolver.getMyOrganizationMembers(baseEmployeeId).stream()
+                .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
     }
 }
