@@ -130,7 +130,9 @@ public class OrganizationService {
                         toEmployeeStateDescription(hrInfoRow.employeeState()),
                         formatDate(hrInfoRow.hireDate()),
                         hrInfoRow.employType(),
+                        toEmployTypeDescription(hrInfoRow.employType()),
                         hrInfoRow.recruitType(),
+                        toRecruitTypeDescription(hrInfoRow.recruitType()),
                         hrInfoRow.areaName());
 
         List<OrganizationMemberDetailResponseDTO.SkillItem> skills =
@@ -232,6 +234,20 @@ public class OrganizationService {
             return null;
         }
         return state.getDescription();
+    }
+
+    private String toEmployTypeDescription(com.reverse.hr.internal.domain.enums.EmployType type) {
+        if (type == null) {
+            return null;
+        }
+        return type.getDescription();
+    }
+
+    private String toRecruitTypeDescription(com.reverse.hr.internal.domain.enums.RecruitType type) {
+        if (type == null) {
+            return null;
+        }
+        return type.getDescription();
     }
 
     private String formatDate(LocalDate date) {
