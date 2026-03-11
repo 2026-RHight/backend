@@ -85,31 +85,40 @@ pipeline {
             kubectl get namespace "${K8S_NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace "${K8S_NAMESPACE}"
 
             set +x
-            kubectl -n "${K8S_NAMESPACE}" create secret generic rhight-api-secret \
-              --from-literal=PROD_DB_URL="${PROD_DB_URL}" \
-              --from-literal=PROD_DB_USER="${PROD_DB_USER}" \
-              --from-literal=PROD_DB_PASSWORD="${PROD_DB_PASSWORD}" \
-              --from-literal=PROD_REDIS_HOST="${PROD_REDIS_HOST}" \
-              --from-literal=PROD_REDIS_PORT="${PROD_REDIS_PORT}" \
-              --from-literal=PROD_REDIS_PASSWORD="${PROD_REDIS_PASSWORD}" \
-              --from-literal=PROD_S3_ENDPOINT="${PROD_S3_ENDPOINT}" \
-              --from-literal=PROD_S3_REGION="${PROD_S3_REGION}" \
-              --from-literal=PROD_S3_BUCKET="${PROD_S3_BUCKET}" \
-              --from-literal=PROD_S3_KEY="${PROD_S3_KEY}" \
-              --from-literal=PROD_S3_SECRET="${PROD_S3_SECRET}" \
-              --from-literal=PROD_JWT_SECRET="${PROD_JWT_SECRET}" \
-              --from-literal=PROD_JWT_EXPIRATION="${PROD_JWT_EXPIRATION}" \
-              --from-literal=PROD_JWT_REFRESH_EXPIRATION="${PROD_JWT_REFRESH_EXPIRATION}" \
-              --from-literal=AWS_MAIL_HOST="${AWS_MAIL_HOST}" \
-              --from-literal=AWS_MAIL_PORT="${AWS_MAIL_PORT}" \
-              --from-literal=AWS_MAIL_USERNAME="${AWS_MAIL_USERNAME}" \
-              --from-literal=AWS_MAIL_PASSWORD="${AWS_MAIL_PASSWORD}" \
-              --from-literal=AWS_MAIL_FROM="${AWS_MAIL_FROM}" \
-              --from-literal=SECURITY_ENC_KEY_BASE64="${SECURITY_ENC_KEY_BASE64}" \
-              --from-literal=SECURITY_HASH_PEPPER="${SECURITY_HASH_PEPPER}" \
-              --dry-run=client -o yaml | kubectl apply -f -
+            cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rhight-api-secret
+  namespace: ${K8S_NAMESPACE}
+type: Opaque
+stringData:
+  PROD_DB_URL: "${PROD_DB_URL}"
+  PROD_DB_USER: "${PROD_DB_USER}"
+  PROD_DB_PASSWORD: "${PROD_DB_PASSWORD}"
+  PROD_REDIS_HOST: "${PROD_REDIS_HOST}"
+  PROD_REDIS_PORT: "${PROD_REDIS_PORT}"
+  PROD_REDIS_PASSWORD: "${PROD_REDIS_PASSWORD}"
+  PROD_S3_ENDPOINT: "${PROD_S3_ENDPOINT}"
+  PROD_S3_REGION: "${PROD_S3_REGION}"
+  PROD_S3_BUCKET: "${PROD_S3_BUCKET}"
+  PROD_S3_KEY: "${PROD_S3_KEY}"
+  PROD_S3_SECRET: "${PROD_S3_SECRET}"
+  PROD_JWT_SECRET: "${PROD_JWT_SECRET}"
+  PROD_JWT_EXPIRATION: "${PROD_JWT_EXPIRATION}"
+  PROD_JWT_REFRESH_EXPIRATION: "${PROD_JWT_REFRESH_EXPIRATION}"
+  AWS_MAIL_HOST: "${AWS_MAIL_HOST}"
+  AWS_MAIL_PORT: "${AWS_MAIL_PORT}"
+  AWS_MAIL_USERNAME: "${AWS_MAIL_USERNAME}"
+  AWS_MAIL_PASSWORD: "${AWS_MAIL_PASSWORD}"
+  AWS_MAIL_FROM: "${AWS_MAIL_FROM}"
+  SECURITY_ENC_KEY_BASE64: "${SECURITY_ENC_KEY_BASE64}"
+  SECURITY_HASH_PEPPER: "${SECURITY_HASH_PEPPER}"
+EOF
             set -x
 
+            sed "s|__IMAGE__|${IMAGE_URI}:${IMAGE_TAG}|g" k8s/prod/deployment.yaml | kubectl apply -f -
+            kubectl apply -f k8s/prod/service.yaml
             kubectl -n "${K8S_NAMESPACE}" set image deployment/rhight-api app="${IMAGE_URI}:${IMAGE_TAG}"
             kubectl -n "${K8S_NAMESPACE}" rollout status deployment/rhight-api --timeout=180s
           '''
