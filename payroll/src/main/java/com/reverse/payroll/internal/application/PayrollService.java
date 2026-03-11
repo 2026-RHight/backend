@@ -369,7 +369,7 @@ public class PayrollService {
             int year, int month, String employeeName, String departmentName, String isFinalized) {
         validateYearMonth(year, month);
         String targetMonth = String.format("%04d-%02d", year, month);
-        String normalizedFinalized = normalizeFinalizeFlag(isFinalized);
+        String normalizedFinalized = "Y";
         String normalizedEmployeeName = normalizeKeyword(employeeName);
         String normalizedDepartmentName = normalizeKeyword(departmentName);
 
@@ -385,6 +385,12 @@ public class PayrollService {
                         .stream()
                         .map(this::toBankTransferPayrollLedgerRow)
                         .collect(Collectors.toList());
+
+        boolean hasNonFinalizedLedger =
+                ledgers.stream().anyMatch(ledger -> !"Y".equals(ledger.isFinalized()));
+        if (hasNonFinalizedLedger) {
+            throw new IllegalStateException("은행이체용 CSV는 마감된 급여 대장만 다운로드할 수 있습니다.");
+        }
 
         StringBuilder csv = new StringBuilder();
         csv.append('\uFEFF');
@@ -972,7 +978,11 @@ public class PayrollService {
         if (value == null) {
             return "\"\"";
         }
-        String text = String.valueOf(value).replace("\"", "\"\"");
+        String text = String.valueOf(value);
+        if (!text.isEmpty() && "=+-@".indexOf(text.charAt(0)) >= 0) {
+            text = "'" + text;
+        }
+        text = text.replace("\"", "\"\"");
         return "\"" + text + "\"";
     }
 
