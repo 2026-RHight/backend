@@ -139,8 +139,7 @@ pipeline {
 
             sed "s|__IMAGE__|${IMAGE_URI}:${IMAGE_TAG}|g" k8s/prod/deployment.yaml | kubectl apply -f -
             kubectl apply -f k8s/prod/service.yaml
-            kubectl -n "${K8S_NAMESPACE}" set image deployment/rhight-api app="${IMAGE_URI}:${IMAGE_TAG}"
-            kubectl -n "${K8S_NAMESPACE}" rollout status deployment/rhight-api --timeout=180s
+            kubectl -n "${K8S_NAMESPACE}" rollout status deployment/rhight-api --timeout=300s
           '''
         }
       }
