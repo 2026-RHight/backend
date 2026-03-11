@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -72,7 +73,8 @@ public class PerformanceDashboardSummaryService {
             return toResponse(
                     performanceDashboardSummaryMapper.findDashboardSummary(
                             employeeId, targetYear, targetMonth));
-        } catch (BadSqlGrammarException | IllegalStateException | DateTimeException ex) {
+        } catch (BadSqlGrammarException | DateTimeException ex) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             log.warn(
                     "성과 대시보드 요약 재계산을 건너뜁니다. 스키마 또는 HR facade 구성이 완전하지 않을 수 있습니다. employeeId={}, year={}, month={}",
                     employeeId,
@@ -94,7 +96,7 @@ public class PerformanceDashboardSummaryService {
             if (currentSummary != null) {
                 return toResponse(currentSummary);
             }
-        } catch (BadSqlGrammarException | IllegalStateException ex) {
+        } catch (BadSqlGrammarException ex) {
             log.warn(
                     "성과 대시보드 요약 조회를 건너뜁니다. 스키마 또는 HR facade 구성이 완전하지 않을 수 있습니다. employeeId={}",
                     employeeId,

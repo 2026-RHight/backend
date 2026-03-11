@@ -1,5 +1,7 @@
 package com.reverse.performance.internal.web;
 
+import com.reverse.core.exception.BadRequestException;
+import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.performance.internal.application.PerformanceInquiryService;
@@ -117,12 +119,12 @@ public class PerformanceInquiryController {
     public ApiResponse<Void> updateResultWithAttachments(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
-            @Valid @org.springframework.web.bind.annotation.RequestBody(required = false)
-                    PerformanceResultUpdateRequest requestBody,
             @Valid @RequestPart(value = "request", required = false)
-                    PerformanceResultUpdateRequest requestPart,
+                    PerformanceResultUpdateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-        PerformanceResultUpdateRequest request = requestBody != null ? requestBody : requestPart;
+        if (request == null) {
+            throw new BadRequestException("성과 결과 등록 요청이 비어 있습니다.");
+        }
         performanceInquiryService.updateResult(user.getEmployeeId(), performanceId, request, files);
         return ApiResponse.success();
     }
@@ -135,6 +137,12 @@ public class PerformanceInquiryController {
     private Long resolveTargetEmployeeId(CustomUser user, Long targetEmployeeId) {
         if (targetEmployeeId == null) {
             return isAdmin(user) || isEvaluator(user) ? null : user.getEmployeeId();
+        }
+        if (targetEmployeeId.equals(user.getEmployeeId())) {
+            return targetEmployeeId;
+        }
+        if (!isAdmin(user) && !isEvaluator(user)) {
+            throw new ForbiddenException("FORBIDDEN", "다른 직원의 성과를 조회할 권한이 없습니다.");
         }
         return targetEmployeeId;
     }
