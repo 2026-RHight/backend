@@ -28,8 +28,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run api tests
-        run: ./gradlew :api:test --no-daemon
+      - name: Run api tests and build jar
+        run: ./gradlew :api:test :api:bootJar --no-daemon
+
+      - name: Upload api jar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-boot-jar
+          path: api/build/libs/*.jar
+          if-no-files-found: error
 
   cd:
     needs: ci
@@ -39,20 +46,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Download api jar artifact
+        uses: actions/download-artifact@v4
         with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build api jar
-        run: ./gradlew :api:bootJar -x test --no-daemon
+          name: api-boot-jar
+          path: api/build/libs
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

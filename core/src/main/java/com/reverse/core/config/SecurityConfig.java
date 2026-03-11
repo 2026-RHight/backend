@@ -58,7 +58,10 @@ public class SecurityConfig {
                                 auth.requestMatchers("/api/v1/auth/**")
                                         .permitAll()
                                         .requestMatchers(
-                                                "/swagger-ui/**", "/v3/api-docs/**", "/error")
+                                                "/swagger-ui/**",
+                                                "/v3/api-docs/**",
+                                                "/error",
+                                                "/actuator/health")
                                         .permitAll()
                                         // 그 외 인증 필요
                                         .anyRequest()
