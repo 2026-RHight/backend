@@ -93,6 +93,9 @@ jobs:
               -e DEV_DB_URL='${{ secrets.DEV_DB_URL }}' \
               -e DEV_DB_USER='${{ secrets.DEV_DB_USER }}' \
               -e DEV_DB_PASSWORD='${{ secrets.DEV_DB_PASSWORD }}' \
+              -e DEV_REDIS_HOST='${{ secrets.DEV_REDIS_HOST }}' \
+              -e DEV_REDIS_PORT='${{ secrets.DEV_REDIS_PORT }}' \
+              -e DEV_REDIS_PASSWORD='${{ secrets.DEV_REDIS_PASSWORD }}' \
               -e SECURITY_HASH_PEPPER='${{ secrets.SECURITY_HASH_PEPPER }}' \
               -e SECURITY_ENC_KEY_BASE64='${{ secrets.SECURITY_ENC_KEY_BASE64 }}' \
               -e DEV_S3_ENDPOINT='${{ secrets.DEV_S3_ENDPOINT }}' \
