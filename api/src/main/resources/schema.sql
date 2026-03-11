@@ -72,6 +72,21 @@ CREATE TABLE IF NOT EXISTS password_history (
     CONSTRAINT fk_password_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
 
+CREATE TABLE IF NOT EXISTS employee_sensitive_access_log (
+                                                             access_log_id BIGINT NOT NULL AUTO_INCREMENT,
+                                                             viewer_employee_id BIGINT NOT NULL,
+                                                             target_employee_id BIGINT NOT NULL,
+                                                             field_type ENUM('RESIDENT_NUMBER','ACCOUNT_NUMBER') NOT NULL,
+    access_reason VARCHAR(500) NULL,
+    accessed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (access_log_id),
+    KEY idx_sensitive_access_viewer (viewer_employee_id),
+    KEY idx_sensitive_access_target (target_employee_id),
+    KEY idx_sensitive_access_time (accessed_at),
+    CONSTRAINT fk_sensitive_access_viewer FOREIGN KEY (viewer_employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_sensitive_access_target FOREIGN KEY (target_employee_id) REFERENCES employee(employee_id)
+    );
+
 CREATE TABLE IF NOT EXISTS organization (
                                             org_id BIGINT NOT NULL AUTO_INCREMENT,
                                             org_name VARCHAR(255) NOT NULL,

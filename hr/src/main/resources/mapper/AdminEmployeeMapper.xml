@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.AdminEmployeeMapper">
+
+    <sql id="employeeFilter">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (e.employee_name LIKE CONCAT('%', #{keyword}, '%')
+                OR e.employee_num LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="orgId != null">
+                AND h.org_id = #{orgId}
+            </if>
+            <if test="employeeState != null">
+                AND e.employ_state = #{employeeState}
+            </if>
+            <if test="employType != null">
+                AND h.employ_type = #{employType}
+            </if>
+        </where>
+    </sql>
+
+    <select id="findEmployees" resultType="com.reverse.hr.internal.persistence.row.AdminEmployeeListRow">
+        SELECT e.employee_id   AS employeeId,
+               e.employee_num  AS employeeNum,
+               e.employee_name AS employeeName,
+               f.file_url      AS profileFileUrl,
+               o.org_name      AS orgName,
+               p.position_name AS positionName,
+               j.job_name      AS jobName,
+               r.rank_name     AS rankName,
+               e.employ_state  AS employeeState,
+               e.hire_date     AS hireDate,
+               h.employ_type   AS employType,
+               w.area_name     AS areaName
+        FROM employee e
+                 LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+                 LEFT JOIN hr_position p ON p.position_id = h.position_id
+                 LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
+                 LEFT JOIN job j ON j.job_id = h.job_id
+                 LEFT JOIN working_area w ON w.area_id = h.area_id
+                 LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
+        <include refid="employeeFilter"/>
+        ORDER BY e.employee_name ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countEmployees" resultType="long">
+        SELECT COUNT(*)
+        FROM employee e
+                 LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        <include refid="employeeFilter"/>
+    </select>
+
+    <select id="findEmployeeDetailById" resultType="com.reverse.hr.internal.persistence.row.AdminEmployeeDetailRow">
+        SELECT e.employee_id          AS employeeId,
+               e.employee_num         AS employeeNum,
+               e.employee_name        AS employeeName,
+               f.file_url             AS profileFileUrl,
+               e.email                AS email,
+               e.phone                AS phone,
+               e.ext                  AS extensionNum,
+               e.address              AS address,
+               e.birth_date           AS birthDate,
+               o.org_name             AS orgName,
+               p.position_name        AS positionName,
+               j.job_name             AS jobName,
+               r.rank_name            AS rankName,
+               e.employ_state         AS employeeState,
+               e.hire_date            AS hireDate,
+               h.employ_type          AS employType,
+               h.recruit_type         AS recruitType,
+               w.area_name            AS areaName,
+               e.bank_name            AS bankName,
+               e.resident_number_enc  AS residentNumberEnc,
+               e.account_number_enc   AS accountNumberEnc
+        FROM employee e
+                 LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+                 LEFT JOIN hr_position p ON p.position_id = h.position_id
+                 LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
+                 LEFT JOIN job j ON j.job_id = h.job_id
+                 LEFT JOIN working_area w ON w.area_id = h.area_id
+                 LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
+        WHERE e.employee_id = #{employeeId}
+    </select>
+
+    <insert id="insertSensitiveAccessLog">
+        INSERT INTO employee_sensitive_access_log (
+            viewer_employee_id,
+            target_employee_id,
+            field_type,
+            access_reason,
+            accessed_at
+        ) VALUES (
+                     #{viewerEmployeeId},
+                     #{targetEmployeeId},
+                     #{fieldType},
+                     #{reason},
+                     NOW()
+                 )
+    </insert>
+
+</mapper>
