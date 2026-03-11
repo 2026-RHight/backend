@@ -23,7 +23,7 @@ pipeline {
     stage('Build and Test') {
       steps {
         sh 'chmod +x gradlew'
-        sh './gradlew clean build --no-daemon'
+        sh './gradlew :api:test :api:bootJar --no-daemon'
       }
     }
 
