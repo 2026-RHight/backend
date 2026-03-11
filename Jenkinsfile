@@ -110,7 +110,6 @@ pipeline {
             printf '%s' "${SECURITY_ENC_KEY_BASE64}" > "$tmpdir/SECURITY_ENC_KEY_BASE64"
             printf '%s' "${SECURITY_HASH_PEPPER}" > "$tmpdir/SECURITY_HASH_PEPPER"
 
-            kubectl -n "${K8S_NAMESPACE}" delete secret rhight-api-secret --ignore-not-found=true
             kubectl -n "${K8S_NAMESPACE}" create secret generic rhight-api-secret \
               --from-file=PROD_DB_URL="$tmpdir/PROD_DB_URL" \
               --from-file=PROD_DB_USER="$tmpdir/PROD_DB_USER" \
@@ -132,7 +131,8 @@ pipeline {
               --from-file=AWS_MAIL_PASSWORD="$tmpdir/AWS_MAIL_PASSWORD" \
               --from-file=AWS_MAIL_FROM="$tmpdir/AWS_MAIL_FROM" \
               --from-file=SECURITY_ENC_KEY_BASE64="$tmpdir/SECURITY_ENC_KEY_BASE64" \
-              --from-file=SECURITY_HASH_PEPPER="$tmpdir/SECURITY_HASH_PEPPER"
+              --from-file=SECURITY_HASH_PEPPER="$tmpdir/SECURITY_HASH_PEPPER" \
+              --dry-run=client -o json | kubectl apply -f -
 
             rm -rf "$tmpdir"
             set -x
