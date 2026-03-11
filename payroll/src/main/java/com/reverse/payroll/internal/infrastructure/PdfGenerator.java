@@ -31,11 +31,9 @@ public class PdfGenerator {
             // 한글 폰트 설정
             try {
                 ITextFontResolver fontResolver = renderer.getFontResolver();
-                // 폰트 파일은 src/main/resources/fonts/nanum.ttf 에 위치해야 함 (AppleGothic.ttf 복사본)
                 ClassPathResource fontResource = new ClassPathResource("fonts/nanum.ttf");
                 if (fontResource.exists()) {
                     String fontPath = fontResource.getURL().toString();
-                    // 'NanumGothic'은 HTML의 font-family와 일치해야 함 (TTF 내부의 이름이 사용됨)
                     fontResolver.addFont(fontPath, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
                     log.info("PDF Font registered: NanumGothic from {}", fontPath);
                 } else {

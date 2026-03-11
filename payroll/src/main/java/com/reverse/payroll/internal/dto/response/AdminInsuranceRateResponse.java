@@ -1,14 +1,12 @@
-package com.reverse.payroll.internal.domain;
+package com.reverse.payroll.internal.dto.response;
 
+import com.reverse.payroll.internal.domain.InsuranceRate;
 import java.math.BigDecimal;
-import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class InsuranceRate {
+public class AdminInsuranceRateResponse {
 
     private Long insuranceId;
     private int applyYear;
@@ -18,7 +16,7 @@ public class InsuranceRate {
     private BigDecimal empInsuranceRate;
 
     @Builder
-    public InsuranceRate(
+    public AdminInsuranceRateResponse(
             Long insuranceId,
             int applyYear,
             BigDecimal nationalPensionRate,
@@ -31,5 +29,16 @@ public class InsuranceRate {
         this.healthInsuranceRate = healthInsuranceRate;
         this.longTermCareRate = longTermCareRate;
         this.empInsuranceRate = empInsuranceRate;
+    }
+
+    public static AdminInsuranceRateResponse from(InsuranceRate insuranceRate) {
+        return AdminInsuranceRateResponse.builder()
+                .insuranceId(insuranceRate.getInsuranceId())
+                .applyYear(insuranceRate.getApplyYear())
+                .nationalPensionRate(insuranceRate.getNationalPensionRate())
+                .healthInsuranceRate(insuranceRate.getHealthInsuranceRate())
+                .longTermCareRate(insuranceRate.getLongTermCareRate())
+                .empInsuranceRate(insuranceRate.getEmpInsuranceRate())
+                .build();
     }
 }
