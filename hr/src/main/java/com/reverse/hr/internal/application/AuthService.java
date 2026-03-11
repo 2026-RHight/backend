@@ -9,12 +9,17 @@ import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
 import com.reverse.hr.internal.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.dto.response.LoginResponseDTO;
 import com.reverse.hr.internal.dto.response.LoginUserProfileDTO;
+import com.reverse.hr.internal.dto.response.LoginViewDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
+import com.reverse.hr.internal.persistence.EmployeeMapper;
 import com.reverse.hr.internal.persistence.row.InitializeUserRow;
 import com.reverse.hr.internal.persistence.row.LoginProfileRow;
 import com.reverse.hr.internal.persistence.row.LoginUserRow;
+import com.reverse.hr.internal.persistence.row.LoginViewRow;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +37,7 @@ public class AuthService {
     private final ResidentHashService residentHashService;
     private final ApplicationEventPublisher eventPublisher;
     private final TokenBlacklistStore tokenBlacklistStore;
+    private final EmployeeMapper employeeMapper;
     private static final java.security.SecureRandom SECURE_RANDOM =
             new java.security.SecureRandom();
 
@@ -68,9 +74,11 @@ public class AuthService {
             String ticket =
                     jwtTokenProvider.createPasswordChangeTicket(
                             user.employeeId(), user.employeeNum());
-            return new LoginResponseDTO(true, null, ticket, null);
+            return new LoginResponseDTO(true, null, ticket, null, null);
         }
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
+        List<Long> roleIds = authMapper.findRoleIdsByEmployeeId(user.employeeId());
+        List<LoginViewDTO> views = findViewsByRoleIds(roleIds);
 
         String accessToken =
                 jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
@@ -90,7 +98,7 @@ public class AuthService {
                         profileRow.rankName(),
                         profileRow.jobName());
 
-        return new LoginResponseDTO(false, accessToken, null, profile);
+        return new LoginResponseDTO(false, accessToken, null, profile, views);
     }
 
     /**
@@ -119,6 +127,10 @@ public class AuthService {
         // 4) 주민번호 검증
         if (!inputHash.equals(user.residentNumberHash())) {
             throw new UnauthorizedException(AuthErrorCode.AUTH_LOGIN_FAILED, "인증 정보가 올바르지 않습니다.");
+        }
+
+        if (user.email() == null || user.email().isBlank()) {
+            throw new IllegalStateException("등록된 이메일이 없어 비밀번호 초기화를 진행할 수 없습니다.");
         }
 
         // 5) 임시 비밀번호 생성 후 해시 저장
@@ -196,6 +208,8 @@ public class AuthService {
         }
 
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
+        List<Long> roleIds = authMapper.findRoleIdsByEmployeeId(user.employeeId());
+        List<LoginViewDTO> views = findViewsByRoleIds(roleIds);
         String accessToken =
                 jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
 
@@ -214,7 +228,7 @@ public class AuthService {
                         profileRow.rankName(),
                         profileRow.jobName());
 
-        return new LoginResponseDTO(false, accessToken, null, profile);
+        return new LoginResponseDTO(false, accessToken, null, profile, views);
     }
 
     @Transactional
@@ -229,6 +243,20 @@ public class AuthService {
             throw new UnauthorizedException("만료된 토큰입니다.");
         }
         return authorization.substring(7);
+    }
+
+    private List<LoginViewDTO> findViewsByRoleIds(List<Long> roleIds) {
+        Map<String, LoginViewDTO> viewMap = new LinkedHashMap<>();
+
+        for (Long roleId : roleIds) {
+            List<LoginViewRow> rows = employeeMapper.findViewsByRoleId(roleId);
+            for (LoginViewRow row : rows) {
+                viewMap.putIfAbsent(
+                        row.viewCode(), new LoginViewDTO(row.viewCode(), row.viewName()));
+            }
+        }
+
+        return List.copyOf(viewMap.values());
     }
 
     /**

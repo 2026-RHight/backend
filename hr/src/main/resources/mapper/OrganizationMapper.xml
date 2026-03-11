@@ -45,7 +45,7 @@
                w.area_name       AS areaName,
                e.employ_state    AS employeeState,
                CASE
-                   WHEN p.position_name IN ('대표', '본부장', '센터장', '부서장', '팀장', '실장') THEN 1
+                   WHEN p.position_name IN ('대표이사', '대표', '본부장', '센터장', '부서장', '팀장', '실장') THEN 1
                    ELSE 0
                END AS leaderSort,
                COALESCE(r.rank_no, 0) AS rankNo

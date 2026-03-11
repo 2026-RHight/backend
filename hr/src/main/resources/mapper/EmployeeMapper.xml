@@ -23,4 +23,17 @@
         WHERE er.employee_id = #{employeeId}
     </select>
 
+    <select id="findViewsByRoleId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.LoginViewRow">
+        SELECT av.view_id   AS viewId,
+               av.view_code AS viewCode,
+               av.view_name AS viewName,
+               av.view_desc AS viewDesc
+        FROM role_view rv
+                 JOIN app_view av ON rv.view_id = av.view_id
+        WHERE rv.role_id = #{roleId}
+        ORDER BY av.view_id ASC
+    </select>
+
 </mapper>

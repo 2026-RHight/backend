@@ -2,7 +2,6 @@ package com.reverse.hr.internal.web;
 
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.response.ApiResponse;
-import com.reverse.core.security.TokenBlacklistStore;
 import com.reverse.hr.internal.application.AuthService;
 import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final TokenBlacklistStore tokenBlacklistStore;
 
     @Operation(summary = "로그인")
     @PostMapping("/login")

@@ -37,6 +37,14 @@
         WHERE er.employee_id = #{employeeId}
     </select>
 
+    <select id="findRoleIdsByEmployeeId"
+            parameterType="Long"
+            resultType="Long">
+        SELECT er.role_id
+        FROM employee_role er
+        WHERE er.employee_id = #{employeeId}
+    </select>
+
     <select id="findLoginProfileByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.LoginProfileRow">
