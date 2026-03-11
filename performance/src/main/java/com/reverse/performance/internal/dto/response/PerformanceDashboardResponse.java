@@ -6,4 +6,5 @@ public record PerformanceDashboardResponse(
         Integer pendingApprovalCount,
         List<String> trendLabels,
         List<Integer> trendScores,
+        PerformanceDashboardSummaryResponse summary,
         List<PerformanceFeedbackResponse> feedbacks) {}

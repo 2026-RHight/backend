@@ -6,6 +6,7 @@ import com.reverse.performance.internal.application.PerformanceDashboardService;
 import com.reverse.performance.internal.application.PerformanceService;
 import com.reverse.performance.internal.dto.response.Dashboard;
 import com.reverse.performance.internal.dto.response.PerformanceDashboardResponse;
+import com.reverse.performance.internal.dto.response.PerformanceDashboardSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
@@ -42,5 +43,13 @@ public class PerformanceDashboardController {
     public ApiResponse<PerformanceDashboardResponse> dashboard(
             @AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(performanceDashboardService.getDashboard(user.getEmployeeId()));
+    }
+
+    @Operation(summary = "대시보드 요약 스냅샷 조회")
+    @GetMapping("/dashboard/summary")
+    public ApiResponse<PerformanceDashboardSummaryResponse> dashboardSummary(
+            @AuthenticationPrincipal CustomUser user) {
+        return ApiResponse.success(
+                performanceDashboardService.getDashboardSummary(user.getEmployeeId()));
     }
 }
