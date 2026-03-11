@@ -5,12 +5,15 @@ import com.reverse.attendance.internal.dto.request.AttendanceMonthlyCloseRequest
 import com.reverse.attendance.internal.dto.request.AttendancePolicyUpsertRequest;
 import com.reverse.attendance.internal.dto.response.AdminAttendanceDashboardResponse;
 import com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse;
+import com.reverse.attendance.internal.dto.response.AdminDailyAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceHistoryResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceMonthlyCloseResponse;
 import com.reverse.attendance.internal.dto.response.AttendancePolicyResponse;
 import com.reverse.core.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -70,6 +73,17 @@ public class AttendanceAdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(attendanceAdminService.getMonthlyReport(year, month, page, size));
+    }
+
+    @Operation(summary = "관리자 일별 근태 목록 조회", description = "관리자가 기간별 직원 근태 기록 목록을 조회합니다.")
+    @GetMapping("/daily-records")
+    @PreAuthorize(ATTENDANCE_REPORT_VIEW_AUTH)
+    public ResponseEntity<List<AdminDailyAttendanceResponse>> getDailyRecords(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(
+                attendanceAdminService.getDailyRecords(startDate, endDate, status));
     }
 
     @Operation(summary = "근태 이력 조회", description = "월 기준 근태 변경/승인/마감 이력을 조회합니다.")

@@ -3,6 +3,7 @@ package com.reverse.attendance.internal.persistence;
 import com.reverse.attendance.dto.PayrollAttendanceResponse;
 import com.reverse.attendance.internal.domain.Attendance;
 import com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse;
+import com.reverse.attendance.internal.dto.response.AdminDailyAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,6 +44,11 @@ public interface AttendanceMapper {
             @Param("targetMonth") String targetMonth,
             @Param("status") String status);
 
+    List<Attendance> findRecordsByDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
     List<AdminAttendanceReportResponse> findMonthlyEmployeeReports(
             @Param("targetMonth") String targetMonth,
             @Param("weekRangeStart") LocalDate weekRangeStart,
@@ -50,6 +56,11 @@ public interface AttendanceMapper {
             @Param("baseYear") int baseYear,
             @Param("limit") int limit,
             @Param("offset") int offset);
+
+    List<AdminDailyAttendanceResponse> findDailyEmployeeRecords(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("status") String status);
 
     long countMonthlyEmployeeReports(@Param("targetMonth") String targetMonth);
 

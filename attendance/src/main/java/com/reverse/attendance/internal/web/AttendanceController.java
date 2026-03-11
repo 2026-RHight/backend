@@ -3,11 +3,14 @@ package com.reverse.attendance.internal.web;
 import com.reverse.attendance.internal.application.AttendanceService;
 import com.reverse.attendance.internal.dto.request.AttendanceModifyRequest;
 import com.reverse.attendance.internal.dto.request.ClockInRequest;
+import com.reverse.attendance.internal.dto.response.AttendanceCalendarResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
+import com.reverse.attendance.internal.dto.response.AttendanceWeeklySummaryResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -83,5 +86,24 @@ public class AttendanceController {
         List<AttendanceRecordResponse> records =
                 attendanceService.getMonthlyRecords(user.getEmployeeId(), year, month, status);
         return ResponseEntity.ok(records);
+    }
+
+    @Operation(summary = "주간 근무 요약 조회", description = "특정 날짜가 포함된 주의 근무시간 요약을 조회합니다.")
+    @GetMapping("/weekly-summary")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
+    public ResponseEntity<AttendanceWeeklySummaryResponse> getWeeklySummary(
+            @AuthenticationPrincipal CustomUser user,
+            @RequestParam(required = false) LocalDate date) {
+        return ResponseEntity.ok(attendanceService.getWeeklySummary(user.getEmployeeId(), date));
+    }
+
+    @Operation(summary = "월간 근무 캘린더 조회", description = "특정 월의 근태/휴가/출장/연장근무/유연근무 이벤트를 조회합니다.")
+    @GetMapping("/calendar")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
+    public ResponseEntity<AttendanceCalendarResponse> getCalendar(
+            @AuthenticationPrincipal CustomUser user,
+            @RequestParam int year,
+            @RequestParam int month) {
+        return ResponseEntity.ok(attendanceService.getCalendar(user.getEmployeeId(), year, month));
     }
 }

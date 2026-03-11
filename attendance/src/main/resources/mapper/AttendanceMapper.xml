@@ -208,6 +208,27 @@
         ORDER BY work_date DESC
     </select>
 
+    <select id="findRecordsByDateRange" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
+        FROM attendance_record
+        WHERE employee_id = #{employeeId}
+          AND work_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY work_date ASC, attendance_id ASC
+    </select>
+
     <select id="findMonthlyEmployeeReports" resultType="com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse">
         SELECT
             s.employeeId as employeeId,
@@ -297,6 +318,32 @@
         ) w ON w.employeeId = s.employeeId
         ORDER BY s.absentCount DESC, s.tardyCount DESC, s.earlyLeaveCount DESC, s.employeeName ASC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findDailyEmployeeRecords" resultType="com.reverse.attendance.internal.dto.response.AdminDailyAttendanceResponse">
+        SELECT
+            ar.attendance_id as attendanceId,
+            ar.employee_id as employeeId,
+            e.employee_name as employeeName,
+            COALESCE(o.org_name, '미소속') as departmentName,
+            COALESCE(p.position_name, '직원') as positionName,
+            ar.work_date as workDate,
+            ar.check_in_time as checkInTime,
+            ar.check_out_time as checkOutTime,
+            ar.status as status,
+            ar.tardy_reason as tardyReason,
+            ar.modify_reason as modifyReason,
+            COALESCE(ar.is_closed, FALSE) as closed
+        FROM attendance_record ar
+        JOIN employee e ON e.employee_id = ar.employee_id
+        LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        WHERE ar.work_date BETWEEN #{startDate} AND #{endDate}
+        <if test="status != null and status != ''">
+            AND ar.status = #{status}
+        </if>
+        ORDER BY ar.work_date DESC, e.employee_name ASC, ar.attendance_id DESC
     </select>
 
     <select id="countMonthlyEmployeeReports" resultType="long">

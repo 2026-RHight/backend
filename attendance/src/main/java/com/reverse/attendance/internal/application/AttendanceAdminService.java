@@ -1,10 +1,12 @@
 package com.reverse.attendance.internal.application;
 
 import com.reverse.attendance.internal.domain.AttendancePolicy;
+import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
 import com.reverse.attendance.internal.dto.request.AttendanceMonthlyCloseRequest;
 import com.reverse.attendance.internal.dto.request.AttendancePolicyUpsertRequest;
 import com.reverse.attendance.internal.dto.response.AdminAttendanceDashboardResponse;
 import com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse;
+import com.reverse.attendance.internal.dto.response.AdminDailyAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceHistoryResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceMonthlyCloseResponse;
 import com.reverse.attendance.internal.dto.response.AttendancePolicyResponse;
@@ -111,6 +113,28 @@ public class AttendanceAdminService {
         return PageResponse.of(content, page, size, total);
     }
 
+    public List<AdminDailyAttendanceResponse> getDailyRecords(
+            LocalDate startDate, LocalDate endDate, String status) {
+        LocalDate resolvedStartDate = startDate;
+        LocalDate resolvedEndDate = endDate;
+
+        if (resolvedStartDate == null && resolvedEndDate == null) {
+            resolvedStartDate = LocalDate.now();
+            resolvedEndDate = resolvedStartDate;
+        } else if (resolvedStartDate == null) {
+            resolvedStartDate = resolvedEndDate;
+        } else if (resolvedEndDate == null) {
+            resolvedEndDate = resolvedStartDate;
+        }
+
+        if (resolvedStartDate.isAfter(resolvedEndDate)) {
+            throw new com.reverse.core.exception.BadRequestException("시작일은 종료일보다 늦을 수 없습니다.");
+        }
+
+        return attendanceMapper.findDailyEmployeeRecords(
+                resolvedStartDate, resolvedEndDate, normalizeAttendanceStatus(status));
+    }
+
     public PageResponse<AttendanceHistoryResponse> getHistory(
             int year, int month, Long employeeId, int page, int size) {
         String targetMonth = formatTargetMonth(year, month);
@@ -208,6 +232,23 @@ public class AttendanceAdminService {
         if (request.getBreakTimeStart().isBefore(request.getStdStartTime())
                 || request.getBreakTimeEnd().isAfter(request.getStdEndTime())) {
             throw new IllegalArgumentException("휴게시간은 표준 근무시간 범위 안에 있어야 합니다.");
+        }
+    }
+
+    private String normalizeAttendanceStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+
+        String normalized = status.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return AttendanceStatus.valueOf(normalized.toUpperCase()).name();
+        } catch (IllegalArgumentException e) {
+            throw new com.reverse.core.exception.BadRequestException("유효하지 않은 근태 상태입니다.");
         }
     }
 }

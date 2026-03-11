@@ -4,11 +4,18 @@ import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
+import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleDayResponse;
+import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleEntryResponse;
+import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleOverviewResponse;
 import com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse;
 import com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper;
 import com.reverse.core.response.PageResponse;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -166,10 +173,17 @@ public class WeeklyWorkScheduleService {
         ApprovalStatus newStatus =
                 request.isApprove() ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED;
 
+        if (!request.isApprove()
+                && (request.getRejectReason() == null
+                        || request.getRejectReason().trim().isEmpty())) {
+            throw new com.reverse.core.exception.BadRequestException("반려 시 사유를 반드시 입력해야 합니다.");
+        }
+
         WeeklyWorkSchedule processedSchedule =
                 WeeklyWorkSchedule.builder()
                         .weeklyId(schedule.getWeeklyId())
                         .approvalStatus(newStatus)
+                        .rejectReason(request.isApprove() ? null : request.getRejectReason().trim())
                         .build();
 
         int updatedRows = scheduleMapper.updateStatusIfPending(processedSchedule);
@@ -179,5 +193,148 @@ public class WeeklyWorkScheduleService {
         if (request.isApprove()) {
             attendanceSyncService.recordApprovedWeeklySchedule(schedule);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public TeamWeeklyScheduleOverviewResponse getTeamWeeklyOverview(LocalDate date) {
+        LocalDate targetDate = date == null ? LocalDate.now() : date;
+        LocalDate weekStart = targetDate.with(DayOfWeek.MONDAY);
+        LocalDate weekEnd = weekStart.plusDays(4);
+
+        Map<LocalDate, List<WeeklyWorkSchedule>> schedulesByDate =
+                scheduleMapper.findTeamSchedulesByPlanDateRange(weekStart, weekEnd).stream()
+                        .filter(schedule -> schedule.getApprovalStatus() != ApprovalStatus.CANCELED)
+                        .collect(Collectors.groupingBy(WeeklyWorkSchedule::getPlanDate));
+
+        List<TeamWeeklyScheduleDayResponse> days =
+                Stream.iterate(
+                                weekStart,
+                                current -> !current.isAfter(weekEnd),
+                                current -> current.plusDays(1))
+                        .map(
+                                planDate -> {
+                                    List<WeeklyWorkSchedule> entries =
+                                            schedulesByDate.getOrDefault(planDate, List.of());
+                                    int requestedEmployeeCount =
+                                            (int)
+                                                    entries.stream()
+                                                            .filter(
+                                                                    schedule ->
+                                                                            schedule
+                                                                                                    .getApprovalStatus()
+                                                                                            == ApprovalStatus
+                                                                                                    .PENDING
+                                                                                    || schedule
+                                                                                                    .getApprovalStatus()
+                                                                                            == ApprovalStatus
+                                                                                                    .APPROVED)
+                                                            .count();
+                                    int approvedEmployeeCount =
+                                            (int)
+                                                    entries.stream()
+                                                            .filter(
+                                                                    schedule ->
+                                                                            schedule
+                                                                                            .getApprovalStatus()
+                                                                                    == ApprovalStatus
+                                                                                            .APPROVED)
+                                                            .count();
+                                    int coreCoverageCount =
+                                            (int)
+                                                    entries.stream()
+                                                            .filter(
+                                                                    schedule ->
+                                                                            schedule
+                                                                                                    .getApprovalStatus()
+                                                                                            == ApprovalStatus
+                                                                                                    .PENDING
+                                                                                    || schedule
+                                                                                                    .getApprovalStatus()
+                                                                                            == ApprovalStatus
+                                                                                                    .APPROVED)
+                                                            .filter(
+                                                                    schedule ->
+                                                                            !schedule.getStartDate()
+                                                                                            .toLocalTime()
+                                                                                            .isAfter(
+                                                                                                    java
+                                                                                                            .time
+                                                                                                            .LocalTime
+                                                                                                            .of(
+                                                                                                                    14,
+                                                                                                                    0))
+                                                                                    && !schedule.getEndDate()
+                                                                                            .toLocalTime()
+                                                                                            .isBefore(
+                                                                                                    java
+                                                                                                            .time
+                                                                                                            .LocalTime
+                                                                                                            .of(
+                                                                                                                    16,
+                                                                                                                    0)))
+                                                            .count();
+
+                                    return TeamWeeklyScheduleDayResponse.builder()
+                                            .planDate(planDate)
+                                            .requestedEmployeeCount(requestedEmployeeCount)
+                                            .approvedEmployeeCount(approvedEmployeeCount)
+                                            .coreTimeShortageRisk(
+                                                    coreCoverageCount > 0 && coreCoverageCount < 2)
+                                            .entries(
+                                                    entries.stream()
+                                                            .map(
+                                                                    schedule ->
+                                                                            TeamWeeklyScheduleEntryResponse
+                                                                                    .builder()
+                                                                                    .weeklyId(
+                                                                                            schedule
+                                                                                                    .getWeeklyId())
+                                                                                    .employeeId(
+                                                                                            schedule
+                                                                                                    .getEmployeeId())
+                                                                                    .employeeName(
+                                                                                            schedule
+                                                                                                    .getEmployeeName())
+                                                                                    .departmentName(
+                                                                                            schedule
+                                                                                                    .getDepartmentName())
+                                                                                    .positionName(
+                                                                                            schedule
+                                                                                                    .getPositionName())
+                                                                                    .planDate(
+                                                                                            schedule
+                                                                                                    .getPlanDate())
+                                                                                    .startDate(
+                                                                                            schedule
+                                                                                                    .getStartDate())
+                                                                                    .endDate(
+                                                                                            schedule
+                                                                                                    .getEndDate())
+                                                                                    .workForm(
+                                                                                            schedule
+                                                                                                    .getWorkForm())
+                                                                                    .scheduleTitle(
+                                                                                            schedule
+                                                                                                    .getScheduleTitle())
+                                                                                    .memo(
+                                                                                            schedule
+                                                                                                    .getMemo())
+                                                                                    .rejectReason(
+                                                                                            schedule
+                                                                                                    .getRejectReason())
+                                                                                    .approvalStatus(
+                                                                                            schedule
+                                                                                                    .getApprovalStatus())
+                                                                                    .build())
+                                                            .collect(Collectors.toList()))
+                                            .build();
+                                })
+                        .collect(Collectors.toList());
+
+        return TeamWeeklyScheduleOverviewResponse.builder()
+                .weekStartDate(weekStart)
+                .weekEndDate(weekEnd)
+                .days(days)
+                .build();
     }
 }

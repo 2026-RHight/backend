@@ -340,10 +340,14 @@ CREATE TABLE IF NOT EXISTS weekly_work_schedule (
     work_form VARCHAR(50) NOT NULL COMMENT 'OFFICE, REMOTE 등',
     schedule_title VARCHAR(255) NOT NULL,
     memo TEXT,
+    reject_reason VARCHAR(255) COMMENT '관리자 반려 사유',
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
     CONSTRAINT fk_weekly_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
+
+ALTER TABLE weekly_work_schedule
+    ADD COLUMN IF NOT EXISTS reject_reason VARCHAR(255) COMMENT '관리자 반려 사유' AFTER memo;
 
 
 -- 팀원이 작성한 자격증/경력 관련 테이블
