@@ -6,6 +6,7 @@ public record AttachmentRequest(
         Long attachmentId,
         Long performanceId,
         String fileName,
+        String storageKey,
         String fileUrl,
         LocalDateTime confirmedAt,
         LocalDateTime createdAt) {}

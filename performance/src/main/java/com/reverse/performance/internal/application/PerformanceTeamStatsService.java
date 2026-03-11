@@ -53,7 +53,8 @@ public class PerformanceTeamStatsService {
                         .collect(
                                 Collectors.toMap(
                                         PerformanceViewMapper.TeamStatsMetricRow::employeeId,
-                                        Function.identity()));
+                                        Function.identity(),
+                                        (existing, replacement) -> replacement));
         Map<Long, List<PerformanceTeamStatTaskResponse>> taskMap =
                 performanceViewMapper.findTeamStatsTasksByEmployeeIds(employeeIds).stream()
                         .collect(

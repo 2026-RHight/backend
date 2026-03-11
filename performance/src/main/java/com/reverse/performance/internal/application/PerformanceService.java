@@ -25,6 +25,7 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -178,7 +179,11 @@ public class PerformanceService {
                 > 0) {
             throw new PerformanceActionNotAllowedException("이미 팀 평가를 등록했습니다.");
         }
-        teamEvalMapper.saveTeamEval(normalized);
+        try {
+            teamEvalMapper.saveTeamEval(normalized);
+        } catch (DuplicateKeyException ex) {
+            throw new PerformanceActionNotAllowedException("이미 팀 평가를 등록했습니다.");
+        }
     }
 
     @Transactional

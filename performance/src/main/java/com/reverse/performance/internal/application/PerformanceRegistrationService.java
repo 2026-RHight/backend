@@ -1,5 +1,6 @@
 package com.reverse.performance.internal.application;
 
+import com.reverse.core.exception.BadRequestException;
 import com.reverse.performance.internal.domain.Status;
 import com.reverse.performance.internal.domain.WorkItem;
 import com.reverse.performance.internal.dto.request.PerformanceCreateDTO;
@@ -70,9 +71,12 @@ public class PerformanceRegistrationService {
 
     private int resolveDifficultyScore(Integer difficultyScore) {
         if (difficultyScore == null) {
-            return 5;
+            throw new BadRequestException("difficultyScore는 필수입니다.");
         }
-        return Math.max(1, Math.min(5, difficultyScore));
+        if (difficultyScore < 1 || difficultyScore > 5) {
+            throw new BadRequestException("difficultyScore는 1 이상 5 이하여야 합니다.");
+        }
+        return difficultyScore;
     }
 
     private String buildWorkDetail(String coreTask, String content) {

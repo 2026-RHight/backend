@@ -12,6 +12,7 @@ import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,12 +34,18 @@ public class PerformanceInquiryService {
             Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
         List<PerformanceViewMapper.InquiryItemRow> rows =
                 resolveInquiryRows(viewerEmployeeId, targetEmployeeId, isAdmin);
+        Map<Long, PerformanceHrMemberResolver.EmployeeProfileSnapshot> profileMap =
+                performanceHrMemberResolver.getEmployeeProfiles(
+                        rows.stream()
+                                .map(PerformanceViewMapper.InquiryItemRow::employeeId)
+                                .filter(id -> id != null)
+                                .distinct()
+                                .toList());
         return rows.stream()
                 .map(
                         row -> {
                             PerformanceHrMemberResolver.EmployeeProfileSnapshot profile =
-                                    performanceHrMemberResolver.getEmployeeProfile(
-                                            row.employeeId());
+                                    profileMap.get(row.employeeId());
                             return new PerformanceInquiryItemResponse(
                                     row.id(),
                                     row.type(),
@@ -163,6 +170,7 @@ public class PerformanceInquiryService {
                             null,
                             performanceId,
                             uploaded.originalName(),
+                            uploaded.key(),
                             uploaded.fileUrl(),
                             null,
                             LocalDateTime.now()));

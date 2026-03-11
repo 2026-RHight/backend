@@ -701,56 +701,15 @@ INSERT INTO employee (
 -- ==========================================
 
 -- 연차 부여
-INSERT INTO leave_balance (employee_id, base_year, total_annual_leave, used_annual_leave)
-SELECT e.employee_id, 2026, 15.0, 0.0
-FROM employee e
-WHERE e.employee_num = 'EMP2026001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM leave_balance lb
-      WHERE lb.employee_id = e.employee_id
-        AND lb.base_year = 2026
-  );
-
-INSERT INTO leave_balance (employee_id, base_year, total_annual_leave, used_annual_leave)
-SELECT e.employee_id, 2026, 20.0, 0.0
-FROM employee e
-WHERE e.employee_num = 'EMP2026002'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM leave_balance lb
-      WHERE lb.employee_id = e.employee_id
-        AND lb.base_year = 2026
-  );
+INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (1, 15.0);
+INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (2, 20.0);
 
 -- 출퇴근 기록
-INSERT INTO attendance_record (
-    employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason,
-    overtime_hours, night_work_hours, holiday_work_hours, is_unpaid_leave, is_closed
-)
-SELECT e.employee_id, '2026-03-04', '08:50:00', '18:05:00', 'NORMAL', NULL, NULL, 0.0, 0.0, 0.0, FALSE, FALSE
-FROM employee e
-WHERE e.employee_num = 'EMP2026001'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM attendance_record ar
-      WHERE ar.employee_id = e.employee_id
-        AND ar.work_date = '2026-03-04'
-  );
+INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
+VALUES (1, '2026-03-04', '2026-03-04 08:50:00', '2026-03-04 18:05:00', 'NORMAL', NULL, NULL);
 
-INSERT INTO attendance_record (
-    employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason,
-    overtime_hours, night_work_hours, holiday_work_hours, is_unpaid_leave, is_closed
-)
-SELECT e.employee_id, '2026-03-04', '09:15:00', NULL, 'TARDY', '지하철 연착', NULL, 0.0, 0.0, 0.0, FALSE, FALSE
-FROM employee e
-WHERE e.employee_num = 'EMP2026002'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM attendance_record ar
-      WHERE ar.employee_id = e.employee_id
-        AND ar.work_date = '2026-03-04'
-  );
+INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
+VALUES (2, '2026-03-04', '2026-03-04 09:15:00', NULL, 'TARDY', '지하철 연착', NULL);
 
 
 -- ==========================================
@@ -972,8 +931,137 @@ WHERE e.employee_num = '2402040001'
 -- ---------------------------------------------------------------------------
 -- HR events (for MyPage HR history tab)
 -- ---------------------------------------------------------------------------
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'PROMOTION',
+    '직급 변경',
+    '2025-12-20 09:10:00',
+    '2025-12-27 14:30:00',
+    DATE '2026-01-01',
+    NULL,
+    '정기 승진',
+    JSON_OBJECT('rankName', '주임'),
+    JSON_OBJECT('rankName', '대리')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'PROMOTION'
+        AND h.effective_from = DATE '2026-01-01'
+  );
 
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'TRANSFER',
+    '부서 이동',
+    '2025-01-18 10:00:00',
+    '2025-01-25 16:10:00',
+    DATE '2025-02-02',
+    NULL,
+    '프로젝트 조직 개편',
+    JSON_OBJECT('orgName', '모바일3팀'),
+    JSON_OBJECT('orgName', '모바일1팀')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'TRANSFER'
+        AND h.effective_from = DATE '2025-02-02'
+  );
 
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'STATE_CHANGE',
+    '재직 상태 변경',
+    '2024-07-23 10:40:00',
+    '2024-07-29 18:20:00',
+    DATE '2024-08-01',
+    DATE '2024-11-30',
+    '육아 휴직 신청',
+    JSON_OBJECT('employeeState', 'WORK'),
+    JSON_OBJECT('employeeState', 'LEAVE')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'STATE_CHANGE'
+        AND h.effective_from = DATE '2024-08-01'
+  );
+
+INSERT INTO hr_event (
+    employee_id,
+    event_type,
+    event_title,
+    requested_at,
+    approved_at,
+    effective_from,
+    effective_to,
+    excuse,
+    before_change,
+    after_change
+)
+SELECT
+    e.employee_id,
+    'STATE_CHANGE',
+    '재직 상태 변경',
+    '2024-11-20 11:30:00',
+    '2024-11-27 09:50:00',
+    DATE '2024-12-01',
+    NULL,
+    '복직 승인',
+    JSON_OBJECT('employeeState', 'LEAVE'),
+    JSON_OBJECT('employeeState', 'WORK')
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM hr_event h
+      WHERE h.employee_id = e.employee_id
+        AND h.event_type = 'STATE_CHANGE'
+        AND h.effective_from = DATE '2024-12-01'
+  );
 
 -- ---------------------------------------------------------------------------
 -- Organization chart demo seeds (tree + members)
@@ -1501,6 +1589,548 @@ WHERE e.employee_num = '2402040016'
       FROM password_history ph
       WHERE ph.employee_id = e.employee_id
   );
+
+-- 로컬 데모 로그인 계정 고정 비밀번호 정합화
+UPDATE employee
+SET employee_password = '$2y$10$EDP6TIl9C32d0TYeY.GEg.q8ejeT2YToWR95h3mkVbOLQnyDNKA0C',
+    initial_state = false
+WHERE employee_num = '2402040001';
+
+UPDATE employee
+SET employee_password = '$2y$10$vqL9qH8co9/CwscstUiMkeWqkUv3YmIL/d0pQNpBFPn.vOn0XzJKi',
+    initial_state = false
+WHERE employee_num = '2402040002';
+
+INSERT INTO password_history (employee_id, password_hash, change_at)
+SELECT e.employee_id, '$2y$10$EDP6TIl9C32d0TYeY.GEg.q8ejeT2YToWR95h3mkVbOLQnyDNKA0C', NOW()
+FROM employee e
+WHERE e.employee_num = '2402040001'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM password_history ph
+      WHERE ph.employee_id = e.employee_id
+        AND ph.password_hash = '$2y$10$EDP6TIl9C32d0TYeY.GEg.q8ejeT2YToWR95h3mkVbOLQnyDNKA0C'
+  );
+
+INSERT INTO password_history (employee_id, password_hash, change_at)
+SELECT e.employee_id, '$2y$10$vqL9qH8co9/CwscstUiMkeWqkUv3YmIL/d0pQNpBFPn.vOn0XzJKi', NOW()
+FROM employee e
+WHERE e.employee_num = '2402040002'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM password_history ph
+      WHERE ph.employee_id = e.employee_id
+        AND ph.password_hash = '$2y$10$vqL9qH8co9/CwscstUiMkeWqkUv3YmIL/d0pQNpBFPn.vOn0XzJKi'
+  );
+
+-- ---------------------------------------------------------------------------
+-- Performance demo seeds
+-- 5명 x 10건 = 총 50건
+-- ---------------------------------------------------------------------------
+INSERT INTO evaluation (
+    employee_id,
+    evaluator_id,
+    year,
+    evaluation_score,
+    confirmed_at,
+    created_at,
+    updated_at
+)
+SELECT
+    appraisee.employee_id,
+    evaluator.employee_id,
+    2026,
+    82 + MOD(appraisee.employee_id, 9),
+    '2026-02-28 18:00:00',
+    '2026-01-02 09:00:00',
+    '2026-02-28 18:00:00'
+FROM employee appraisee
+JOIN employee evaluator
+  ON evaluator.employee_num = '2402040012'
+WHERE appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM evaluation ev
+      WHERE ev.employee_id = appraisee.employee_id
+        AND ev.evaluator_id = evaluator.employee_id
+        AND ev.year = 2026
+  );
+
+INSERT INTO team_evaluation (
+    evaluator_id,
+    appraisee_id,
+    evaluation_year,
+    performance_score,
+    performance_comment,
+    attitude_score,
+    attitude_comment,
+    collaboration_score,
+    collaboration_comment,
+    creativity_score,
+    creativity_comment,
+    created_at,
+    updated_at
+)
+SELECT
+    evaluator.employee_id,
+    appraisee.employee_id,
+    2026,
+    4 + MOD(appraisee.employee_id, 2),
+    '업무 성과가 꾸준하며 마감 완성도가 높습니다.',
+    4 + MOD(appraisee.employee_id + 1, 2),
+    '업무 태도가 성실하고 피드백 반영이 빠릅니다.',
+    4 + MOD(appraisee.employee_id + 2, 2),
+    '협업 과정에서 정보 공유가 명확합니다.',
+    4 + MOD(appraisee.employee_id + 3, 2),
+    '개선 아이디어 제안 빈도가 안정적입니다.',
+    '2026-03-01 10:00:00',
+    '2026-03-01 10:00:00'
+FROM employee appraisee
+JOIN employee evaluator
+  ON evaluator.employee_num = '2402040012'
+WHERE appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM team_evaluation te
+      WHERE te.evaluator_id = evaluator.employee_id
+        AND te.appraisee_id = appraisee.employee_id
+        AND te.evaluation_year = 2026
+  );
+
+INSERT INTO peer_review (
+    eval_id,
+    reviewer_id,
+    communication_score,
+    solving_score,
+    responsibility_score,
+    team_contribution,
+    culture_contribution,
+    comment,
+    eval_year,
+    created_at
+)
+SELECT
+    ev.eval_id,
+    reviewer.employee_id,
+    4 + MOD(appraisee.employee_id, 2),
+    4 + MOD(appraisee.employee_id + 1, 2),
+    5,
+    4,
+    4,
+    CONCAT(appraisee.employee_name, '은(는) 협업 시 전달력이 좋고 일정 대응이 안정적입니다.'),
+    2026,
+    '2026-03-02 11:00:00'
+FROM evaluation ev
+JOIN employee appraisee
+  ON appraisee.employee_id = ev.employee_id
+JOIN employee reviewer
+  ON reviewer.employee_num = '2402040007'
+WHERE ev.year = 2026
+  AND appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM peer_review pr
+      WHERE pr.eval_id = ev.eval_id
+        AND pr.reviewer_id = reviewer.employee_id
+  );
+
+INSERT INTO peer_review (
+    eval_id,
+    reviewer_id,
+    communication_score,
+    solving_score,
+    responsibility_score,
+    team_contribution,
+    culture_contribution,
+    comment,
+    eval_year,
+    created_at
+)
+SELECT
+    ev.eval_id,
+    reviewer.employee_id,
+    4,
+    5,
+    4 + MOD(appraisee.employee_id, 2),
+    5,
+    4,
+    CONCAT(appraisee.employee_name, '은(는) 품질 기준을 잘 지키고 주변 지원이 빠릅니다.'),
+    2026,
+    '2026-03-03 14:00:00'
+FROM evaluation ev
+JOIN employee appraisee
+  ON appraisee.employee_id = ev.employee_id
+JOIN employee reviewer
+  ON reviewer.employee_num = '2402040008'
+WHERE ev.year = 2026
+  AND appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+  AND NOT EXISTS (
+      SELECT 1
+      FROM peer_review pr
+      WHERE pr.eval_id = ev.eval_id
+        AND pr.reviewer_id = reviewer.employee_id
+  );
+
+INSERT INTO performance (
+    employee_id,
+    title,
+    work_item,
+    start_date,
+    expected_end_date,
+    end_date,
+    work_detail,
+    status,
+    achievement_rate,
+    difficulty_score,
+    comment,
+    feedback,
+    created_at,
+    updated_at
+)
+WITH RECURSIVE perf_seq AS (
+    SELECT 0 AS seq
+    UNION ALL
+    SELECT seq + 1
+    FROM perf_seq
+    WHERE seq < 9
+),
+target_employee AS (
+    SELECT e.employee_id,
+           e.employee_num,
+           e.employee_name
+    FROM employee e
+    WHERE e.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+),
+seed_performance AS (
+    SELECT
+        te.employee_id,
+        te.employee_num,
+        te.employee_name,
+        ps.seq,
+        CASE
+            WHEN MOD(ps.seq, 3) = 0 THEN 'TEAM'
+            ELSE 'PERSONAL'
+        END AS work_item,
+        DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY) AS start_date,
+        DATE_ADD(
+            DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY),
+            INTERVAL 16 + MOD(ps.seq, 5) DAY
+        ) AS expected_end_date,
+        CASE
+            WHEN ps.seq <= 5 THEN DATE_ADD(
+                DATE_ADD(
+                    DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY),
+                    INTERVAL 16 + MOD(ps.seq, 5) DAY
+                ),
+                INTERVAL CASE WHEN MOD(ps.seq, 4) = 0 THEN -1 WHEN MOD(ps.seq, 4) = 1 THEN 0 WHEN MOD(ps.seq, 4) = 2 THEN 2 ELSE 4 END DAY
+            )
+            ELSE NULL
+        END AS end_date,
+        CASE
+            WHEN ps.seq <= 5 THEN 'ENDED'
+            WHEN ps.seq <= 7 THEN 'WAITING'
+            ELSE 'ACTIVE'
+        END AS status,
+        CASE
+            WHEN ps.seq <= 5 THEN 72 + (ps.seq * 4) + MOD(te.employee_id, 6)
+            WHEN ps.seq <= 7 THEN 58 + (ps.seq * 3) + MOD(te.employee_id, 5)
+            ELSE 35 + (ps.seq * 4) + MOD(te.employee_id, 4)
+        END AS achievement_rate,
+        4 + MOD(ps.seq + te.employee_id, 5) AS difficulty_score,
+        CONCAT(
+            CASE MOD(ps.seq, 5)
+                WHEN 0 THEN '분기 목표 API 안정화'
+                WHEN 1 THEN '서비스 운영 자동화'
+                WHEN 2 THEN '배포 프로세스 개선'
+                WHEN 3 THEN '협업 문서 표준화'
+                ELSE '품질 지표 개선'
+            END,
+            ' ',
+            RIGHT(te.employee_num, 2),
+            '-',
+            LPAD(ps.seq + 1, 2, '0')
+        ) AS title,
+        CONCAT(
+            te.employee_name,
+            ' 담당 과제로 ',
+            CASE MOD(ps.seq, 5)
+                WHEN 0 THEN '핵심 API 응답 속도와 장애 대응 프로세스를 정비'
+                WHEN 1 THEN '반복 운영 작업을 스크립트화하고 누락을 줄이는 작업 수행'
+                WHEN 2 THEN '배포 체크리스트와 롤백 절차를 명확히 정리'
+                WHEN 3 THEN '협업 문서 템플릿과 보고 기준을 통일'
+                ELSE '테스트 커버리지와 결함 재현율을 높이는 작업 수행'
+            END
+        ) AS work_detail,
+        CONCAT('중간 점검 메모 ', te.employee_name, ' #', ps.seq + 1) AS comment,
+        CASE
+            WHEN ps.seq <= 5 THEN CONCAT('리뷰 완료: ', te.employee_name, '의 결과물이 안정적으로 마감되었습니다.')
+            WHEN ps.seq <= 7 THEN CONCAT('검토 대기: 산출물 확인 후 피드백 예정입니다. ', te.employee_name)
+            ELSE NULL
+        END AS feedback,
+        TIMESTAMP(
+            DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY),
+            '09:00:00'
+        ) AS created_at,
+        TIMESTAMP(
+            DATE_ADD(
+                DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY),
+                INTERVAL 18 + MOD(ps.seq, 4) DAY
+            ),
+            '18:00:00'
+        ) AS updated_at
+    FROM target_employee te
+    CROSS JOIN perf_seq ps
+)
+SELECT
+    sp.employee_id,
+    sp.title,
+    sp.work_item,
+    sp.start_date,
+    sp.expected_end_date,
+    sp.end_date,
+    sp.work_detail,
+    sp.status,
+    LEAST(sp.achievement_rate, 100),
+    sp.difficulty_score,
+    sp.comment,
+    sp.feedback,
+    sp.created_at,
+    sp.updated_at
+FROM seed_performance sp
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM performance p
+    WHERE p.employee_id = sp.employee_id
+      AND p.title = sp.title
+      AND p.start_date = sp.start_date
+);
+
+INSERT INTO performance_personal (
+    performance_id,
+    expected_value,
+    result_summary,
+    growth_point,
+    improvement
+)
+WITH RECURSIVE perf_seq AS (
+    SELECT 0 AS seq
+    UNION ALL
+    SELECT seq + 1
+    FROM perf_seq
+    WHERE seq < 9
+),
+target_employee AS (
+    SELECT e.employee_id,
+           e.employee_num,
+           e.employee_name
+    FROM employee e
+    WHERE e.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+),
+seed_personal AS (
+    SELECT
+        te.employee_id,
+        te.employee_name,
+        DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY) AS start_date,
+        CONCAT(
+            CASE MOD(ps.seq, 5)
+                WHEN 0 THEN '분기 목표 API 안정화'
+                WHEN 1 THEN '서비스 운영 자동화'
+                WHEN 2 THEN '배포 프로세스 개선'
+                WHEN 3 THEN '협업 문서 표준화'
+                ELSE '품질 지표 개선'
+            END,
+            ' ',
+            RIGHT(te.employee_num, 2),
+            '-',
+            LPAD(ps.seq + 1, 2, '0')
+        ) AS title,
+        CONCAT('정량 목표: 처리 속도와 안정성 지표를 이전 대비 ', 10 + ps.seq, '% 개선') AS expected_value,
+        CONCAT(te.employee_name, '이(가) 핵심 작업을 정리하고 주요 산출물을 제출했습니다.') AS result_summary,
+        CONCAT('문제 원인 분석과 일정 관리 역량이 향상되었습니다. cycle ', ps.seq + 1) AS growth_point,
+        CONCAT('리스크 조기 공유와 문서 세분화가 추가 개선 포인트입니다. cycle ', ps.seq + 1) AS improvement
+    FROM target_employee te
+    CROSS JOIN perf_seq ps
+    WHERE MOD(ps.seq, 3) <> 0
+)
+SELECT
+    p.performance_id,
+    sp.expected_value,
+    CASE WHEN p.status = 'ACTIVE' THEN NULL ELSE sp.result_summary END,
+    CASE WHEN p.status = 'ACTIVE' THEN NULL ELSE sp.growth_point END,
+    CASE WHEN p.status = 'ACTIVE' THEN NULL ELSE sp.improvement END
+FROM seed_personal sp
+JOIN performance p
+  ON p.employee_id = sp.employee_id
+ AND p.title = sp.title
+ AND p.start_date = sp.start_date
+ AND p.work_item = 'PERSONAL'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM performance_personal pp
+    WHERE pp.performance_id = p.performance_id
+);
+
+INSERT INTO performance_team (
+    performance_id,
+    weight,
+    team_result_summary,
+    special_point
+)
+WITH RECURSIVE perf_seq AS (
+    SELECT 0 AS seq
+    UNION ALL
+    SELECT seq + 1
+    FROM perf_seq
+    WHERE seq < 9
+),
+target_employee AS (
+    SELECT e.employee_id,
+           e.employee_num,
+           e.employee_name
+    FROM employee e
+    WHERE e.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+),
+seed_team AS (
+    SELECT
+        te.employee_id,
+        te.employee_name,
+        ps.seq,
+        DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY) AS start_date,
+        CONCAT(
+            CASE MOD(ps.seq, 5)
+                WHEN 0 THEN '분기 목표 API 안정화'
+                WHEN 1 THEN '서비스 운영 자동화'
+                WHEN 2 THEN '배포 프로세스 개선'
+                WHEN 3 THEN '협업 문서 표준화'
+                ELSE '품질 지표 개선'
+            END,
+            ' ',
+            RIGHT(te.employee_num, 2),
+            '-',
+            LPAD(ps.seq + 1, 2, '0')
+        ) AS title,
+        25 + (ps.seq * 5) AS weight,
+        CONCAT(te.employee_name, '이(가) 참여한 팀 과제가 계획 대비 안정적으로 진행되었습니다.') AS team_result_summary,
+        CONCAT('협업 포인트: 공통 기준 정리와 후속 전파가 좋았습니다. cycle ', ps.seq + 1) AS special_point
+    FROM target_employee te
+    CROSS JOIN perf_seq ps
+    WHERE MOD(ps.seq, 3) = 0
+)
+SELECT
+    p.performance_id,
+    LEAST(st.weight, 80),
+    CASE WHEN p.status = 'ACTIVE' THEN NULL ELSE st.team_result_summary END,
+    st.special_point
+FROM seed_team st
+JOIN performance p
+  ON p.employee_id = st.employee_id
+ AND p.title = st.title
+ AND p.start_date = st.start_date
+ AND p.work_item = 'TEAM'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM performance_team pt
+    WHERE pt.performance_id = p.performance_id
+);
+
+INSERT INTO performance_attachment (
+    performance_id,
+    file_name,
+    file_url,
+    confirmed_at,
+    created_at
+)
+WITH RECURSIVE perf_seq AS (
+    SELECT 0 AS seq
+    UNION ALL
+    SELECT seq + 1
+    FROM perf_seq
+    WHERE seq < 9
+),
+target_employee AS (
+    SELECT e.employee_id,
+           e.employee_num
+    FROM employee e
+    WHERE e.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+),
+seed_attachment AS (
+    SELECT
+        te.employee_id,
+        ps.seq,
+        DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY) AS start_date,
+        CONCAT(
+            CASE MOD(ps.seq, 5)
+                WHEN 0 THEN '분기 목표 API 안정화'
+                WHEN 1 THEN '서비스 운영 자동화'
+                WHEN 2 THEN '배포 프로세스 개선'
+                WHEN 3 THEN '협업 문서 표준화'
+                ELSE '품질 지표 개선'
+            END,
+            ' ',
+            RIGHT(te.employee_num, 2),
+            '-',
+            LPAD(ps.seq + 1, 2, '0')
+        ) AS title,
+        CONCAT('performance-', RIGHT(te.employee_num, 2), '-', LPAD(ps.seq + 1, 2, '0'), '.pdf') AS file_name,
+        CONCAT('https://cdn.rhight.local/performance/', RIGHT(te.employee_num, 2), '/', LPAD(ps.seq + 1, 2, '0'), '.pdf') AS file_url,
+        CASE
+            WHEN ps.seq <= 5 THEN TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL -ps.seq DAY), '17:00:00')
+            ELSE NULL
+        END AS confirmed_at,
+        TIMESTAMP(
+            DATE_ADD(
+                DATE_SUB(DATE_ADD(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH), INTERVAL DAYOFMONTH(DATE_SUB(CURDATE(), INTERVAL ps.seq MONTH)) - 1 DAY), INTERVAL 2 DAY),
+                INTERVAL 5 DAY
+            ),
+            '15:00:00'
+        ) AS created_at
+    FROM target_employee te
+    CROSS JOIN perf_seq ps
+)
+SELECT
+    p.performance_id,
+    sa.file_name,
+    sa.file_url,
+    CASE
+        WHEN p.status = 'ACTIVE' THEN NULL
+        ELSE sa.confirmed_at
+    END,
+    sa.created_at
+FROM seed_attachment sa
+JOIN performance p
+  ON p.employee_id = sa.employee_id
+ AND p.title = sa.title
+ AND p.start_date = sa.start_date
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM performance_attachment pa
+    WHERE pa.performance_id = p.performance_id
+      AND pa.file_name = sa.file_name
+);
+
+INSERT INTO monthly_performance (
+    employee_id,
+    year,
+    month,
+    score,
+    calculated_at
+)
+SELECT
+    p.employee_id,
+    YEAR(p.end_date),
+    MONTH(p.end_date),
+    ROUND(AVG(p.achievement_rate)),
+    TIMESTAMP(MAX(p.end_date), '18:30:00')
+FROM performance p
+JOIN employee e
+  ON e.employee_id = p.employee_id
+WHERE e.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
+  AND p.status = 'ENDED'
+  AND p.end_date IS NOT NULL
+GROUP BY p.employee_id, YEAR(p.end_date), MONTH(p.end_date)
+ON DUPLICATE KEY UPDATE
+    score = VALUES(score),
+    calculated_at = VALUES(calculated_at);
 
 -- 증명서 정책 더미
 INSERT INTO policy (policy_id, policy_type, policy_title, created_at, is_active)

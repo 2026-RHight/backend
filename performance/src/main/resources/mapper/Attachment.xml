@@ -6,9 +6,9 @@
     <insert id="saveAttachment"
             parameterType="com.reverse.performance.internal.dto.request.AttachmentRequest">
         INSERT INTO performance_attachment(
-        performance_id, file_name, file_url, confirmed_at, created_at
+        performance_id, file_name, storage_key, file_url, confirmed_at, created_at
         ) VALUES (
-        #{performanceId}, #{fileName}, #{fileUrl}, #{confirmedAt, jdbcType=TIMESTAMP}, NOW()
+        #{performanceId}, #{fileName}, #{storageKey}, #{fileUrl}, #{confirmedAt, jdbcType=TIMESTAMP}, NOW()
         )
     </insert>
 </mapper>

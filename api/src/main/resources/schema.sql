@@ -687,6 +687,7 @@ CREATE TABLE IF NOT EXISTS performance_attachment (
     attachment_id BIGINT NOT NULL AUTO_INCREMENT,
     performance_id BIGINT NOT NULL,
     file_name VARCHAR(255) NOT NULL,
+    storage_key VARCHAR(1024) NULL,
     file_url TEXT NOT NULL,
     confirmed_at DATETIME NULL,
     created_at DATETIME NOT NULL,

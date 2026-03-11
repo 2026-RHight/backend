@@ -4,12 +4,27 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reverse.performance.internal.persistence.PerformanceViewMapper">
 
+    <sql id="employeeIdsDerivedTable">
+        <choose>
+            <when test="employeeIds != null and employeeIds.size() > 0">
+                <foreach collection="employeeIds" item="employeeId" separator=" UNION ALL ">
+                    SELECT #{employeeId} AS employee_id
+                </foreach>
+            </when>
+            <otherwise>
+                SELECT NULL AS employee_id WHERE 1 = 0
+            </otherwise>
+        </choose>
+    </sql>
+
     <select id="countPendingApprovalItems" parameterType="long" resultType="int">
         SELECT COUNT(*)
         FROM performance p
         INNER JOIN evaluation e
             ON e.employee_id = p.employee_id
            AND e.evaluator_id = #{employeeId}
+           AND e.confirmed_at IS NULL
+           AND e.year = YEAR(CURDATE())
         WHERE p.status = 'WAITING'
     </select>
 
@@ -117,10 +132,18 @@
         FROM performance p
         LEFT JOIN performance_personal pp ON pp.performance_id = p.performance_id
         LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
-        WHERE p.employee_id IN
-        <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-            #{employeeId}
-        </foreach>
+        WHERE 1 = 1
+        <choose>
+            <when test="employeeIds != null and employeeIds.size() > 0">
+                AND p.employee_id IN
+                <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
+                    #{employeeId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
         ORDER BY p.created_at DESC
     </select>
 
@@ -160,10 +183,18 @@
               ON mp.employee_id = p.employee_id
              AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
              AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
-            WHERE p.employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
+            WHERE 1 = 1
+            <choose>
+                <when test="employeeIds != null and employeeIds.size() > 0">
+                    AND p.employee_id IN
+                    <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
+                        #{employeeId}
+                    </foreach>
+                </when>
+                <otherwise>
+                    AND 1 = 0
+                </otherwise>
+            </choose>
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) &lt; #{windowEndExclusive}
         ) base
@@ -223,6 +254,8 @@
         INNER JOIN evaluation ev
             ON ev.employee_id = p.employee_id
            AND ev.evaluator_id = #{employeeId}
+           AND ev.confirmed_at IS NULL
+           AND ev.year = YEAR(CURDATE())
         WHERE p.status = 'WAITING'
         ORDER BY p.created_at DESC
     </select>
@@ -270,6 +303,8 @@
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
                 AND ev.evaluator_id = #{employeeId}
+                AND ev.confirmed_at IS NULL
+                AND ev.year = YEAR(CURDATE())
           )
     </update>
 
@@ -284,6 +319,8 @@
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
                 AND ev.evaluator_id = #{employeeId}
+                AND ev.confirmed_at IS NULL
+                AND ev.year = YEAR(CURDATE())
           )
     </update>
 
@@ -311,6 +348,8 @@
         FROM evaluation
         WHERE evaluator_id = #{viewerEmployeeId}
           AND employee_id = #{targetEmployeeId}
+          AND confirmed_at IS NULL
+          AND year = YEAR(CURDATE())
     </select>
 
     <select id="findInquiryAccessibleTargetIds"
@@ -319,6 +358,8 @@
         SELECT DISTINCT employee_id
         FROM evaluation
         WHERE evaluator_id = #{viewerEmployeeId}
+          AND confirmed_at IS NULL
+          AND year = YEAR(CURDATE())
         ORDER BY employee_id
     </select>
 
@@ -349,33 +390,13 @@
                ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
                ROUND(AVG(COALESCE(pr.solving_score, 0)), 1) AS creativityAvg
         FROM (
-            SELECT DISTINCT employee_id
-            FROM performance
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
-
-            UNION
-
-            SELECT DISTINCT employee_id
-            FROM evaluation
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
-
-            UNION
-
-            SELECT DISTINCT appraisee_id AS employee_id
-            FROM team_evaluation
-            WHERE appraisee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
+            <include refid="employeeIdsDerivedTable"/>
         ) base
         LEFT JOIN performance p ON p.employee_id = base.employee_id
-        LEFT JOIN evaluation ev ON ev.employee_id = base.employee_id
+        LEFT JOIN evaluation ev
+          ON ev.employee_id = base.employee_id
+         AND ev.confirmed_at IS NULL
+         AND ev.year = YEAR(CURDATE())
         LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
         GROUP BY base.employee_id
         ORDER BY base.employee_id
@@ -394,26 +415,14 @@
                              SELECT ev.eval_id
                              FROM evaluation ev
                              WHERE ev.employee_id = base.employee_id
+                               AND ev.confirmed_at IS NULL
+                               AND ev.year = YEAR(CURDATE())
                          )
                    ) THEN TRUE
                    ELSE FALSE
                END AS evaluated
         FROM (
-            SELECT DISTINCT employee_id
-            FROM evaluation
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
-
-            UNION
-
-            SELECT DISTINCT employee_id
-            FROM performance
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
+            <include refid="employeeIdsDerivedTable"/>
         ) base
         ORDER BY base.employee_id
     </select>
@@ -432,29 +441,18 @@
             resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$TeamStatsMetricRow">
         SELECT base.employee_id AS employeeId,
                ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
-               ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
+              ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
                ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
                ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
                ROUND(AVG(COALESCE(pr.solving_score, 0)), 1) AS creativityAvg
         FROM (
-            SELECT DISTINCT employee_id
-            FROM performance
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
-
-            UNION
-
-            SELECT DISTINCT employee_id
-            FROM evaluation
-            WHERE employee_id IN
-            <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-                #{employeeId}
-            </foreach>
+            <include refid="employeeIdsDerivedTable"/>
         ) base
         LEFT JOIN performance p ON p.employee_id = base.employee_id
-        LEFT JOIN evaluation ev ON ev.employee_id = base.employee_id
+        LEFT JOIN evaluation ev
+          ON ev.employee_id = base.employee_id
+         AND ev.confirmed_at IS NULL
+         AND ev.year = YEAR(CURDATE())
         LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
         GROUP BY base.employee_id
         ORDER BY base.employee_id
@@ -472,10 +470,18 @@
                END AS status,
                DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt
         FROM performance p
-        WHERE p.employee_id IN
-        <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
-            #{employeeId}
-        </foreach>
+        WHERE 1 = 1
+        <choose>
+            <when test="employeeIds != null and employeeIds.size() > 0">
+                AND p.employee_id IN
+                <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
+                    #{employeeId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
         ORDER BY p.employee_id, p.created_at DESC
     </select>
 </mapper>
