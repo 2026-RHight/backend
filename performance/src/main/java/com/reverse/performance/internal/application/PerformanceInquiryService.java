@@ -12,6 +12,7 @@ import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +25,68 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 public class PerformanceInquiryService {
 
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
     private final AttachmentMapper attachmentMapper;
     private final PerformanceFileService performanceFileService;
 
     public List<PerformanceInquiryItemResponse> getInquiryItems(
             Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
-        return performanceViewMapper.findInquiryItems(viewerEmployeeId, targetEmployeeId, isAdmin);
+        List<PerformanceViewMapper.InquiryItemRow> rows =
+                resolveInquiryRows(viewerEmployeeId, targetEmployeeId, isAdmin);
+        Map<Long, PerformanceHrMemberResolver.EmployeeProfileSnapshot> profileMap =
+                performanceHrMemberResolver.getEmployeeProfiles(
+                        rows.stream()
+                                .map(PerformanceViewMapper.InquiryItemRow::employeeId)
+                                .filter(id -> id != null)
+                                .distinct()
+                                .toList());
+        return rows.stream()
+                .map(
+                        row -> {
+                            PerformanceHrMemberResolver.EmployeeProfileSnapshot profile =
+                                    profileMap.get(row.employeeId());
+                            return new PerformanceInquiryItemResponse(
+                                    row.id(),
+                                    row.type(),
+                                    row.title(),
+                                    row.coreTask(),
+                                    row.date(),
+                                    row.status(),
+                                    row.progress(),
+                                    profile == null ? "-" : profile.employeeName(),
+                                    row.employeeId(),
+                                    row.description(),
+                                    row.achievement());
+                        })
+                .toList();
+    }
+
+    private List<PerformanceViewMapper.InquiryItemRow> resolveInquiryRows(
+            Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
+        if (targetEmployeeId != null) {
+            if (!isAdmin
+                    && !targetEmployeeId.equals(viewerEmployeeId)
+                    && !canAccessTarget(viewerEmployeeId, targetEmployeeId)) {
+                throw new ForbiddenException("FORBIDDEN", "조회할 수 없는 팀원 성과입니다.");
+            }
+            return performanceViewMapper.findInquiryItems(
+                    viewerEmployeeId,
+                    targetEmployeeId,
+                    isAdmin || !targetEmployeeId.equals(viewerEmployeeId));
+        }
+
+        if (isAdmin) {
+            return performanceViewMapper.findInquiryItems(viewerEmployeeId, null, true);
+        }
+
+        List<Long> targetIds =
+                performanceViewMapper.findInquiryAccessibleTargetIds(viewerEmployeeId);
+        if (targetIds == null || targetIds.isEmpty()) {
+            return performanceViewMapper.findInquiryItems(
+                    viewerEmployeeId, viewerEmployeeId, false);
+        }
+        return performanceViewMapper.findInquiryItemsByEmployeeIds(targetIds);
     }
 
     @Transactional
@@ -85,6 +141,13 @@ public class PerformanceInquiryService {
         }
     }
 
+    private boolean canAccessTarget(Long viewerEmployeeId, Long targetEmployeeId) {
+        Integer accessible =
+                performanceViewMapper.countInquiryAccessibleTarget(
+                        viewerEmployeeId, targetEmployeeId);
+        return accessible != null && accessible > 0;
+    }
+
     private void saveAttachments(Long performanceId, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             return;
@@ -107,6 +170,7 @@ public class PerformanceInquiryService {
                             null,
                             performanceId,
                             uploaded.originalName(),
+                            uploaded.key(),
                             uploaded.fileUrl(),
                             null,
                             LocalDateTime.now()));

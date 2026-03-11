@@ -30,18 +30,6 @@ public class TeamEvaluation {
     @Column(name = "evaluation_year")
     private Integer evaluationYear;
 
-    @Column(name = "performance_eval")
-    private String performanceEval;
-
-    @Column(name = "work_attitude_eval")
-    private String workAttitudeEval;
-
-    @Column(name = "teamwork_eval")
-    private String teamworkEval;
-
-    @Column(name = "solving_eval")
-    private String solvingEval;
-
     @Column(name = "performance_score")
     private Integer performanceScore;
 

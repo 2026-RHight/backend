@@ -3,16 +3,20 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.reverse.performance.internal.persistence.TeamEvalMapper">
+    <select id="countByEvaluatorIdAndAppraiseeIdAndYear" resultType="int">
+        SELECT COUNT(*)
+        FROM team_evaluation
+        WHERE evaluator_id = #{evaluatorId}
+          AND appraisee_id = #{appraiseeId}
+          AND evaluation_year = #{evaluationYear}
+    </select>
+
     <insert id="saveTeamEval"
             parameterType="com.reverse.performance.internal.dto.request.TeamEvalRequest">
         INSERT INTO team_evaluation (
             evaluator_id,
             appraisee_id,
             evaluation_year,
-            performance_eval,
-            work_attitude_eval,
-            teamwork_eval,
-            solving_eval,
             performance_score,
             performance_comment,
             attitude_score,
@@ -27,10 +31,6 @@
             #{evaluatorId, jdbcType=BIGINT},
             #{appraiseeId, jdbcType=BIGINT},
             #{evaluationYear, jdbcType=INTEGER},
-            #{performanceEval, jdbcType=VARCHAR},
-            #{workAttitudeEval, jdbcType=VARCHAR},
-            #{teamworkEval, jdbcType=VARCHAR},
-            #{solvingEval, jdbcType=VARCHAR},
             #{performanceScore, jdbcType=INTEGER},
             #{performanceComment, jdbcType=VARCHAR},
             #{attitudeScore, jdbcType=INTEGER},

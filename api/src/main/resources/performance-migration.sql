@@ -59,7 +59,7 @@ DEALLOCATE PREPARE stmt_peer_review_constraint;
 -- 팀 평가 확장 컬럼 추가
 ALTER TABLE team_evaluation
     ADD COLUMN IF NOT EXISTS evaluation_year INT NULL AFTER appraisee_id,
-    ADD COLUMN IF NOT EXISTS performance_score INT NULL AFTER solving_eval,
+    ADD COLUMN IF NOT EXISTS performance_score INT NULL AFTER evaluation_year,
     ADD COLUMN IF NOT EXISTS performance_comment TEXT NULL AFTER performance_score,
     ADD COLUMN IF NOT EXISTS attitude_score INT NULL AFTER performance_comment,
     ADD COLUMN IF NOT EXISTS attitude_comment TEXT NULL AFTER attitude_score,
@@ -69,6 +69,12 @@ ALTER TABLE team_evaluation
     ADD COLUMN IF NOT EXISTS creativity_comment TEXT NULL AFTER creativity_score,
     ADD COLUMN IF NOT EXISTS created_at DATETIME NULL AFTER creativity_comment,
     ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
+
+ALTER TABLE team_evaluation
+    DROP COLUMN IF EXISTS performance_eval,
+    DROP COLUMN IF EXISTS work_attitude_eval,
+    DROP COLUMN IF EXISTS teamwork_eval,
+    DROP COLUMN IF EXISTS solving_eval;
 
 SET @team_evaluation_year_index_exists = (
     SELECT COUNT(*)
@@ -153,6 +159,35 @@ END;
 PREPARE stmt_monthly_performance_fix FROM @monthly_performance_fix_sql;
 EXECUTE stmt_monthly_performance_fix;
 DEALLOCATE PREPARE stmt_monthly_performance_fix;
+
+CREATE TABLE IF NOT EXISTS performance_metric_summary (
+    performance_metric_summary_id BIGINT NOT NULL AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    metric_year INT NOT NULL,
+    metric_month INT NOT NULL,
+    personal_kpi_achievement_rate INT NOT NULL DEFAULT 0,
+    team_kpi_achievement_rate INT NOT NULL DEFAULT 0,
+    monthly_core_goal_progress_rate INT NOT NULL DEFAULT 0,
+    score_change_rate DECIMAL(7,2) NOT NULL DEFAULT 0.00,
+    composite_score INT NOT NULL DEFAULT 0,
+    calculated_at DATETIME NOT NULL,
+    PRIMARY KEY (performance_metric_summary_id),
+    UNIQUE KEY uk_performance_metric_summary_employee_month (employee_id, metric_year, metric_month),
+    KEY idx_performance_metric_summary_employee (employee_id),
+    CONSTRAINT fk_performance_metric_summary_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+CREATE TABLE IF NOT EXISTS performance_weight (
+    performance_weight_id BIGINT NOT NULL AUTO_INCREMENT,
+    org_id BIGINT NOT NULL,
+    personal_weight_rate INT NOT NULL DEFAULT 50,
+    team_weight_rate INT NOT NULL DEFAULT 50,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (performance_weight_id),
+    UNIQUE KEY uk_performance_weight_org (org_id),
+    CONSTRAINT fk_performance_weight_org FOREIGN KEY (org_id) REFERENCES organization(org_id)
+);
 
 -- team_evaluation.team_evaluation_id PK 자동 보정
 SET @team_evaluation_has_id_column = (
