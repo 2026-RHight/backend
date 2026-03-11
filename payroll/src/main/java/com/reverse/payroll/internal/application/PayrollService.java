@@ -1,7 +1,7 @@
 package com.reverse.payroll.internal.application;
 
 import com.reverse.attendance.AttendanceFacade;
-import com.reverse.attendance.dto.response.PayrollAttendanceResponse;
+import com.reverse.attendance.dto.PayrollAttendanceResponse;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.FieldCryptoService;
 import com.reverse.payroll.internal.domain.InsuranceRate;
