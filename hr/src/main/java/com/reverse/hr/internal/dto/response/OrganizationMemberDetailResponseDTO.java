@@ -24,6 +24,7 @@ public record OrganizationMemberDetailResponseDTO(
             String rankName,
             String jobName,
             EmployeeState employeeState,
+            String employeeStateDescription,
             String hireDate,
             EmployType employType,
             RecruitType recruitType,

@@ -79,6 +79,7 @@ public class MyPageService {
         return new MyPageHeaderResponseDTO(
                 row.employeeName(),
                 row.employeeState(),
+                toEmployeeStateDescription(row.employeeState()),
                 row.orgName(),
                 row.jobName(),
                 row.positionName(),
@@ -130,10 +131,13 @@ public class MyPageService {
                         hrInfoRow.rankName(),
                         hrInfoRow.jobName(),
                         hrInfoRow.employeeState(),
+                        toEmployeeStateDescription(hrInfoRow.employeeState()),
                         formatDate(hrInfoRow.hireDate()),
                         toTenureText(hrInfoRow.hireDate()),
                         hrInfoRow.employType(),
+                        toEmployTypeDescription(hrInfoRow.employType()),
                         hrInfoRow.recruitType(),
+                        toRecruitTypeDescription(hrInfoRow.recruitType()),
                         hrInfoRow.areaName());
 
         List<MyPageResponseDTO.SkillItem> skills =
@@ -653,6 +657,30 @@ public class MyPageService {
         int years = Math.max(period.getYears(), 0);
         int months = Math.max(period.getMonths(), 0);
         return years + "년 " + months + "개월";
+    }
+
+    private String toEmployeeStateDescription(
+            com.reverse.hr.internal.domain.enums.EmployeeState employeeState) {
+        if (employeeState == null) {
+            return null;
+        }
+        return employeeState.getDescription();
+    }
+
+    private String toEmployTypeDescription(
+            com.reverse.hr.internal.domain.enums.EmployType employType) {
+        if (employType == null) {
+            return null;
+        }
+        return employType.getDescription();
+    }
+
+    private String toRecruitTypeDescription(
+            com.reverse.hr.internal.domain.enums.RecruitType recruitType) {
+        if (recruitType == null) {
+            return null;
+        }
+        return recruitType.getDescription();
     }
 
     private String decryptNullable(String enc) {

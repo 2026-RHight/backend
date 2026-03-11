@@ -127,6 +127,7 @@ public class OrganizationService {
                         hrInfoRow.rankName(),
                         hrInfoRow.jobName(),
                         hrInfoRow.employeeState(),
+                        toEmployeeStateDescription(hrInfoRow.employeeState()),
                         formatDate(hrInfoRow.hireDate()),
                         hrInfoRow.employType(),
                         hrInfoRow.recruitType(),
@@ -213,6 +214,7 @@ public class OrganizationService {
         return new OrganizationMemberResponseDTO(
                 row.employeeId(),
                 row.employeeName(),
+                row.profileFileUrl(),
                 row.email(),
                 row.phone(),
                 row.extensionNum(),
@@ -220,7 +222,16 @@ public class OrganizationService {
                 row.jobName(),
                 row.rankName(),
                 row.areaName(),
-                row.employeeState());
+                row.employeeState(),
+                toEmployeeStateDescription(row.employeeState()));
+    }
+
+    private String toEmployeeStateDescription(
+            com.reverse.hr.internal.domain.enums.EmployeeState state) {
+        if (state == null) {
+            return null;
+        }
+        return state.getDescription();
     }
 
     private String formatDate(LocalDate date) {
