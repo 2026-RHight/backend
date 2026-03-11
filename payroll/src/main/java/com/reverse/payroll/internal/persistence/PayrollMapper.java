@@ -16,8 +16,32 @@ public interface PayrollMapper {
     Optional<SalarySetting> findSalarySettingByEmployeeId(
             @Param("employeeId") Long employeeId, @Param("targetDate") LocalDate targetDate);
 
+    List<Long> findEmployeeIdsWithSalarySetting(@Param("targetDate") LocalDate targetDate);
+
+    List<SalarySetting> findSalarySettingHistoryByEmployeeId(@Param("employeeId") Long employeeId);
+
+    Optional<SalarySetting> findSalarySettingById(@Param("id") Long id);
+
+    boolean existsSalarySettingOverlap(
+            @Param("employeeId") Long employeeId,
+            @Param("applyStartDate") LocalDate applyStartDate,
+            @Param("applyEndDate") LocalDate applyEndDate,
+            @Param("excludeId") Long excludeId);
+
+    void insertSalarySetting(SalarySetting salarySetting);
+
+    int updateSalarySetting(SalarySetting salarySetting);
+
     // 적용년도 4대보험 요율 조회
     Optional<InsuranceRate> findInsuranceRateByApplyYear(@Param("applyYear") int applyYear);
+
+    List<InsuranceRate> findAllInsuranceRates();
+
+    Optional<InsuranceRate> findInsuranceRateById(@Param("insuranceId") Long insuranceId);
+
+    void insertInsuranceRate(InsuranceRate insuranceRate);
+
+    int updateInsuranceRate(InsuranceRate insuranceRate);
 
     // 사원의 최근급여 명세서 목록 반환
     List<PayrollLedger> findRecentPayrollLedgersByEmployeeId(
@@ -34,11 +58,39 @@ public interface PayrollMapper {
     Optional<PayrollLedger> findPayrollLedgerByYearMonth(
             @Param("employeeId") Long employeeId, @Param("targetMonth") String targetMonth);
 
+    List<PayrollLedger> findAdminPayrollLedgersByMonth(
+            @Param("targetMonth") String targetMonth,
+            @Param("employeeName") String employeeName,
+            @Param("departmentName") String departmentName,
+            @Param("isFinalized") String isFinalized,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countAdminPayrollLedgersByMonth(
+            @Param("targetMonth") String targetMonth,
+            @Param("employeeName") String employeeName,
+            @Param("departmentName") String departmentName,
+            @Param("isFinalized") String isFinalized);
+
+    int countPayrollLedgersByTargetMonth(@Param("targetMonth") String targetMonth);
+
+    int countFinalizedPayrollLedgersByTargetMonth(@Param("targetMonth") String targetMonth);
+
+    int finalizePayrollLedgersByTargetMonth(@Param("targetMonth") String targetMonth);
+
+    int updatePayrollLedgerSent(@Param("ledgerId") Long ledgerId);
+
+    int countSentPayrollLedgersByTargetMonth(@Param("targetMonth") String targetMonth);
+
+    int updatePayrollLedgersSentByTargetMonth(@Param("targetMonth") String targetMonth);
+
     // 급여대장 저장
     void insertPayrollLedger(PayrollLedger payrollLedger);
 
     // 사원 비밀번호(해시) 조회
     Optional<String> findEmployeePasswordById(@Param("employeeId") Long employeeId);
+
+    Optional<String> findEmployeeEmailById(@Param("employeeId") Long employeeId);
 
     // 급여명세서용 사원 기본 정보 조회
     Optional<EmployeePayslipInfo> findEmployeePayslipInfo(@Param("employeeId") Long employeeId);

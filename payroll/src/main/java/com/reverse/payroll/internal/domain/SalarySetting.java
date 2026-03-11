@@ -16,7 +16,7 @@ public class SalarySetting {
     private BigDecimal baseSalary;
     private BigDecimal mealAllowance;
 
-    // 이 정보들은 더 이상 salary_setting 테이블에 저장되지 않으며, 사원 테이블(employee)에서 조회하여 매핑합니다.
+    // 이 정보들은 사원 테이블에서 조회하여 매핑합니다.
     private String bankName;
     private String accountNumberEnc; // 암호화된 계좌번호
     private String accountHolder; // 통상 사원명
