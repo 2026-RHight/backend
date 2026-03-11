@@ -410,6 +410,20 @@ CREATE TABLE IF NOT EXISTS hr_event (
     CONSTRAINT fk_hr_event_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
 
+ALTER TABLE hr_event
+    ADD COLUMN IF NOT EXISTS target_org_id BIGINT NULL AFTER after_change,
+    ADD COLUMN IF NOT EXISTS target_job_id BIGINT NULL AFTER target_org_id,
+    ADD COLUMN IF NOT EXISTS target_position_id BIGINT NULL AFTER target_job_id,
+    ADD COLUMN IF NOT EXISTS target_rank_id BIGINT NULL AFTER target_position_id,
+    ADD COLUMN IF NOT EXISTS target_employee_state ENUM('WORK','LEAVE','RESIGN') NULL AFTER target_rank_id,
+    ADD COLUMN IF NOT EXISTS target_employ_type ENUM('REGULAR','NON_REGULAR','CONTRACT') NULL AFTER target_employee_state,
+    ADD COLUMN IF NOT EXISTS target_area_id BIGINT NULL AFTER target_employ_type,
+    ADD COLUMN IF NOT EXISTS target_effective_from DATE NULL AFTER target_area_id,
+    ADD COLUMN IF NOT EXISTS target_role_ids_json TEXT NULL AFTER target_effective_from,
+    ADD COLUMN IF NOT EXISTS event_status ENUM('PENDING','APPLIED','FAILED') NOT NULL DEFAULT 'PENDING' AFTER target_role_ids_json,
+    ADD COLUMN IF NOT EXISTS applied_at DATETIME NULL AFTER event_status,
+    ADD COLUMN IF NOT EXISTS applied_error VARCHAR(500) NULL AFTER applied_at;
+
 -- ==========================================
 -- 급여(Payroll) 모듈 테이블
 -- ==========================================
