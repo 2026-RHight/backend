@@ -13,6 +13,7 @@ import com.reverse.performance.internal.dto.response.PerformancePeerReviewTarget
 import com.reverse.performance.internal.dto.response.PerformanceTeamEvaluationTargetResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -69,7 +70,7 @@ public class PerformanceEvaluationController {
     @PostMapping("/team-evaluation")
     public ApiResponse<Void> submitTeamEvaluation(
             @AuthenticationPrincipal CustomUser user,
-            @RequestBody PerformanceTeamEvaluationSubmitRequest request) {
+            @Valid @RequestBody PerformanceTeamEvaluationSubmitRequest request) {
         performanceEvaluationService.submitTeamEvaluation(user.getEmployeeId(), request);
         return ApiResponse.success();
     }
