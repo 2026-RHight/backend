@@ -349,6 +349,7 @@ public class PayrollService {
                                 0)
                         .stream()
                         .map(ledger -> toAdminPayrollLedgerResponse(ledger))
+                        .map(this::toAdminPayrollLedgerResponse)
                         .collect(Collectors.toList());
 
         StringBuilder csv = new StringBuilder();
@@ -369,6 +370,7 @@ public class PayrollService {
                     .append(csvValue(ledger.getBankName()))
                     .append(',')
                     .append(csvValue(ledger.getMaskedAccountNumber()))
+                    .append(csvValue(ledger.getAccountNumber()))
                     .append(',')
                     .append(csvValue(ledger.getAccountHolder()))
                     .append(',')
@@ -474,6 +476,13 @@ public class PayrollService {
             eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledgerId));
         }
 
+        if (!"Y".equals(ledger.getIsSent())) {
+            publishPayslipEmail(ledger);
+        }
+
+        int sentCount = payrollMapper.updatePayrollLedgerSent(ledgerId);
+        int alreadySentCount = sentCount == 0 && "Y".equals(ledger.getIsSent()) ? 1 : 0;
+
         return AdminPayrollSendResponse.builder()
                 .ledgerId(ledgerId)
                 .targetMonth(ledger.getTargetMonth())
@@ -511,6 +520,15 @@ public class PayrollService {
             eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledger.getId()));
             sentCount++;
         }
+
+        for (PayrollLedger ledger : finalizedLedgers) {
+            if (!"Y".equals(ledger.getIsSent())) {
+                publishPayslipEmail(ledger);
+            }
+        }
+
+        int alreadySentCount = payrollMapper.countSentPayrollLedgersByTargetMonth(targetMonth);
+        int sentCount = payrollMapper.updatePayrollLedgersSentByTargetMonth(targetMonth);
 
         return AdminPayrollSendResponse.builder()
                 .targetMonth(targetMonth)
@@ -861,6 +879,7 @@ public class PayrollService {
                 .positionName(ledger.getPositionNameSnapshot())
                 .bankName(ledger.getBankNameSnapshot())
                 .maskedAccountNumber(maskPlainAccountNumber(accountNumber))
+                .accountNumber(decryptAccountNumber(ledger.getAccountNumberSnapshotEnc()))
                 .accountHolder(ledger.getAccountHolderSnapshot())
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())

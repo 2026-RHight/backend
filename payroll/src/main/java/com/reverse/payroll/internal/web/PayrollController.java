@@ -196,9 +196,7 @@ public class PayrollController {
                         year, month, employeeName, departmentName, isFinalized, page, size));
     }
 
-    @Operation(
-            summary = "관리자 급여대장 CSV 다운로드",
-            description = "귀속월 기준 조회용 급여대장 데이터를 마스킹된 계좌번호로 CSV 다운로드합니다.")
+    @Operation(summary = "관리자 급여대장 CSV 다운로드", description = "귀속월 기준 급여대장 데이터를 CSV로 다운로드합니다.")
     @GetMapping("/admin/ledgers/export")
     @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
     public ResponseEntity<byte[]> exportAdminPayrollLedgers(

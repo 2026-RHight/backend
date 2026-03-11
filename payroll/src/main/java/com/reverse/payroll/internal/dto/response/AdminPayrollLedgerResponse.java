@@ -15,6 +15,7 @@ public class AdminPayrollLedgerResponse {
     private String positionName;
     private String bankName;
     private String maskedAccountNumber;
+    private String accountNumber;
     private String accountHolder;
     private BigDecimal salaryAmount;
     private BigDecimal overtimeAmount;
@@ -36,6 +37,7 @@ public class AdminPayrollLedgerResponse {
             String positionName,
             String bankName,
             String maskedAccountNumber,
+            String accountNumber,
             String accountHolder,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
@@ -54,6 +56,7 @@ public class AdminPayrollLedgerResponse {
         this.positionName = positionName;
         this.bankName = bankName;
         this.maskedAccountNumber = maskedAccountNumber;
+        this.accountNumber = accountNumber;
         this.accountHolder = accountHolder;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
