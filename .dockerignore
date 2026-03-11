@@ -2,6 +2,9 @@
 .github
 .gradle
 **/build
+!api/build/
+!api/build/libs/
+!api/build/libs/*.jar
 **/.idea
 **/*.iml
 **/.DS_Store
