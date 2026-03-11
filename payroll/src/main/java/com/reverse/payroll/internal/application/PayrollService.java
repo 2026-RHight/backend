@@ -433,6 +433,7 @@ public class PayrollService {
 
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
+
     @Transactional
     public AdminPayrollSendResponse markPayrollLedgerSent(Long ledgerId) {
         PayrollLedger ledger =
@@ -759,8 +760,7 @@ public class PayrollService {
     }
 
     private BigDecimal calculateMonthlyIncomeTax(BigDecimal monthlyTaxableIncome) {
-        if (monthlyTaxableIncome == null
-                || monthlyTaxableIncome.compareTo(BigDecimal.ZERO) <= 0) {
+        if (monthlyTaxableIncome == null || monthlyTaxableIncome.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO;
         }
 
