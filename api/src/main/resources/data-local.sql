@@ -1423,6 +1423,76 @@ JOIN working_area a ON a.area_name = '서울 강남'
 WHERE e.employee_num = '2402040016'
   AND NOT EXISTS (SELECT 1 FROM employee_hr_info h WHERE h.employee_id = e.employee_id);
 
+-- ---------------------------------------------------------------------------
+-- Subtree access test seed
+-- ---------------------------------------------------------------------------
+-- 부서장 직책 보장
+INSERT INTO hr_position (position_name)
+SELECT '부서장'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM hr_position WHERE position_name = '부서장'
+);
+
+-- 강과장(2402040012)을 개발부 부서장으로 배치
+UPDATE employee_hr_info h
+JOIN employee e ON e.employee_id = h.employee_id
+JOIN organization o ON o.org_name = '개발부'
+JOIN hr_position p ON p.position_name = '부서장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+SET h.org_id = o.org_id,
+    h.position_id = p.position_id,
+    h.rank_id = r.rank_id,
+    h.job_id = j.job_id,
+    h.area_id = a.area_id
+WHERE e.employee_num = '2402040012';
+
+-- 하위 팀 분산 배치 (개발부 하위 전체 조회 테스트용)
+UPDATE employee_hr_info h
+JOIN employee e ON e.employee_id = h.employee_id
+JOIN organization o ON o.org_name = '개발2팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '대리'
+JOIN job j ON j.job_name = '프론트엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+SET h.org_id = o.org_id,
+    h.position_id = p.position_id,
+    h.rank_id = r.rank_id,
+    h.job_id = j.job_id,
+    h.area_id = a.area_id
+WHERE e.employee_num = '2402040013';
+
+UPDATE employee_hr_info h
+JOIN employee e ON e.employee_id = h.employee_id
+JOIN organization o ON o.org_name = 'QA팀'
+JOIN hr_position p ON p.position_name = '팀원'
+JOIN hr_rank r ON r.rank_name = '주임'
+JOIN job j ON j.job_name = 'QA 엔지니어'
+JOIN working_area a ON a.area_name = '서울 강남'
+SET h.org_id = o.org_id,
+    h.position_id = p.position_id,
+    h.rank_id = r.rank_id,
+    h.job_id = j.job_id,
+    h.area_id = a.area_id
+WHERE e.employee_num = '2402040014';
+
+-- test1 계정이 존재하면 개발부 부서장으로 강제 매핑 (없으면 영향 없음)
+UPDATE employee_hr_info h
+JOIN employee e ON e.employee_id = h.employee_id
+JOIN organization o ON o.org_name = '개발부'
+JOIN hr_position p ON p.position_name = '부서장'
+JOIN hr_rank r ON r.rank_name = '과장'
+JOIN job j ON j.job_name = '백엔드 개발자'
+JOIN working_area a ON a.area_name = '서울 강남'
+SET h.org_id = o.org_id,
+    h.position_id = p.position_id,
+    h.rank_id = r.rank_id,
+    h.job_id = j.job_id,
+    h.area_id = a.area_id
+WHERE e.employee_num = 'test1';
+
 -- 조직도 데모 계정 로그인 가능하도록 role/password_history 추가
 INSERT INTO employee_role (employee_id, role_id)
 SELECT e.employee_id, r.role_id
@@ -1453,6 +1523,18 @@ SELECT e.employee_id, r.role_id
 FROM employee e
 JOIN role r ON r.role_code = 'EVALUATOR'
 WHERE e.employee_num = '2402040012'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM employee_role er
+      WHERE er.employee_id = e.employee_id
+        AND er.role_id = r.role_id
+  );
+
+INSERT INTO employee_role (employee_id, role_id)
+SELECT e.employee_id, r.role_id
+FROM employee e
+JOIN role r ON r.role_code = 'EVALUATOR'
+WHERE e.employee_num = 'test1'
   AND NOT EXISTS (
       SELECT 1
       FROM employee_role er
