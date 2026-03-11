@@ -1,7 +1,9 @@
 package com.reverse.payroll.internal.dto.response;
 
 import com.reverse.payroll.internal.domain.PayrollLedger;
+import com.reverse.payroll.internal.domain.SalarySetting;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -10,6 +12,13 @@ public class PayrollDetailResponse {
 
     private Long id;
     private String yearMonth;
+    private String employeeName;
+    private String department;
+    private String position;
+    private String paymentDate;
+    private String bankName;
+    private String accountNumber;
+    private String accountHolder;
 
     // 지급 내역
     private BigDecimal salaryAmount; // 기본급
@@ -33,6 +42,13 @@ public class PayrollDetailResponse {
     public PayrollDetailResponse(
             Long id,
             String yearMonth,
+            String employeeName,
+            String department,
+            String position,
+            String paymentDate,
+            String bankName,
+            String accountNumber,
+            String accountHolder,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
             BigDecimal mealAmount,
@@ -47,6 +63,13 @@ public class PayrollDetailResponse {
             BigDecimal netPay) {
         this.id = id;
         this.yearMonth = yearMonth;
+        this.employeeName = employeeName;
+        this.department = department;
+        this.position = position;
+        this.paymentDate = paymentDate;
+        this.bankName = bankName;
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
         this.mealAmount = mealAmount;
@@ -62,6 +85,16 @@ public class PayrollDetailResponse {
     }
 
     public static PayrollDetailResponse from(PayrollLedger ledger) {
+        return of(ledger, null, null, null, null, null);
+    }
+
+    public static PayrollDetailResponse of(
+            PayrollLedger ledger,
+            SalarySetting salarySetting,
+            String plainAccountNumber,
+            String empName,
+            String deptName,
+            String posName) {
         BigDecimal totalDeduction =
                 safeAdd(
                         ledger.getNationalPensionAmount(),
@@ -71,9 +104,27 @@ public class PayrollDetailResponse {
                         ledger.getIncomeTaxAmount(),
                         ledger.getLocalTaxAmount());
 
+        String bankName =
+                ledger.getBankNameSnapshot() != null
+                        ? ledger.getBankNameSnapshot()
+                        : (salarySetting != null ? salarySetting.getBankName() : null);
+        String accountHolder =
+                ledger.getAccountHolderSnapshot() != null
+                        ? ledger.getAccountHolderSnapshot()
+                        : (salarySetting != null ? salarySetting.getAccountHolder() : null);
+        String paymentDate =
+                LocalDate.parse(ledger.getTargetMonth() + "-01").withDayOfMonth(25).toString();
+
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
-                .yearMonth(ledger.getYearMonth())
+                .yearMonth(ledger.getTargetMonth())
+                .employeeName(empName)
+                .department(deptName)
+                .position(posName)
+                .paymentDate(paymentDate)
+                .bankName(bankName)
+                .accountNumber(plainAccountNumber)
+                .accountHolder(accountHolder)
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())

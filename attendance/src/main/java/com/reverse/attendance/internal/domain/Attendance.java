@@ -1,6 +1,7 @@
 package com.reverse.attendance.internal.domain;
 
 import com.reverse.attendance.internal.domain.enums.AttendanceStatus;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.Builder;
@@ -19,6 +20,11 @@ public class Attendance {
     private AttendanceStatus status;
     private String tardyReason;
     private String modifyReason;
+    private Boolean closed;
+    private BigDecimal overtimeHours;
+    private BigDecimal nightWorkHours;
+    private BigDecimal holidayWorkHours;
+    private Boolean unpaidLeave;
 
     @Builder
     public Attendance(
@@ -29,7 +35,12 @@ public class Attendance {
             LocalTime checkOutTime,
             AttendanceStatus status,
             String tardyReason,
-            String modifyReason) {
+            String modifyReason,
+            Boolean closed,
+            BigDecimal overtimeHours,
+            BigDecimal nightWorkHours,
+            BigDecimal holidayWorkHours,
+            Boolean unpaidLeave) {
         this.attendanceId = attendanceId;
         this.employeeId = employeeId;
         this.workDate = workDate;
@@ -38,5 +49,10 @@ public class Attendance {
         this.status = status;
         this.tardyReason = tardyReason;
         this.modifyReason = modifyReason;
+        this.closed = closed;
+        this.overtimeHours = overtimeHours;
+        this.nightWorkHours = nightWorkHours;
+        this.holidayWorkHours = holidayWorkHours;
+        this.unpaidLeave = unpaidLeave;
     }
 }

@@ -20,10 +20,17 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AttendanceController {
 
+    private static final String ATTENDANCE_SELF_SERVICE_AUTH =
+            "hasAnyRole('EVALUATOR', 'EVALUATEE', 'HR_ADMIN_MASTER', "
+                    + "'HR_ADMIN_PAYROLL', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
+    private static final String ATTENDANCE_OPERATION_ADMIN_AUTH =
+            "hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
+
     private final AttendanceService attendanceService;
 
     @Operation(summary = "출근 처리", description = "사용자의 출근 기록을 생성합니다.")
     @PostMapping("/clock-in")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<String> clockIn(
             @Valid @RequestBody ClockInRequest request, @AuthenticationPrincipal CustomUser user) {
         Long attendanceId = attendanceService.clockIn(request, user.getEmployeeId());
@@ -32,6 +39,7 @@ public class AttendanceController {
 
     @Operation(summary = "퇴근 처리", description = "사용자의 퇴근 기록을 갱신합니다.")
     @PutMapping("/clock-out")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<String> clockOut(@AuthenticationPrincipal CustomUser user) {
         attendanceService.clockOut(user.getEmployeeId());
         return ResponseEntity.ok("퇴근 처리가 완료되었습니다.");
@@ -39,16 +47,18 @@ public class AttendanceController {
 
     @Operation(summary = "근태 기록 수정 (관리자)", description = "관리자가 특정 직원의 근태 기록을 수정합니다.")
     @PutMapping("/admin/modify")
-    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC')")
+    @PreAuthorize(ATTENDANCE_OPERATION_ADMIN_AUTH)
     public ResponseEntity<String> modifyAttendanceByAdmin(
-            @Valid @RequestBody AttendanceModifyRequest request) {
-        attendanceService.modifyAttendanceByAdmin(request);
+            @Valid @RequestBody AttendanceModifyRequest request,
+            @AuthenticationPrincipal CustomUser user) {
+        attendanceService.modifyAttendanceByAdmin(request, user.getEmployeeId());
         return ResponseEntity.ok("근태 기록이 성공적으로 수정되었습니다.");
     }
 
     // 근태 대쉬보드 통계 API
     @Operation(summary = "월간 근태 요약 조회", description = "특정 월의 근태 요약(지각, 결근 일수 등)을 조회합니다.")
     @GetMapping("/summary")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<AttendanceSummaryResponse> getMonthlySummary(
             @AuthenticationPrincipal CustomUser user,
             @RequestParam int year,
@@ -63,6 +73,7 @@ public class AttendanceController {
     // /api/v1/attendance/records?year=2026&month=3&status=TARDY)
     @Operation(summary = "월간 근태 기록 리스트 조회", description = "특정 월의 상세 근태 기록 리스트를 조회합니다.")
     @GetMapping("/records")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<List<AttendanceRecordResponse>> getMonthlyRecords(
             @AuthenticationPrincipal CustomUser user,
             @RequestParam int year,

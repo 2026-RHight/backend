@@ -165,19 +165,55 @@ CREATE TABLE IF NOT EXISTS attendance_record (
     work_date DATE NOT NULL,
     check_in_time TIME,
     check_out_time TIME,
-    status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가)',
+    status VARCHAR(20) NOT NULL COMMENT 'NORMAL(정상), TARDY(지각), EARLY_LEAVE(조퇴), ABSENT(결근), VACATION(휴가), HALF_VACATION(반차), BUSINESS_TRIP(출장/외근)',
     tardy_reason VARCHAR(255) COMMENT '지각 사유',
     modify_reason VARCHAR(255) COMMENT '관리자 수정 사유',
     overtime_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '연장 근무 시간',
     night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '야간 근무 시간',
     holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '휴일 근무 시간',
     is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE COMMENT '무급 휴가 여부',
+    is_closed BOOLEAN NOT NULL DEFAULT FALSE COMMENT '월 마감 여부',
     CONSTRAINT chk_attendance_record_overtime_hours CHECK (overtime_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT chk_attendance_record_night_work_hours CHECK (night_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT chk_attendance_record_holiday_work_hours CHECK (holiday_work_hours BETWEEN 0.0 AND 24.0),
     CONSTRAINT fk_attendance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_attendance_employee_date (employee_id, work_date)
 );
+
+ALTER TABLE attendance_record
+    ADD COLUMN IF NOT EXISTS overtime_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER modify_reason,
+    ADD COLUMN IF NOT EXISTS night_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER overtime_hours,
+    ADD COLUMN IF NOT EXISTS holiday_work_hours DECIMAL(4,1) NOT NULL DEFAULT 0.0 AFTER night_work_hours,
+    ADD COLUMN IF NOT EXISTS is_unpaid_leave BOOLEAN NOT NULL DEFAULT FALSE AFTER holiday_work_hours,
+    ADD COLUMN IF NOT EXISTS is_closed BOOLEAN NOT NULL DEFAULT FALSE AFTER is_unpaid_leave;
+
+CREATE TABLE IF NOT EXISTS attendance_history (
+    history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    attendance_id BIGINT NULL,
+    employee_id BIGINT NOT NULL,
+    actor_employee_id BIGINT NULL COMMENT '수정/처리 주체 사번',
+    action_type VARCHAR(50) NOT NULL COMMENT 'ADMIN_MODIFY, LEAVE_APPROVED, OVERTIME_APPROVED 등',
+    reason VARCHAR(255) NULL COMMENT '처리 사유',
+    work_date DATE NOT NULL,
+    before_check_in_time TIME NULL,
+    after_check_in_time TIME NULL,
+    before_check_out_time TIME NULL,
+    after_check_out_time TIME NULL,
+    before_status VARCHAR(20) NULL,
+    after_status VARCHAR(20) NULL,
+    before_closed BOOLEAN NULL,
+    after_closed BOOLEAN NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_attendance_history_employee_date (employee_id, work_date),
+    KEY idx_attendance_history_attendance (attendance_id),
+    CONSTRAINT fk_attendance_history_attendance FOREIGN KEY (attendance_id) REFERENCES attendance_record(attendance_id),
+    CONSTRAINT fk_attendance_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_attendance_history_actor FOREIGN KEY (actor_employee_id) REFERENCES employee(employee_id)
+);
+
+ALTER TABLE attendance_history
+    ADD COLUMN IF NOT EXISTS before_closed BOOLEAN NULL AFTER after_status,
+    ADD COLUMN IF NOT EXISTS after_closed BOOLEAN NULL AFTER before_closed;
 
 -- 사원별 총 연차 관리 (연도별 이력 관리)
 CREATE TABLE IF NOT EXISTS leave_balance (
@@ -193,6 +229,17 @@ CREATE TABLE IF NOT EXISTS leave_balance (
     CONSTRAINT fk_leave_balance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     UNIQUE KEY uk_leave_balance_emp_year (employee_id, base_year)
 );
+
+ALTER TABLE leave_balance
+    ADD COLUMN IF NOT EXISTS base_year INT NOT NULL DEFAULT 2026 AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 AFTER total_annual_leave;
+
+ALTER TABLE attendance_policy
+    ADD COLUMN IF NOT EXISTS employee_id BIGINT NULL AFTER policy_id,
+    ADD COLUMN IF NOT EXISTS std_start_time TIME NULL AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS std_end_time TIME NULL AFTER std_start_time,
+    ADD COLUMN IF NOT EXISTS break_time_start TIME NULL AFTER core_time_end,
+    ADD COLUMN IF NOT EXISTS break_time_end TIME NULL AFTER break_time_start;
 
 -- 휴가 신청 내역
 CREATE TABLE IF NOT EXISTS leave_request (
@@ -250,6 +297,9 @@ CREATE TABLE IF NOT EXISTS weekly_work_schedule (
     updated_at DATETIME,
     CONSTRAINT fk_weekly_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
+
+ALTER TABLE weekly_work_schedule
+    ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
 
 
 -- 팀원이 작성한 자격증/경력 관련 테이블
@@ -330,7 +380,7 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     employee_id BIGINT NOT NULL,
     insurance_id BIGINT,
-    year_month VARCHAR(7) NOT NULL, -- e.g., '2024-03'
+    target_month VARCHAR(7) NOT NULL COMMENT '정산 대상 월, 예: 2024-03',
     salary_amount DECIMAL(15,2) DEFAULT 0.00,
     overtime_amount DECIMAL(15,2) DEFAULT 0.00,
     meal_amount DECIMAL(15,2) DEFAULT 0.00,
@@ -344,8 +394,14 @@ CREATE TABLE IF NOT EXISTS payroll_ledger (
     emp_insurance_amount DECIMAL(15,2) DEFAULT 0.00,
     income_tax_amount DECIMAL(15,2) DEFAULT 0.00,
     local_tax_amount DECIMAL(15,2) DEFAULT 0.00,
-    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, year_month),
-    KEY idx_payroll_ledger_year_month (year_month),
+    employee_name_snapshot VARCHAR(100) NULL,
+    dept_name_snapshot VARCHAR(255) NULL,
+    position_name_snapshot VARCHAR(100) NULL,
+    bank_name_snapshot VARCHAR(100) NULL,
+    account_number_snapshot_enc VARCHAR(255) NULL,
+    account_holder_snapshot VARCHAR(100) NULL,
+    UNIQUE KEY uk_payroll_ledger_employee_month (employee_id, target_month),
+    KEY idx_payroll_ledger_target_month (target_month),
     CONSTRAINT fk_payroll_ledger_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_payroll_ledger_insurance FOREIGN KEY (insurance_id) REFERENCES insurance_rate(insurance_id)
 );

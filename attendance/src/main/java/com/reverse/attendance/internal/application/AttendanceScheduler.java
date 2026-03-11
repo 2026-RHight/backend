@@ -1,6 +1,5 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.attendance.internal.persistence.AttendanceMapper;
 import com.reverse.attendance.internal.persistence.LeaveMapper;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AttendanceScheduler {
 
-    private final AttendanceMapper attendanceMapper;
+    private final AttendanceSyncService attendanceSyncService;
     private final LeaveMapper leaveMapper;
 
     /** 매일 자정(0시 0분 0초)에 실행 전날 출근은 했으나 퇴근을 찍지 않은 사원들을 EARLY_LEAVE(조퇴 등)로 자동 마감 처리하는 스케줄러. */
@@ -23,7 +22,9 @@ public class AttendanceScheduler {
         log.info("[System Batch] 퇴근 미처리자 자정 자동 마감 처리 시작: 기준일자 {}", yesterday);
 
         try {
-            int updatedRows = attendanceMapper.autoCloseMissingCheckOut(yesterday);
+            int updatedRows =
+                    attendanceSyncService.autoCloseMissingCheckOutsByDate(
+                            yesterday, "System Auto Closed", "DAILY_AUTO_CLOSE");
             log.info("[System Batch] 퇴근 미처리자 자정 자동 마감 처리 완료: 총 {}건 마감됨", updatedRows);
         } catch (Exception e) {
             log.error("[System Batch] 퇴근 미처리자 자정 마감 처리 중 오류 발생: ", e);

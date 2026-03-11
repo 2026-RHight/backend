@@ -20,4 +20,36 @@
         WHERE employee_id = #{employeeId}
     </select>
 
+    <insert id="upsert">
+        INSERT INTO attendance_policy (
+            employee_id,
+            std_start_time,
+            std_end_time,
+            core_time_start,
+            core_time_end,
+            break_time_start,
+            break_time_end,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{employeeId},
+            #{stdStartTime},
+            #{stdEndTime},
+            #{coreTimeStart},
+            #{coreTimeEnd},
+            #{breakTimeStart},
+            #{breakTimeEnd},
+            NOW(),
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            std_start_time = VALUES(std_start_time),
+            std_end_time = VALUES(std_end_time),
+            core_time_start = VALUES(core_time_start),
+            core_time_end = VALUES(core_time_end),
+            break_time_start = VALUES(break_time_start),
+            break_time_end = VALUES(break_time_end),
+            updated_at = NOW()
+    </insert>
+
 </mapper>

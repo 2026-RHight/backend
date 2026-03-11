@@ -17,6 +17,7 @@ public class AttendanceModifyRequest {
     private LocalTime newCheckInTime;
     private LocalTime newCheckOutTime;
     private AttendanceStatus newStatus;
+    private String newTardyReason;
 
     private String modifyReason;
 }

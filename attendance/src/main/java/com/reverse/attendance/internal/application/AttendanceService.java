@@ -25,6 +25,9 @@ public class AttendanceService {
     private final AttendanceMapper attendanceMapper;
     private final AttendancePolicyMapper policyMapper; // 💡 사원별 근태 규정 조회를 위해 추가 주입
     private final com.reverse.attendance.internal.persistence.LeaveMapper leaveMapper;
+    private final com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper
+            weeklyWorkScheduleMapper;
+    private final AttendanceSyncService attendanceSyncService;
 
     // 기본 출퇴근 시간 (근태 규정이 등록되지 않은 사원을 위한)
     private static final LocalTime FALLBACK_CHECK_IN_TIME = LocalTime.of(9, 0, 0);
@@ -115,7 +118,7 @@ public class AttendanceService {
     }
 
     @Transactional
-    public void modifyAttendanceByAdmin(AttendanceModifyRequest request) {
+    public void modifyAttendanceByAdmin(AttendanceModifyRequest request, Long actorEmployeeId) {
 
         if (request.getModifyReason() == null || request.getModifyReason().trim().isEmpty()) {
             throw new IllegalArgumentException("근태 기록 수정 시 사유를 반드시 입력해야 합니다.");
@@ -129,6 +132,10 @@ public class AttendanceService {
                                 () ->
                                         new com.reverse.core.exception.BadRequestException(
                                                 "해당 날짜의 근태 기록이 존재하지 않습니다."));
+
+        if (Boolean.TRUE.equals(attendance.getClosed())) {
+            throw new com.reverse.core.exception.BadRequestException("월 마감된 근태 기록은 수정할 수 없습니다.");
+        }
 
         LocalTime resolvedCheckIn = attendance.getCheckInTime();
         if (request.getNewCheckInTime() != null) {
@@ -145,10 +152,20 @@ public class AttendanceService {
             resolvedStatus = request.getNewStatus();
         }
 
+        String resolvedTardyReason = attendance.getTardyReason();
+        if (request.getNewTardyReason() != null) {
+            resolvedTardyReason = request.getNewTardyReason();
+        }
+
         if (resolvedCheckIn != null
                 && resolvedCheckOut != null
                 && resolvedCheckIn.isAfter(resolvedCheckOut)) {
             throw new IllegalArgumentException("출근 시간은 퇴근 시간보다 늦을 수 없습니다.");
+        }
+
+        if (resolvedStatus == AttendanceStatus.TARDY
+                && (resolvedTardyReason == null || resolvedTardyReason.trim().isEmpty())) {
+            throw new IllegalArgumentException("지각 상태로 수정할 때는 지각 사유를 반드시 입력해야 합니다.");
         }
 
         Attendance updatedAttendance =
@@ -161,12 +178,22 @@ public class AttendanceService {
                         .status(resolvedStatus)
                         .tardyReason(
                                 resolvedStatus == AttendanceStatus.TARDY
-                                        ? attendance.getTardyReason()
+                                        ? resolvedTardyReason
                                         : null)
                         .modifyReason(request.getModifyReason())
+                        .closed(attendance.getClosed())
+                        .overtimeHours(attendance.getOvertimeHours())
+                        .nightWorkHours(attendance.getNightWorkHours())
+                        .holidayWorkHours(attendance.getHolidayWorkHours())
+                        .unpaidLeave(attendance.getUnpaidLeave())
                         .build();
 
-        attendanceMapper.updateAttendanceByAdmin(updatedAttendance);
+        int updatedRows = attendanceMapper.updateAttendanceByAdmin(updatedAttendance);
+        if (updatedRows == 0) {
+            throw new com.reverse.core.exception.BadRequestException("월 마감된 근태 기록은 수정할 수 없습니다.");
+        }
+        attendanceSyncService.recordManualChange(
+                attendance, updatedAttendance, actorEmployeeId, request.getModifyReason());
     }
 
     // 월별 통계 대쉬보드
@@ -206,6 +233,14 @@ public class AttendanceService {
 
     // 💡 내부 헬퍼 메서드: 규정 조회 로직 분리 (가독성을 높이기 위함)
     private LocalTime getStandardCheckInTime(Long employeeId, LocalDate date) {
+        java.util.Optional<com.reverse.attendance.internal.domain.WeeklyWorkSchedule>
+                approvedSchedule =
+                        weeklyWorkScheduleMapper.findApprovedByEmployeeIdAndPlanDate(
+                                employeeId, date);
+        if (approvedSchedule.isPresent()) {
+            return approvedSchedule.get().getStartDate().toLocalTime();
+        }
+
         LocalTime stdTime =
                 policyMapper
                         .findByEmployeeId(employeeId)
@@ -225,6 +260,14 @@ public class AttendanceService {
     }
 
     private LocalTime getStandardCheckOutTime(Long employeeId, LocalDate date) {
+        java.util.Optional<com.reverse.attendance.internal.domain.WeeklyWorkSchedule>
+                approvedSchedule =
+                        weeklyWorkScheduleMapper.findApprovedByEmployeeIdAndPlanDate(
+                                employeeId, date);
+        if (approvedSchedule.isPresent()) {
+            return approvedSchedule.get().getEndDate().toLocalTime();
+        }
+
         LocalTime stdTime =
                 policyMapper
                         .findByEmployeeId(employeeId)

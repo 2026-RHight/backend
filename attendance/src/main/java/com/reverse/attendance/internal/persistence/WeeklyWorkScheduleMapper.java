@@ -17,6 +17,9 @@ public interface WeeklyWorkScheduleMapper {
 
     Optional<WeeklyWorkSchedule> findById(@Param("weeklyId") Long weeklyId);
 
+    Optional<WeeklyWorkSchedule> findApprovedByEmployeeIdAndPlanDate(
+            @Param("employeeId") Long employeeId, @Param("planDate") java.time.LocalDate planDate);
+
     List<WeeklyWorkSchedule> findByEmployeeId(
             @Param("employeeId") Long employeeId,
             @Param("limit") int limit,

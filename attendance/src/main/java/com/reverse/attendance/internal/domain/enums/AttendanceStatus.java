@@ -11,7 +11,8 @@ public enum AttendanceStatus {
     EARLY_LEAVE("조퇴"),
     ABSENT("결근"),
     VACATION("휴가"),
-    HALF_VACATION("반차");
+    HALF_VACATION("반차"),
+    BUSINESS_TRIP("출장/외근");
 
     private final String description;
 }
