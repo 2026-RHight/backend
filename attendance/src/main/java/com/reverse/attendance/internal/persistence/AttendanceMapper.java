@@ -1,5 +1,6 @@
 package com.reverse.attendance.internal.persistence;
 
+import com.reverse.attendance.dto.PayrollAttendanceResponse;
 import com.reverse.attendance.internal.domain.Attendance;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import java.time.LocalDate;
@@ -31,7 +32,7 @@ public interface AttendanceMapper {
             @Param("status") String status);
 
     // 급여 정산용 근태 통계 조회
-    com.reverse.attendance.dto.response.PayrollAttendanceResponse getAttendanceForPayroll(
+    PayrollAttendanceResponse getAttendanceForPayroll(
             @Param("employeeId") Long employeeId,
             @Param("year") int year,
             @Param("month") int month);

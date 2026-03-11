@@ -1,7 +1,7 @@
 package com.reverse.attendance;
 
-import com.reverse.attendance.dto.request.LeaveBalanceInitializeRequest;
-import com.reverse.attendance.dto.response.PayrollAttendanceResponse;
+import com.reverse.attendance.dto.LeaveBalanceInitializeRequest;
+import com.reverse.attendance.dto.PayrollAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceDashboardResponse;
 
 /** 근태 모듈의 기능을 외부에 제공하는 퍼블릭 인터페이스입니다. */
