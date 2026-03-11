@@ -46,9 +46,6 @@ pipeline {
     }
 
     stage('Login and Push ECR') {
-      when {
-        branch 'dev'
-      }
       steps {
         sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${IMAGE_URI%/*}'
         sh 'docker tag ${ECR_REPO}:${IMAGE_TAG} ${IMAGE_URI}:${IMAGE_TAG}'
