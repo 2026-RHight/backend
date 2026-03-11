@@ -706,10 +706,10 @@ INSERT INTO leave_balance (employee_id, total_annual_leave) VALUES (2, 20.0);
 
 -- 출퇴근 기록
 INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
-VALUES (1, '2026-03-04', '2026-03-04 08:50:00', '2026-03-04 18:05:00', 'NORMAL', NULL, NULL);
+VALUES (1, '2026-03-04', '08:50:00', '18:05:00', 'NORMAL', NULL, NULL);
 
 INSERT INTO attendance_record (employee_id, work_date, check_in_time, check_out_time, status, tardy_reason, modify_reason)
-VALUES (2, '2026-03-04', '2026-03-04 09:15:00', NULL, 'TARDY', '지하철 연착', NULL);
+VALUES (2, '2026-03-04', '09:15:00', NULL, 'TARDY', '지하철 연착', NULL);
 
 
 -- ==========================================

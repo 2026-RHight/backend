@@ -13,6 +13,9 @@ import com.reverse.performance.internal.dto.response.PerformanceInquiryItemRespo
 import com.reverse.performance.internal.dto.response.PersonalPerformanceResponse;
 import com.reverse.performance.internal.dto.response.TeamPerformanceResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -23,7 +26,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -88,23 +90,39 @@ public class PerformanceInquiryController {
                         isAdmin(user)));
     }
 
-    @Operation(summary = "성과 결과 등록")
-    @PostMapping(value = "/result/{performanceId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<Void> updateResult(
-            @AuthenticationPrincipal CustomUser user,
-            @PathVariable Long performanceId,
-            @Valid @RequestBody PerformanceResultUpdateRequest request) {
-        performanceInquiryService.updateResult(user.getEmployeeId(), performanceId, request);
-        return ApiResponse.success();
-    }
-
-    @Operation(summary = "성과 결과 등록(첨부 포함)")
-    @PostMapping(value = "/result/{performanceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "성과 결과 등록",
+            requestBody =
+                    @RequestBody(
+                            required = true,
+                            content = {
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                        schema =
+                                                @Schema(
+                                                        implementation =
+                                                                PerformanceResultUpdateRequest
+                                                                        .class)),
+                                @Content(
+                                        mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                                        schema =
+                                                @Schema(
+                                                        implementation =
+                                                                PerformanceResultUpdateRequest
+                                                                        .class))
+                            }))
+    @PostMapping(
+            value = "/result/{performanceId}",
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ApiResponse<Void> updateResultWithAttachments(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
-            @Valid @RequestPart("request") PerformanceResultUpdateRequest request,
+            @Valid @org.springframework.web.bind.annotation.RequestBody(required = false)
+                    PerformanceResultUpdateRequest requestBody,
+            @Valid @RequestPart(value = "request", required = false)
+                    PerformanceResultUpdateRequest requestPart,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        PerformanceResultUpdateRequest request = requestBody != null ? requestBody : requestPart;
         performanceInquiryService.updateResult(user.getEmployeeId(), performanceId, request, files);
         return ApiResponse.success();
     }

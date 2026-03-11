@@ -3,8 +3,10 @@ package com.reverse.performance.internal.application;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
 import com.reverse.hr.dto.OrganizationMemberInfo;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +19,21 @@ public class PerformanceHrMemberResolver {
     private final HrFacade hrFacade;
 
     public List<OrganizationMemberSnapshot> getMyOrganizationMembers(Long employeeId) {
-        return hrFacade.getMyOrganizationMembers(employeeId).stream()
+        List<OrganizationMemberInfo> members = hrFacade.getMyOrganizationMembers(employeeId);
+        if (members == null) {
+            return Collections.emptyList();
+        }
+        return members.stream()
+                .filter(info -> info != null)
                 .map(this::toOrganizationMemberSnapshot)
                 .toList();
     }
 
     public EmployeeProfileSnapshot getEmployeeProfile(Long employeeId) {
         EmployeeProfileDTO profile = hrFacade.getEmployeeProfile(employeeId);
+        if (profile == null) {
+            return new EmployeeProfileSnapshot(employeeId, null, null, null, null, null, null);
+        }
         return new EmployeeProfileSnapshot(
                 profile.employeeId(),
                 profile.employeeName(),
@@ -35,7 +45,11 @@ public class PerformanceHrMemberResolver {
     }
 
     public Map<Long, EmployeeProfileSnapshot> getEmployeeProfiles(List<Long> employeeIds) {
+        if (employeeIds == null) {
+            return Collections.emptyMap();
+        }
         return employeeIds.stream()
+                .filter(employeeId -> employeeId != null)
                 .distinct()
                 .collect(Collectors.toMap(Function.identity(), this::getEmployeeProfile));
     }
@@ -43,7 +57,7 @@ public class PerformanceHrMemberResolver {
     public Long resolveOrgId(Long employeeId) {
         List<OrganizationMemberSnapshot> members = getMyOrganizationMembers(employeeId);
         return members.stream()
-                .filter(member -> employeeId.equals(member.employeeId()))
+                .filter(member -> Objects.equals(employeeId, member.employeeId()))
                 .map(OrganizationMemberSnapshot::orgId)
                 .findFirst()
                 .orElseGet(

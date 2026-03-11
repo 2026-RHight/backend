@@ -80,7 +80,7 @@ public class PerformanceDashboardSummaryService {
                     targetMonth,
                     ex);
             return new PerformanceDashboardSummaryResponse(
-                    targetYear, targetMonth, 0, 0, 0, 0.0, 0);
+                    false, targetYear, targetMonth, null, null, null, null, null);
         }
     }
 
@@ -101,7 +101,14 @@ public class PerformanceDashboardSummaryService {
                     ex);
         }
         return new PerformanceDashboardSummaryResponse(
-                currentMonth.getYear(), currentMonth.getMonthValue(), 0, 0, 0, 0.0, 0);
+                false,
+                currentMonth.getYear(),
+                currentMonth.getMonthValue(),
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private void validateTargetMonth(Integer targetYear, Integer targetMonth) {
@@ -114,9 +121,11 @@ public class PerformanceDashboardSummaryService {
     private PerformanceDashboardSummaryResponse toResponse(
             PerformanceDashboardSummaryMapper.DashboardSummaryRow row) {
         if (row == null) {
-            return new PerformanceDashboardSummaryResponse(null, null, 0, 0, 0, 0.0, 0);
+            return new PerformanceDashboardSummaryResponse(
+                    false, null, null, null, null, null, null, null);
         }
         return new PerformanceDashboardSummaryResponse(
+                true,
                 row.metricYear(),
                 row.metricMonth(),
                 nvl(row.personalKpiAchievementRate()),
