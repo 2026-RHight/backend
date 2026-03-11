@@ -9,17 +9,19 @@ import com.reverse.performance.internal.dto.request.PerformanceRequest;
 import com.reverse.performance.internal.dto.request.PerformanceTeamRequest;
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PerformanceRegistrationService {
+
+    private static final int MAX_LOCK_RETRIES = 3;
+    private static final long LOCK_RETRY_DELAY_MILLIS = 150L;
 
     private final PerformanceService performanceService;
 
-    @Transactional
     public void register(Long employeeId, PerformanceRegistrationRequest request) {
         if (request == null) {
             throw new PerformanceActionNotAllowedException("등록 요청이 비어 있습니다.");
@@ -34,9 +36,9 @@ public class PerformanceRegistrationService {
                         request.startDate(),
                         request.endDate(),
                         buildWorkDetail(request.coreTask(), request.content()),
-                        Status.ACTIVE,
+                        Status.WAITING,
                         0,
-                        resolveDifficultyScore(request.weight()),
+                        resolveDifficultyScore(request.difficultyScore()),
                         null,
                         null);
 
@@ -47,12 +49,13 @@ public class PerformanceRegistrationService {
                         : null;
         PerformanceTeamRequest teamRequest =
                 workItem == WorkItem.TEAM
-                        ? new PerformanceTeamRequest(null, request.weight(), null, null)
+                        ? new PerformanceTeamRequest(null, null, null, null)
                         : null;
 
-        performanceService.save(
-                employeeId,
-                new PerformanceCreateDTO(performanceRequest, personalRequest, teamRequest));
+        PerformanceCreateDTO dto =
+                new PerformanceCreateDTO(performanceRequest, personalRequest, teamRequest);
+
+        runWithLockRetry(employeeId, dto);
     }
 
     private WorkItem resolveWorkItem(String type) {
@@ -65,11 +68,11 @@ public class PerformanceRegistrationService {
         throw new PerformanceActionNotAllowedException("지원하지 않는 성과 유형입니다.");
     }
 
-    private int resolveDifficultyScore(Integer weight) {
-        if (weight == null) {
+    private int resolveDifficultyScore(Integer difficultyScore) {
+        if (difficultyScore == null) {
             return 5;
         }
-        return Math.max(1, Math.min(10, Math.round(weight / 10.0f)));
+        return Math.max(1, Math.min(5, difficultyScore));
     }
 
     private String buildWorkDetail(String coreTask, String content) {
@@ -86,5 +89,28 @@ public class PerformanceRegistrationService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    private void runWithLockRetry(Long employeeId, PerformanceCreateDTO dto) {
+        for (int attempt = 1; attempt <= MAX_LOCK_RETRIES; attempt++) {
+            try {
+                performanceService.save(employeeId, dto);
+                return;
+            } catch (CannotAcquireLockException | DeadlockLoserDataAccessException ex) {
+                if (attempt == MAX_LOCK_RETRIES) {
+                    throw ex;
+                }
+                sleepBeforeRetry();
+            }
+        }
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            Thread.sleep(LOCK_RETRY_DELAY_MILLIS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("락 재시도 대기 중 인터럽트가 발생했습니다.", ex);
+        }
     }
 }
