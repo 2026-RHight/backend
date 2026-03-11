@@ -4,6 +4,7 @@ import com.reverse.core.security.EmployeeAuthInfoDTO;
 import com.reverse.core.security.EmployeeAuthProvider;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
+import com.reverse.hr.dto.OrganizationMemberInfo;
 import com.reverse.hr.internal.persistence.EmployeeFacadeMapper;
 import com.reverse.hr.internal.persistence.EmployeeMapper;
 import com.reverse.hr.internal.persistence.row.EmployeeProfileFacadeRow;
@@ -49,6 +50,23 @@ public class HrServiceImpl implements EmployeeAuthProvider, HrFacade {
                 row.rankName(),
                 row.positionName(),
                 row.jobName());
+    }
+
+    @Override
+    public List<OrganizationMemberInfo> getMyOrganizationMembers(Long employeeId) {
+        return employeeFacadeMapper.findMyOrganizationMembers(employeeId).stream()
+                .map(
+                        row ->
+                                new OrganizationMemberInfo(
+                                        row.employeeId(),
+                                        row.employeeName(),
+                                        row.orgId(),
+                                        row.orgName(),
+                                        row.positionId(),
+                                        row.positionName(),
+                                        row.rankName(),
+                                        row.jobName()))
+                .toList();
     }
 
     // === HrFacade 구현 (다른 도메인 모듈용) ===
