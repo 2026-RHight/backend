@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.FailedHrEventRepository">
+
+    <insert id="upsertFailedEvent">
+        INSERT INTO failed_hr_event (
+            source_approval_id,
+            target_employee_state,
+            effective_from,
+            reason,
+            payload_json,
+            failure_message,
+            retry_count,
+            status,
+            last_retry_at
+        ) VALUES (
+            #{sourceApprovalId},
+            #{targetEmployeeState},
+            #{effectiveFrom},
+            #{reason},
+            #{payloadJson},
+            LEFT(#{failureMessage}, 500),
+            0,
+            'PENDING',
+            NULL
+        )
+        ON DUPLICATE KEY UPDATE
+            effective_from = VALUES(effective_from),
+            reason = VALUES(reason),
+            payload_json = VALUES(payload_json),
+            failure_message = VALUES(failure_message),
+            status = 'PENDING',
+            updated_at = NOW()
+    </insert>
+
+    <select id="acquireRetryLock" resultType="int">
+        SELECT GET_LOCK(#{lockName}, 0)
+    </select>
+
+    <select id="releaseRetryLock" resultType="int">
+        SELECT RELEASE_LOCK(#{lockName})
+    </select>
+
+    <select id="findRetryTargets" resultType="com.reverse.hr.internal.persistence.row.FailedHrEventRow">
+        SELECT failed_event_id AS failedEventId,
+               source_approval_id AS sourceApprovalId,
+               target_employee_state AS targetEmployeeState,
+               effective_from AS effectiveFrom,
+               reason AS reason,
+               payload_json AS payloadJson,
+               retry_count AS retryCount
+        FROM failed_hr_event
+        WHERE status IN ('PENDING', 'FAILED')
+          AND retry_count <![CDATA[<]]> #{maxRetryCount}
+        ORDER BY created_at ASC, failed_event_id ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="markRetrying">
+        UPDATE failed_hr_event
+        SET status = 'RETRYING',
+            last_retry_at = NOW(),
+            updated_at = NOW()
+        WHERE failed_event_id = #{failedEventId}
+          AND status IN ('PENDING', 'FAILED')
+    </update>
+
+    <update id="markResolved">
+        UPDATE failed_hr_event
+        SET status = 'RESOLVED',
+            updated_at = NOW()
+        WHERE failed_event_id = #{failedEventId}
+    </update>
+
+    <update id="markRetryFailure">
+        UPDATE failed_hr_event
+        SET retry_count = retry_count + 1,
+            failure_message = LEFT(#{failureMessage}, 500),
+            status = CASE
+                         WHEN retry_count + 1 <![CDATA[>=]]> #{maxRetryCount} THEN 'FAILED'
+                         ELSE 'PENDING'
+                     END,
+            updated_at = NOW()
+        WHERE failed_event_id = #{failedEventId}
+    </update>
+
+</mapper>

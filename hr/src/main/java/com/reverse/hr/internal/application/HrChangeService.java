@@ -26,7 +26,9 @@ import com.reverse.hr.internal.persistence.row.HrChangePendingEventRow;
 import com.reverse.hr.internal.persistence.row.HrChangeRoleOptionRow;
 import com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @Service
@@ -50,6 +50,7 @@ public class HrChangeService {
 
     private static final String DEFAULT_EVALUATEE_ROLE_CODE = "EVALUATEE";
     private static final String SCHEDULER_LOCK_NAME = "hr_change_apply_scheduler_lock";
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     @Value("${hr.change.apply.batch-size:200}")
     private int applyBatchSize;
@@ -57,7 +58,6 @@ public class HrChangeService {
     private final HrChangeMapper hrChangeMapper;
     private final OrganizationService organizationService;
     private final ObjectMapper objectMapper;
-    private final PlatformTransactionManager transactionManager;
 
     public List<OrganizationTreeNodeResponseDTO> getOrganizationTree() {
         return organizationService.getOrganizationTree();
@@ -149,6 +149,27 @@ public class HrChangeService {
         EmployType resolvedEmployType = coalesce(request.employType(), before.employType());
         Long resolvedAreaId = coalesce(request.areaId(), before.areaId());
         LocalDate resolvedEffectiveFrom = coalesce(request.effectiveFrom(), LocalDate.now());
+        String targetRoleIdsJson = toTargetRoleIdsJson(request.roleIds());
+
+        boolean roleChanged = false;
+        if (targetRoleIdsJson != null) {
+            List<Long> currentRoleIds = hrChangeMapper.findRoleIdsByEmployeeId(employeeId);
+            List<Long> requestedRoleIds = parseRoleIdsFromJson(targetRoleIdsJson);
+            roleChanged = !new HashSet<>(currentRoleIds).equals(new HashSet<>(requestedRoleIds));
+        }
+
+        boolean profileChanged =
+                !Objects.equals(before.orgId(), resolvedOrgId)
+                        || !Objects.equals(before.jobId(), resolvedJobId)
+                        || !Objects.equals(before.positionId(), resolvedPositionId)
+                        || !Objects.equals(before.rankId(), resolvedRankId)
+                        || !Objects.equals(before.employeeState(), resolvedEmployeeState)
+                        || !Objects.equals(before.employType(), resolvedEmployType)
+                        || !Objects.equals(before.areaId(), resolvedAreaId);
+
+        if (!profileChanged && !roleChanged) {
+            throw new IllegalArgumentException("변경할 값이 없습니다.");
+        }
 
         validateResolvedIds(
                 resolvedOrgId, resolvedJobId, resolvedPositionId, resolvedRankId, resolvedAreaId);
@@ -171,8 +192,6 @@ public class HrChangeService {
                         resolvedEmployeeState,
                         resolvedEmployType,
                         resolvedAreaId);
-
-        String targetRoleIdsJson = toTargetRoleIdsJson(request.roleIds());
 
         int inserted =
                 hrChangeMapper.insertHrEvent(
@@ -204,13 +223,15 @@ public class HrChangeService {
     }
 
     @Scheduled(cron = "${hr.change.apply.cron:0 5 0 * * *}", zone = "Asia/Seoul")
+    @Transactional
     public void applyDueHrEventsDaily() {
-        int processed = applyDueHrEvents(LocalDate.now());
+        int processed = applyDueHrEvents(LocalDate.now(SEOUL_ZONE));
         if (processed > 0) {
             log.info("Applied {} pending hr events", processed);
         }
     }
 
+    @Transactional
     public int applyDueHrEvents(LocalDate baseDate) {
         Integer lockResult = hrChangeMapper.acquireSchedulerLock(SCHEDULER_LOCK_NAME);
         if (lockResult == null || lockResult != 1) {
@@ -218,10 +239,40 @@ public class HrChangeService {
             return 0;
         }
 
+        int totalProcessed = 0;
+        int safeBatchSize = Math.max(1, applyBatchSize);
         try {
-            return applyDueHrEventsWithTransaction(baseDate);
+            while (true) {
+                List<HrChangePendingEventRow> dueEvents =
+                        hrChangeMapper.findDuePendingHrEvents(baseDate, safeBatchSize);
+                if (dueEvents.isEmpty()) {
+                    break;
+                }
+
+                for (HrChangePendingEventRow pendingEvent : dueEvents) {
+                    try {
+                        applySingleEvent(pendingEvent);
+                        totalProcessed++;
+                    } catch (Exception ex) {
+                        log.warn(
+                                "Failed to apply hr_event_id={}: {}",
+                                pendingEvent.hrEventId(),
+                                ex.getMessage());
+                        hrChangeMapper.markHrEventFailed(
+                                pendingEvent.hrEventId(), abbreviate(ex.getMessage(), 500));
+                    }
+                }
+
+                if (dueEvents.size() < safeBatchSize) {
+                    break;
+                }
+            }
+            return totalProcessed;
         } finally {
-            hrChangeMapper.releaseSchedulerLock(SCHEDULER_LOCK_NAME);
+            Integer releaseResult = hrChangeMapper.releaseSchedulerLock(SCHEDULER_LOCK_NAME);
+            if (releaseResult == null || releaseResult != 1) {
+                log.warn("Failed to release scheduler lock. lockName={}", SCHEDULER_LOCK_NAME);
+            }
         }
     }
 
@@ -263,25 +314,29 @@ public class HrChangeService {
                         before.employType(),
                         before.areaId());
 
-        hrChangeMapper.insertHrEvent(
-                employeeId,
-                HrEventType.STATE_CHANGE,
-                titlePrefix + " (" + description(targetState) + ")",
-                effectiveFrom,
-                null,
-                "[전자결재 approvalId=" + approvalId + "] " + valueOrDash(reason),
-                beforeChange,
-                afterChange,
-                before.orgId(),
-                before.jobId(),
-                before.positionId(),
-                before.rankId(),
-                targetState,
-                before.employType(),
-                before.areaId(),
-                effectiveFrom,
-                null,
-                approvalId);
+        int inserted =
+                hrChangeMapper.insertHrEvent(
+                        employeeId,
+                        HrEventType.STATE_CHANGE,
+                        titlePrefix + " (" + description(targetState) + ")",
+                        effectiveFrom,
+                        null,
+                        "[전자결재 approvalId=" + approvalId + "] " + valueOrDash(reason),
+                        beforeChange,
+                        afterChange,
+                        before.orgId(),
+                        before.jobId(),
+                        before.positionId(),
+                        before.rankId(),
+                        targetState,
+                        before.employType(),
+                        before.areaId(),
+                        effectiveFrom,
+                        null,
+                        approvalId);
+        if (inserted != 1) {
+            throw new IllegalStateException("결재 연계 인사 이벤트 저장 중 오류가 발생했습니다.");
+        }
     }
 
     public PageResponse<HrChangeEventResponseDTO> getHrChangeEvents(
@@ -314,43 +369,6 @@ public class HrChangeService {
                         .toList();
 
         return PageResponse.of(content, safePage, safeSize, total);
-    }
-
-    private int applyDueHrEventsWithTransaction(LocalDate baseDate) {
-        int totalProcessed = 0;
-        int safeBatchSize = Math.max(1, applyBatchSize);
-        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
-
-        while (true) {
-            List<HrChangePendingEventRow> dueEvents =
-                    hrChangeMapper.findDuePendingHrEvents(baseDate, safeBatchSize);
-            if (dueEvents.isEmpty()) {
-                break;
-            }
-
-            for (HrChangePendingEventRow pendingEvent : dueEvents) {
-                try {
-                    txTemplate.executeWithoutResult(status -> applySingleEvent(pendingEvent));
-                    totalProcessed++;
-                } catch (Exception ex) {
-                    log.warn(
-                            "Failed to apply hr_event_id={}: {}",
-                            pendingEvent.hrEventId(),
-                            ex.getMessage());
-                    txTemplate.executeWithoutResult(
-                            status ->
-                                    hrChangeMapper.markHrEventFailed(
-                                            pendingEvent.hrEventId(),
-                                            abbreviate(ex.getMessage(), 500)));
-                }
-            }
-
-            if (dueEvents.size() < safeBatchSize) {
-                break;
-            }
-        }
-
-        return totalProcessed;
     }
 
     private void applySingleEvent(HrChangePendingEventRow pendingEvent) {

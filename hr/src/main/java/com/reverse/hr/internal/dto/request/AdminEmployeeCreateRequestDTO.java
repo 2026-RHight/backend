@@ -3,6 +3,7 @@ package com.reverse.hr.internal.dto.request;
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.RecruitType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -52,4 +53,21 @@ public record AdminEmployeeCreateRequestDTO(
                 List<
                                 @NotNull(message = "권한 ID는 null일 수 없습니다.")
                                 @Min(value = 1, message = "권한 ID는 1 이상이어야 합니다.") Long>
-                        roleIds) {}
+                        roleIds) {
+
+    @AssertTrue(message = "생년월일은 오늘 이후일 수 없습니다.")
+    public boolean isBirthDateValid() {
+        if (birthDate == null) {
+            return true;
+        }
+        return !birthDate.isAfter(LocalDate.now());
+    }
+
+    @AssertTrue(message = "입사일은 생년월일보다 이전일 수 없습니다.")
+    public boolean isHireDateNotBeforeBirthDate() {
+        if (birthDate == null || hireDate == null) {
+            return true;
+        }
+        return !hireDate.isBefore(birthDate);
+    }
+}

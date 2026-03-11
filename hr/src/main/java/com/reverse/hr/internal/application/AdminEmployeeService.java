@@ -20,9 +20,6 @@ import com.reverse.hr.internal.persistence.row.AdminEmployeeDetailRow;
 import com.reverse.hr.internal.persistence.row.CareerItemRow;
 import com.reverse.hr.internal.persistence.row.HrFileRow;
 import com.reverse.hr.internal.persistence.row.SkillItemRow;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.List;
@@ -52,6 +49,7 @@ public class AdminEmployeeService {
     private final MyPageMapper myPageMapper;
     private final FieldCryptoService fieldCryptoService;
     private final ResidentHashService residentHashService;
+    private final AccountHashService accountHashService;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -80,7 +78,7 @@ public class AdminEmployeeService {
         String encodedPassword = passwordEncoder.encode(tempPassword);
 
         String accountEnc = fieldCryptoService.encrypt(request.accountNumber());
-        String accountHash = sha256(request.accountNumber());
+        String accountHash = accountHashService.hash(request.accountNumber());
         String residentEnc = fieldCryptoService.encrypt(request.residentNumber());
         String residentHash = residentHashService.hash(request.residentNumber());
 
@@ -434,19 +432,5 @@ public class AdminEmployeeService {
             builder.append(TEMP_PASSWORD_CHARS.charAt(index));
         }
         return builder.toString();
-    }
-
-    private String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashed) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("해시 알고리즘 초기화에 실패했습니다.", e);
-        }
     }
 }

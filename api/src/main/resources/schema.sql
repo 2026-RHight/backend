@@ -425,6 +425,27 @@ ALTER TABLE hr_event
     ADD COLUMN IF NOT EXISTS applied_at DATETIME NULL AFTER event_status,
     ADD COLUMN IF NOT EXISTS applied_error VARCHAR(500) NULL AFTER applied_at;
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_source_approval_id
+    ON hr_event (source_approval_id);
+
+CREATE TABLE IF NOT EXISTS failed_hr_event (
+    failed_event_id BIGINT NOT NULL AUTO_INCREMENT,
+    source_approval_id BIGINT NOT NULL,
+    target_employee_state ENUM('WORK','LEAVE','RESIGN') NOT NULL,
+    effective_from DATE NOT NULL,
+    reason VARCHAR(255) NULL,
+    payload_json TEXT NOT NULL,
+    failure_message VARCHAR(500) NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    status ENUM('PENDING','RETRYING','RESOLVED','FAILED') NOT NULL DEFAULT 'PENDING',
+    last_retry_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (failed_event_id),
+    UNIQUE KEY uk_failed_hr_event_source_state (source_approval_id, target_employee_state),
+    KEY idx_failed_hr_event_status_created (status, created_at)
+);
+
 -- ==========================================
 -- 급여(Payroll) 모듈 테이블
 -- ==========================================

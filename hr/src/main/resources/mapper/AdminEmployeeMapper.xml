@@ -199,7 +199,7 @@
                  LEFT JOIN working_area w ON w.area_id = h.area_id
                  LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
         <include refid="employeeFilter"/>
-        ORDER BY e.employee_name ASC
+        ORDER BY e.employee_name ASC, e.employee_id ASC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
