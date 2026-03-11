@@ -1,9 +1,6 @@
 package com.reverse.core.config;
 
-import com.reverse.core.security.JwtAccessDeniedHandler;
-import com.reverse.core.security.JwtAuthenticationEntryPoint;
-import com.reverse.core.security.JwtAuthenticationFilter;
-import com.reverse.core.security.JwtTokenProvider;
+import com.reverse.core.security.*;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +38,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http, TokenBlacklistStore tokenBlacklistStore) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -55,7 +53,10 @@ public class SecurityConfig {
                                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(
                         auth ->
-                                auth.requestMatchers("/api/v1/auth/**")
+                                auth.requestMatchers(
+                                                "/api/v1/auth/login",
+                                                "/api/v1/auth/password",
+                                                "/api/v1/auth/initialize/password")
                                         .permitAll()
                                         .requestMatchers(
                                                 "/swagger-ui/**",
@@ -67,7 +68,7 @@ public class SecurityConfig {
                                         .anyRequest()
                                         .authenticated())
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtTokenProvider),
+                        new JwtAuthenticationFilter(jwtTokenProvider, tokenBlacklistStore),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
