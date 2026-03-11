@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhight-api
+  namespace: prod
+  labels:
+    app: rhight-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rhight-api
+  template:
+    metadata:
+      labels:
+        app: rhight-api
+    spec:
+      containers:
+        - name: app
+          image: 883467884806.dkr.ecr.ap-northeast-2.amazonaws.com/rhight-api-prod:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+          envFrom:
+            - secretRef:
+                name: rhight-api-secret

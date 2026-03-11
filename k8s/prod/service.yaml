@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhight-api
+  namespace: prod
+  labels:
+    app: rhight-api
+spec:
+  selector:
+    app: rhight-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
