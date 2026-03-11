@@ -22,6 +22,7 @@ import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
+import com.reverse.payroll.internal.event.PayrollPayslipSendRequestedEvent;
 import com.reverse.payroll.internal.exception.InvalidSalaryPasswordException;
 import com.reverse.payroll.internal.infrastructure.PdfGenerator;
 import com.reverse.payroll.internal.persistence.PayrollMapper;
@@ -347,7 +348,7 @@ public class PayrollService {
                                 Integer.MAX_VALUE,
                                 0)
                         .stream()
-                        .map(this::toAdminPayrollLedgerResponse)
+                        .map(ledger -> toAdminPayrollLedgerResponse(ledger))
                         .collect(Collectors.toList());
 
         StringBuilder csv = new StringBuilder();
@@ -367,7 +368,7 @@ public class PayrollService {
                     .append(',')
                     .append(csvValue(ledger.getBankName()))
                     .append(',')
-                    .append(csvValue(ledger.getAccountNumber()))
+                    .append(csvValue(ledger.getMaskedAccountNumber()))
                     .append(',')
                     .append(csvValue(ledger.getAccountHolder()))
                     .append(',')
@@ -392,6 +393,69 @@ public class PayrollService {
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
+    public byte[] exportBankTransferPayrollLedgersCsv(
+            int year, int month, String employeeName, String departmentName, String isFinalized) {
+        validateYearMonth(year, month);
+        String targetMonth = String.format("%04d-%02d", year, month);
+        String normalizedFinalized = normalizeFinalizeFlag(isFinalized);
+        String normalizedEmployeeName = normalizeKeyword(employeeName);
+        String normalizedDepartmentName = normalizeKeyword(departmentName);
+
+        List<BankTransferPayrollLedgerRow> ledgers =
+                payrollMapper
+                        .findAdminPayrollLedgersByMonth(
+                                targetMonth,
+                                normalizedEmployeeName,
+                                normalizedDepartmentName,
+                                normalizedFinalized,
+                                Integer.MAX_VALUE,
+                                0)
+                        .stream()
+                        .map(this::toBankTransferPayrollLedgerRow)
+                        .collect(Collectors.toList());
+
+        StringBuilder csv = new StringBuilder();
+        csv.append('\uFEFF');
+        csv.append("귀속월,사원ID,사원명,부서,직급,은행명,계좌번호,예금주,기본급,연장수당,식대,총지급액,총공제액,실지급액,마감여부,발송여부\n");
+
+        for (BankTransferPayrollLedgerRow ledger : ledgers) {
+            csv.append(csvValue(ledger.targetMonth()))
+                    .append(',')
+                    .append(csvValue(ledger.employeeId()))
+                    .append(',')
+                    .append(csvValue(ledger.employeeName()))
+                    .append(',')
+                    .append(csvValue(ledger.departmentName()))
+                    .append(',')
+                    .append(csvValue(ledger.positionName()))
+                    .append(',')
+                    .append(csvValue(ledger.bankName()))
+                    .append(',')
+                    .append(csvValue(ledger.accountNumber()))
+                    .append(',')
+                    .append(csvValue(ledger.accountHolder()))
+                    .append(',')
+                    .append(csvValue(ledger.salaryAmount()))
+                    .append(',')
+                    .append(csvValue(ledger.overtimeAmount()))
+                    .append(',')
+                    .append(csvValue(ledger.mealAmount()))
+                    .append(',')
+                    .append(csvValue(ledger.totalPayment()))
+                    .append(',')
+                    .append(csvValue(ledger.totalDeductionAmount()))
+                    .append(',')
+                    .append(csvValue(ledger.netPay()))
+                    .append(',')
+                    .append(csvValue(ledger.isFinalized()))
+                    .append(',')
+                    .append(csvValue(ledger.isSent()))
+                    .append('\n');
+        }
+
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
     @Transactional
     public AdminPayrollSendResponse markPayrollLedgerSent(Long ledgerId) {
         PayrollLedger ledger =
@@ -403,12 +467,12 @@ public class PayrollService {
             throw new IllegalStateException("마감된 급여 대장만 명세서 발송 처리할 수 있습니다.");
         }
 
-        if (!"Y".equals(ledger.getIsSent())) {
-            publishPayslipEmail(ledger);
-        }
+        int sentCount = "Y".equals(ledger.getIsSent()) ? 0 : 1;
+        int alreadySentCount = "Y".equals(ledger.getIsSent()) ? 1 : 0;
 
-        int sentCount = payrollMapper.updatePayrollLedgerSent(ledgerId);
-        int alreadySentCount = sentCount == 0 && "Y".equals(ledger.getIsSent()) ? 1 : 0;
+        if (sentCount == 1) {
+            eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledgerId));
+        }
 
         return AdminPayrollSendResponse.builder()
                 .ledgerId(ledgerId)
@@ -437,14 +501,16 @@ public class PayrollService {
         List<PayrollLedger> finalizedLedgers =
                 payrollMapper.findAdminPayrollLedgersByMonth(
                         targetMonth, null, null, "Y", Integer.MAX_VALUE, 0);
+        int sentCount = 0;
+        int alreadySentCount = 0;
         for (PayrollLedger ledger : finalizedLedgers) {
-            if (!"Y".equals(ledger.getIsSent())) {
-                publishPayslipEmail(ledger);
+            if ("Y".equals(ledger.getIsSent())) {
+                alreadySentCount++;
+                continue;
             }
+            eventPublisher.publishEvent(new PayrollPayslipSendRequestedEvent(ledger.getId()));
+            sentCount++;
         }
-
-        int alreadySentCount = payrollMapper.countSentPayrollLedgersByTargetMonth(targetMonth);
-        int sentCount = payrollMapper.updatePayrollLedgersSentByTargetMonth(targetMonth);
 
         return AdminPayrollSendResponse.builder()
                 .targetMonth(targetMonth)
@@ -452,6 +518,21 @@ public class PayrollService {
                 .alreadySentCount(alreadySentCount)
                 .message("월별 메일 발송 요청을 등록했습니다. 실제 SMTP 발송 결과는 비동기 로그를 확인해야 합니다.")
                 .build();
+    }
+
+    @Transactional
+    public void processPayslipSendRequest(Long ledgerId) {
+        PayrollLedger ledger =
+                payrollMapper
+                        .findPayrollLedgerById(ledgerId)
+                        .orElseThrow(() -> new NotFoundException("존재하지 않는 급여 대장입니다."));
+
+        if (!"Y".equals(ledger.getIsFinalized()) || "Y".equals(ledger.getIsSent())) {
+            return;
+        }
+
+        publishPayslipEmail(ledger);
+        payrollMapper.updatePayrollLedgerSent(ledgerId);
     }
 
     public List<AdminSalarySettingDetailResponse> getSalarySettingHistory(Long employeeId) {
@@ -769,6 +850,8 @@ public class PayrollService {
     }
 
     private AdminPayrollLedgerResponse toAdminPayrollLedgerResponse(PayrollLedger ledger) {
+        String accountNumber = decryptAccountNumber(ledger.getAccountNumberSnapshotEnc());
+
         return AdminPayrollLedgerResponse.builder()
                 .id(ledger.getId())
                 .employeeId(ledger.getEmployeeId())
@@ -777,7 +860,7 @@ public class PayrollService {
                 .departmentName(ledger.getDeptNameSnapshot())
                 .positionName(ledger.getPositionNameSnapshot())
                 .bankName(ledger.getBankNameSnapshot())
-                .accountNumber(decryptAccountNumber(ledger.getAccountNumberSnapshotEnc()))
+                .maskedAccountNumber(maskPlainAccountNumber(accountNumber))
                 .accountHolder(ledger.getAccountHolderSnapshot())
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
@@ -796,6 +879,32 @@ public class PayrollService {
                 .isSent(ledger.getIsSent())
                 .sendStatusDescription("Y".equals(ledger.getIsSent()) ? "발송요청완료" : "미요청")
                 .build();
+    }
+
+    private BankTransferPayrollLedgerRow toBankTransferPayrollLedgerRow(PayrollLedger ledger) {
+        return new BankTransferPayrollLedgerRow(
+                ledger.getTargetMonth(),
+                ledger.getEmployeeId(),
+                ledger.getEmployeeNameSnapshot(),
+                ledger.getDeptNameSnapshot(),
+                ledger.getPositionNameSnapshot(),
+                ledger.getBankNameSnapshot(),
+                decryptAccountNumber(ledger.getAccountNumberSnapshotEnc()),
+                ledger.getAccountHolderSnapshot(),
+                ledger.getSalaryAmount(),
+                ledger.getOvertimeAmount(),
+                ledger.getMealAmount(),
+                ledger.getTotalPayment(),
+                safeAdd(
+                        ledger.getNationalPensionAmount(),
+                        ledger.getHealthInsuranceAmount(),
+                        ledger.getLongTermCareAmount(),
+                        ledger.getEmpInsuranceAmount(),
+                        ledger.getIncomeTaxAmount(),
+                        ledger.getLocalTaxAmount()),
+                ledger.getNetPay(),
+                ledger.getIsFinalized(),
+                ledger.getIsSent());
     }
 
     private void publishPayslipEmail(PayrollLedger ledger) {
@@ -849,6 +958,24 @@ public class PayrollService {
             return null;
         }
     }
+
+    private record BankTransferPayrollLedgerRow(
+            String targetMonth,
+            Long employeeId,
+            String employeeName,
+            String departmentName,
+            String positionName,
+            String bankName,
+            String accountNumber,
+            String accountHolder,
+            BigDecimal salaryAmount,
+            BigDecimal overtimeAmount,
+            BigDecimal mealAmount,
+            BigDecimal totalPayment,
+            BigDecimal totalDeductionAmount,
+            BigDecimal netPay,
+            String isFinalized,
+            String isSent) {}
 
     private String maskPlainAccountNumber(String plainAccountNumber) {
         if (plainAccountNumber == null || plainAccountNumber.isBlank()) {

@@ -13,9 +13,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AdminInsuranceRateUpsertRequest {
 
+    @NotNull(message = "적용 연도는 필수입니다.")
     @Min(value = 2000, message = "적용 연도는 2000년 이후여야 합니다.")
     @Max(value = 2100, message = "적용 연도는 2100년 이하여야 합니다.")
-    private int applyYear;
+    private Integer applyYear;
 
     @NotNull(message = "국민연금율은 필수입니다.")
     @DecimalMin(value = "0.0", inclusive = true, message = "국민연금율은 0 이상이어야 합니다.")
