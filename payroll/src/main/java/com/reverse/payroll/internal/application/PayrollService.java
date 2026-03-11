@@ -593,13 +593,8 @@ public class PayrollService {
         return AdminInsuranceRateResponse.from(savedRate);
     }
 
-    /**
-     * 급여 명세서 조회를 위한 사용자 비밀번호(2차 인증)를 검증합니다.
-     *
-     * @param employeeId 비밀번호를 검증할 사원의 고유 식별자
-     * @param request 비밀번호 검증 요청 DTO (입력된 비밀번호 포함)
-     * @return 검증 성공 여부 (일치하면 true)
-     */
+    // 급여 명세서 조회를 위한 사용자 비밀번호(2차 인증)를 검증합니다.
+
     public boolean verifySalaryPassword(Long employeeId, SalaryPasswordCheckRequest request) {
         String encodedPassword =
                 payrollMapper
@@ -615,13 +610,7 @@ public class PayrollService {
         return true;
     }
 
-    /**
-     * 특정 사원의 최근 n개월 동안의 급여 목록을 조회합니다.
-     *
-     * @param employeeId 단말 사원의 고유 식별자
-     * @param limit 조회할 개월 수 (최대 100)
-     * @return 최근 급여 목록을 담은 DTO 리스트
-     */
+    // 특정 사원의 최근 n개월 동안의 급여 목록을 조회.
     public List<PayrollListResponse> getRecentPayrollLedgers(Long employeeId, int limit) {
         if (limit < 1 || limit > 100) {
             throw new IllegalArgumentException("limit은 1 이상 100 이하여야 합니다.");
@@ -631,13 +620,7 @@ public class PayrollService {
         return ledgers.stream().map(PayrollListResponse::from).collect(Collectors.toList());
     }
 
-    /**
-     * 특정 사원의 지정된 연도의 급여 목록을 조회합니다.
-     *
-     * @param employeeId 사원의 고유 식별자
-     * @param year 대상 연도 (yyyy 형식)
-     * @return 해당 연도의 급여 목록을 담은 DTO 리스트
-     */
+    // 특정 사원의 지정된 연도의 급여 목록을 조회합니다.
     public List<PayrollListResponse> getPayrollLedgersByYear(Long employeeId, String year) {
         if (year == null || !year.matches("\\d{4}")) {
             throw new IllegalArgumentException("year는 yyyy 형식이어야 합니다.");
@@ -646,13 +629,7 @@ public class PayrollService {
         return ledgers.stream().map(PayrollListResponse::from).collect(Collectors.toList());
     }
 
-    /**
-     * 급여 명세서의 상세 내역을 조회합니다. 본인 소유의 명세서인지 확인하며, 저장된 스냅샷(부서, 직급, 계좌번호 등)을 우선적으로 사용합니다.
-     *
-     * @param employeeId 조회하려는 사원의 고유 식별자
-     * @param ledgerId 급여 대장의 고유 식별자
-     * @return 상세 급여 명세서 응답 DTO
-     */
+    // 급여 명세서의 상세 내역을 조회합니다. 본인 소유의 명세서인지 확인하며, 저장된 스냅샷(부서, 직급, 계좌번호 등)을 우선적으로 사용합니다.
     public PayrollDetailResponse getPayrollDetail(Long employeeId, Long ledgerId) {
         PayrollLedger ledger =
                 payrollMapper
@@ -681,7 +658,7 @@ public class PayrollService {
                         ? ledger.getPositionNameSnapshot()
                         : "직급없음";
 
-        // 계좌번호 복호화 (스냅샷 우선 사용)
+        // 계좌번호 복호화
         String plainAccountNumber = null;
         String targetAccountNumberEnc =
                 ledger.getAccountNumberSnapshotEnc() != null
@@ -701,13 +678,7 @@ public class PayrollService {
                 ledger, salarySetting, plainAccountNumber, empName, deptName, posName);
     }
 
-    /**
-     * 급여 명세서를 PDF 형식으로 생성하여 반환합니다. 내부적으로 HTML 템플릿을 사용하여 데이터를 바인딩한 후 PDF로 변환합니다.
-     *
-     * @param employeeId 대상 사원의 고유 식별자
-     * @param ledgerId 급여 대장의 고유 식별자
-     * @return 생성된 PDF 파일의 바이트 배열
-     */
+    // 급여 명세서를 PDF 형식으로 생성하여 반환합니다. 내부적으로 HTML 템플릿을 사용하여 데이터를 바인딩한 후 PDF로 변환합니다.
     public byte[] getPayslipPdf(Long employeeId, Long ledgerId) {
         PayrollDetailResponse detail = getPayrollDetail(employeeId, ledgerId);
 
@@ -747,7 +718,7 @@ public class PayrollService {
         return annualIncomeTax.divide(new BigDecimal("12"), 0, RoundingMode.HALF_UP);
     }
 
-    // 간이세액표 미연동 상태를 보완하기 위한 누진세 근사 계산입니다.
+    // 간이세액표 미연동 상태를 보완하기 위한 누진세 근사 계산.
     private BigDecimal calculateAnnualProgressiveIncomeTax(BigDecimal annualTaxableIncome) {
         if (annualTaxableIncome.compareTo(new BigDecimal("14000000")) <= 0) {
             return annualTaxableIncome.multiply(new BigDecimal("0.06"));
