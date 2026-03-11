@@ -102,11 +102,11 @@ jobs:
               -e DEV_S3_BUCKET='${{ secrets.DEV_S3_BUCKET }}' \
               -e DEV_S3_KEY='${{ secrets.DEV_S3_KEY }}' \
               -e DEV_S3_SECRET='${{ secrets.DEV_S3_SECRET }}' \
-              -e DEV_MAIL_HOST='${{ secrets.DEV_MAIL_HOST }}' \
-              -e DEV_MAIL_PORT='${{ secrets.DEV_MAIL_PORT }}' \
-              -e DEV_MAIL_USERNAME='${{ secrets.DEV_MAIL_USERNAME }}' \
-              -e DEV_MAIL_PASSWORD='${{ secrets.DEV_MAIL_PASSWORD }}' \
-              -e DEV_MAIL_FROM='${{ secrets.DEV_MAIL_FROM }}' \
+              -e AWS_MAIL_HOST='${{ secrets.AWS_MAIL_HOST }}' \
+              -e AWS_MAIL_PORT='${{ secrets.AWS_MAIL_PORT }}' \
+              -e AWS_MAIL_USERNAME='${{ secrets.AWS_MAIL_USERNAME }}' \
+              -e AWS_MAIL_PASSWORD='${{ secrets.AWS_MAIL_PASSWORD }}' \
+              -e AWS_MAIL_FROM='${{ secrets.AWS_MAIL_FROM }}' \
               -e DEV_JWT_SECRET='${{ secrets.DEV_JWT_SECRET }}' \
               -e DEV_JWT_EXPIRATION='${{ secrets.DEV_JWT_EXPIRATION }}' \
               -e DEV_JWT_REFRESH_EXPIRATION='${{ secrets.DEV_JWT_REFRESH_EXPIRATION }}' \
