@@ -2,6 +2,7 @@ package com.reverse.hr.internal.persistence;
 
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
+import com.reverse.hr.internal.domain.enums.HrEventStatus;
 import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.persistence.row.HrChangeCurrentInfoRow;
 import com.reverse.hr.internal.persistence.row.HrChangeEmployeeSearchRow;
@@ -94,9 +95,14 @@ public interface HrChangeMapper {
             @Param("targetEmployType") EmployType targetEmployType,
             @Param("targetAreaId") Long targetAreaId,
             @Param("targetEffectiveFrom") LocalDate targetEffectiveFrom,
-            @Param("targetRoleIdsJson") String targetRoleIdsJson);
+            @Param("targetRoleIdsJson") String targetRoleIdsJson,
+            @Param("sourceApprovalId") Long sourceApprovalId);
 
     Long findLastInsertedHrEventId();
+
+    Long findEmployeeIdByApprovalId(@Param("approvalId") Long approvalId);
+
+    int existsHrEventBySourceApprovalId(@Param("sourceApprovalId") Long sourceApprovalId);
 
     Integer acquireSchedulerLock(@Param("lockName") String lockName);
 
@@ -112,6 +118,7 @@ public interface HrChangeMapper {
 
     List<HrChangeEventRow> findHrChangeEvents(
             @Param("eventType") HrEventType eventType,
+            @Param("eventStatus") HrEventStatus eventStatus,
             @Param("employeeId") Long employeeId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
@@ -120,6 +127,7 @@ public interface HrChangeMapper {
 
     long countHrChangeEvents(
             @Param("eventType") HrEventType eventType,
+            @Param("eventStatus") HrEventStatus eventStatus,
             @Param("employeeId") Long employeeId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate);

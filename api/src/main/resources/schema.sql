@@ -420,7 +420,8 @@ ALTER TABLE hr_event
     ADD COLUMN IF NOT EXISTS target_area_id BIGINT NULL AFTER target_employ_type,
     ADD COLUMN IF NOT EXISTS target_effective_from DATE NULL AFTER target_area_id,
     ADD COLUMN IF NOT EXISTS target_role_ids_json TEXT NULL AFTER target_effective_from,
-    ADD COLUMN IF NOT EXISTS event_status ENUM('PENDING','APPLIED','FAILED') NOT NULL DEFAULT 'PENDING' AFTER target_role_ids_json,
+    ADD COLUMN IF NOT EXISTS source_approval_id BIGINT NULL AFTER target_role_ids_json,
+    ADD COLUMN IF NOT EXISTS event_status ENUM('PENDING','APPLIED','FAILED') NOT NULL DEFAULT 'PENDING' AFTER source_approval_id,
     ADD COLUMN IF NOT EXISTS applied_at DATETIME NULL AFTER event_status,
     ADD COLUMN IF NOT EXISTS applied_error VARCHAR(500) NULL AFTER applied_at;
 

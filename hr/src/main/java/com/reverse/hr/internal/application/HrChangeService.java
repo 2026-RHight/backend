@@ -192,7 +192,8 @@ public class HrChangeService {
                         resolvedEmployType,
                         resolvedAreaId,
                         resolvedEffectiveFrom,
-                        targetRoleIdsJson);
+                        targetRoleIdsJson,
+                        null);
         if (inserted != 1) {
             throw new IllegalStateException("인사 변경 요청 저장 중 오류가 발생했습니다.");
         }
@@ -224,8 +225,68 @@ public class HrChangeService {
         }
     }
 
+    @Transactional
+    public void enqueueStateChangeEventFromApproval(
+            Long approvalId,
+            EmployeeState targetState,
+            LocalDate effectiveFrom,
+            String titlePrefix,
+            String reason) {
+        if (approvalId == null || targetState == null || effectiveFrom == null) {
+            throw new IllegalArgumentException("결재 이벤트 처리 필수값이 누락되었습니다.");
+        }
+        if (hrChangeMapper.existsHrEventBySourceApprovalId(approvalId) > 0) {
+            return;
+        }
+
+        Long employeeId = hrChangeMapper.findEmployeeIdByApprovalId(approvalId);
+        if (employeeId == null) {
+            throw new NotFoundException("APPROVAL_EMPLOYEE_NOT_FOUND", "결재 대상 사원을 찾을 수 없습니다.");
+        }
+
+        HrChangeCurrentInfoRow before =
+                hrChangeMapper
+                        .findCurrentInfoByEmployeeId(employeeId)
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "EMPLOYEE_NOT_FOUND", "사원 정보를 찾을 수 없습니다."));
+
+        String beforeChange = buildBeforeChange(before);
+        String afterChange =
+                buildAfterChange(
+                        before.orgId(),
+                        before.jobId(),
+                        before.positionId(),
+                        before.rankId(),
+                        targetState,
+                        before.employType(),
+                        before.areaId());
+
+        hrChangeMapper.insertHrEvent(
+                employeeId,
+                HrEventType.STATE_CHANGE,
+                titlePrefix + " (" + description(targetState) + ")",
+                effectiveFrom,
+                null,
+                "[전자결재 approvalId=" + approvalId + "] " + valueOrDash(reason),
+                beforeChange,
+                afterChange,
+                before.orgId(),
+                before.jobId(),
+                before.positionId(),
+                before.rankId(),
+                targetState,
+                before.employType(),
+                before.areaId(),
+                effectiveFrom,
+                null,
+                approvalId);
+    }
+
     public PageResponse<HrChangeEventResponseDTO> getHrChangeEvents(
             HrEventType eventType,
+            HrEventStatus eventStatus,
             Long employeeId,
             LocalDate fromDate,
             LocalDate toDate,
@@ -241,10 +302,13 @@ public class HrChangeService {
         }
         int offset = (int) offsetLong;
 
-        long total = hrChangeMapper.countHrChangeEvents(eventType, employeeId, fromDate, toDate);
+        long total =
+                hrChangeMapper.countHrChangeEvents(
+                        eventType, eventStatus, employeeId, fromDate, toDate);
         List<HrChangeEventResponseDTO> content =
                 hrChangeMapper
-                        .findHrChangeEvents(eventType, employeeId, fromDate, toDate, limit, offset)
+                        .findHrChangeEvents(
+                                eventType, eventStatus, employeeId, fromDate, toDate, limit, offset)
                         .stream()
                         .map(this::toEventResponse)
                         .toList();

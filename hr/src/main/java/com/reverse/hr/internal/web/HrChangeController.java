@@ -3,6 +3,7 @@ package com.reverse.hr.internal.web;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.response.PageResponse;
 import com.reverse.hr.internal.application.HrChangeService;
+import com.reverse.hr.internal.domain.enums.HrEventStatus;
 import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.dto.request.HrChangeUpdateRequestDTO;
 import com.reverse.hr.internal.dto.response.HrChangeCurrentInfoResponseDTO;
@@ -85,6 +86,7 @@ public class HrChangeController {
     @Operation(summary = "인사 변경 이력 조회")
     public ApiResponse<PageResponse<HrChangeEventResponseDTO>> getEvents(
             @RequestParam(required = false) HrEventType eventType,
+            @RequestParam(required = false) HrEventStatus eventStatus,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate fromDate,
@@ -94,6 +96,6 @@ public class HrChangeController {
             @RequestParam(defaultValue = "10") @Min(1) int size) {
         return ApiResponse.success(
                 hrChangeService.getHrChangeEvents(
-                        eventType, employeeId, fromDate, toDate, page, size));
+                        eventType, eventStatus, employeeId, fromDate, toDate, page, size));
     }
 }

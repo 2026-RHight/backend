@@ -102,6 +102,7 @@
                he.after_change    AS afterChange
         FROM hr_event he
         WHERE he.employee_id = #{employeeId}
+          AND he.event_status = 'APPLIED'
         ORDER BY he.effective_from DESC, he.hr_event_id DESC
     </select>
 

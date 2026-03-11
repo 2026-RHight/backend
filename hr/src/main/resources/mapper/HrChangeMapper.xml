@@ -237,6 +237,7 @@
             target_area_id,
             target_effective_from,
             target_role_ids_json,
+            source_approval_id,
             event_status
         ) VALUES (
             #{employeeId},
@@ -256,12 +257,26 @@
             #{targetAreaId},
             #{targetEffectiveFrom},
             #{targetRoleIdsJson},
+            #{sourceApprovalId},
             'PENDING'
         )
     </insert>
 
     <select id="findLastInsertedHrEventId" resultType="long">
         SELECT LAST_INSERT_ID()
+    </select>
+
+    <select id="findEmployeeIdByApprovalId" resultType="long">
+        SELECT ea.drafter_id
+        FROM electronic_approval ea
+        WHERE ea.approval_id = #{approvalId}
+        LIMIT 1
+    </select>
+
+    <select id="existsHrEventBySourceApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_event
+        WHERE source_approval_id = #{sourceApprovalId}
     </select>
 
     <select id="acquireSchedulerLock" resultType="int">
@@ -312,6 +327,12 @@
         <where>
             <if test="eventType != null">
                 AND he.event_type = #{eventType}
+            </if>
+            <if test="eventStatus != null">
+                AND he.event_status = #{eventStatus}
+            </if>
+            <if test="eventStatus == null">
+                AND he.event_status = 'APPLIED'
             </if>
             <if test="employeeId != null">
                 AND he.employee_id = #{employeeId}
