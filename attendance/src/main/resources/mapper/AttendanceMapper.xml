@@ -289,8 +289,8 @@
                         + COALESCE(ar.holiday_work_hours, 0)
                     ), 2) as weeklyHours
                 FROM attendance_record ar
-                WHERE ar.work_date >= CONCAT(#{targetMonth}, '-01')
-                  AND ar.work_date < DATE_ADD(CONCAT(#{targetMonth}, '-01'), INTERVAL 1 MONTH)
+                WHERE ar.work_date >= #{weekRangeStart}
+                  AND ar.work_date < #{weekRangeEnd}
                 GROUP BY ar.employee_id, YEARWEEK(ar.work_date, 1)
             ) weekly
             GROUP BY weekly.employee_id

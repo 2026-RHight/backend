@@ -45,6 +45,8 @@ public interface AttendanceMapper {
 
     List<AdminAttendanceReportResponse> findMonthlyEmployeeReports(
             @Param("targetMonth") String targetMonth,
+            @Param("weekRangeStart") LocalDate weekRangeStart,
+            @Param("weekRangeEnd") LocalDate weekRangeEnd,
             @Param("baseYear") int baseYear,
             @Param("limit") int limit,
             @Param("offset") int offset);

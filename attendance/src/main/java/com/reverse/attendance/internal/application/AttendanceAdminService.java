@@ -18,6 +18,7 @@ import com.reverse.attendance.internal.persistence.OvertimeMapper;
 import com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper;
 import com.reverse.core.response.PageResponse;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -71,10 +72,12 @@ public class AttendanceAdminService {
 
     public AdminAttendanceDashboardResponse getDashboard(int year, int month) {
         String targetMonth = formatTargetMonth(year, month);
+        LocalDate[] weekRange = resolveWeekRange(year, month);
         AttendanceSummaryResponse companySummary =
                 attendanceMapper.countCompanyMonthlySummary(targetMonth);
         List<AdminAttendanceReportResponse> topRiskEmployees =
-                attendanceMapper.findMonthlyEmployeeReports(targetMonth, year, 5, 0);
+                attendanceMapper.findMonthlyEmployeeReports(
+                        targetMonth, weekRange[0], weekRange[1], year, 5, 0);
 
         return AdminAttendanceDashboardResponse.builder()
                 .targetMonth(targetMonth)
@@ -90,6 +93,7 @@ public class AttendanceAdminService {
     public PageResponse<AdminAttendanceReportResponse> getMonthlyReport(
             int year, int month, int page, int size) {
         String targetMonth = formatTargetMonth(year, month);
+        LocalDate[] weekRange = resolveWeekRange(year, month);
         page = Math.max(1, page);
         size = Math.min(100, Math.max(1, size));
         int limit = size;
@@ -100,7 +104,8 @@ public class AttendanceAdminService {
         int offset = (int) offsetLong;
 
         List<AdminAttendanceReportResponse> content =
-                attendanceMapper.findMonthlyEmployeeReports(targetMonth, year, limit, offset);
+                attendanceMapper.findMonthlyEmployeeReports(
+                        targetMonth, weekRange[0], weekRange[1], year, limit, offset);
         long total = attendanceMapper.countMonthlyEmployeeReports(targetMonth);
 
         return PageResponse.of(content, page, size, total);
@@ -175,6 +180,15 @@ public class AttendanceAdminService {
             throw new IllegalArgumentException("유효하지 않은 연도입니다.");
         }
         return String.format("%04d-%02d", year, month);
+    }
+
+    private LocalDate[] resolveWeekRange(int year, int month) {
+        LocalDate firstDay = LocalDate.of(year, month, 1);
+        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+        LocalDate weekRangeStart =
+                firstDay.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        LocalDate weekRangeEnd = lastDay.with(TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
+        return new LocalDate[] {weekRangeStart, weekRangeEnd};
     }
 
     private void validatePolicyTimes(AttendancePolicyUpsertRequest request) {
