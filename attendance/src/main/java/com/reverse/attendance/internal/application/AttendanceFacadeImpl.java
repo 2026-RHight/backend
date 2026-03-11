@@ -5,6 +5,7 @@ import com.reverse.attendance.dto.LeaveBalanceInitializeRequest;
 import com.reverse.attendance.dto.PayrollAttendanceResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceDashboardResponse;
 import com.reverse.attendance.internal.persistence.AttendanceMapper;
+import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +43,12 @@ public class AttendanceFacadeImpl implements AttendanceFacade {
                     .employeeId(employeeId)
                     .year(year)
                     .month(month)
+                    .totalNormalWorkHours(BigDecimal.ZERO)
+                    .totalOvertimeHours(BigDecimal.ZERO)
+                    .nightWorkHours(BigDecimal.ZERO)
+                    .holidayWorkHours(BigDecimal.ZERO)
+                    .paidLeaveDays(BigDecimal.ZERO)
+                    .unpaidLeaveDays(BigDecimal.ZERO)
                     .build();
         }
 

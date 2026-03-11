@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS insurance_rate (
     apply_year INT NOT NULL,
     national_pension_rate DECIMAL(7,5) NOT NULL DEFAULT 0.04500,
     health_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.03545,
-    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00459,
+    long_term_care_rate DECIMAL(7,5) NOT NULL DEFAULT 0.13140,
     emp_insurance_rate DECIMAL(7,5) NOT NULL DEFAULT 0.00900,
     UNIQUE KEY uk_insurance_rate_year (apply_year)
 );
