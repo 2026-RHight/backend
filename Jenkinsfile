@@ -9,7 +9,7 @@ pipeline {
 
   environment {
     AWS_REGION = 'ap-northeast-2'
-    ECR_REPO = 'rhight-api-dev'
+    ECR_REPO = 'rhight-api-prod'
     IMAGE_TAG = "${BUILD_NUMBER}"
   }
 
