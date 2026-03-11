@@ -24,7 +24,7 @@ public class PerformanceDashboardSummary {
     @Column(name = "performance_metric_summary_id")
     private Long id;
 
-    @Column(name = "employee_id")
+    @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
     @Column(name = "metric_year")

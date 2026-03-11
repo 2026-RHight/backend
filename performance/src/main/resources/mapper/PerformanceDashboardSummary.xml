@@ -62,6 +62,7 @@
         FROM performance p
         WHERE p.employee_id = #{employeeId}
           AND p.expected_end_date IS NOT NULL
+          AND p.expected_end_date &gt;= <include refid="monthStart"/>
           AND p.expected_end_date &lt;= LAST_DAY(<include refid="monthStart"/>)
     </select>
 
@@ -98,8 +99,8 @@
               AND p.work_item = 'PERSONAL'
               AND p.status = 'ENDED'
               AND p.end_date IS NOT NULL
-              AND YEAR(p.end_date) = #{targetYear}
-              AND MONTH(p.end_date) = #{targetMonth}
+              AND p.end_date &gt;= <include refid="monthStart"/>
+              AND p.end_date &lt; <include refid="nextMonthStart"/>
             GROUP BY p.employee_id
         ) personal_scores
                ON personal_scores.employee_id = base.employee_id
@@ -122,8 +123,8 @@
               AND p.work_item = 'TEAM'
               AND p.status = 'ENDED'
               AND p.end_date IS NOT NULL
-              AND YEAR(p.end_date) = #{targetYear}
-              AND MONTH(p.end_date) = #{targetMonth}
+              AND p.end_date &gt;= <include refid="monthStart"/>
+              AND p.end_date &lt; <include refid="nextMonthStart"/>
             GROUP BY p.employee_id
         ) team_scores
                ON team_scores.employee_id = base.employee_id

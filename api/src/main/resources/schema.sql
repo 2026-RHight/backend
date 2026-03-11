@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS employee_hr_info (
     PRIMARY KEY (employee_hr_id),
     UNIQUE KEY uk_employee_hr_info_employee_id (employee_id),
     KEY idx_employee_hr_employee (employee_id),
+    KEY idx_employee_hr_info_org_id (org_id),
     KEY idx_employee_hr_effective_from (effective_from),
     CONSTRAINT fk_employee_hr_info_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_employee_hr_info_org FOREIGN KEY (org_id) REFERENCES organization(org_id),

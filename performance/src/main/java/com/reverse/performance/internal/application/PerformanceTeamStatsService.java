@@ -88,6 +88,14 @@ public class PerformanceTeamStatsService {
                                 member -> {
                                     PerformanceViewMapper.TeamStatsMetricRow row =
                                             metricMap.get(member.employeeId());
+                                    double performanceAvg =
+                                            safeDouble(row == null ? null : row.performanceAvg());
+                                    double attitudeAvg =
+                                            safeDouble(row == null ? null : row.attitudeAvg());
+                                    double collaborationAvg =
+                                            safeDouble(row == null ? null : row.collaborationAvg());
+                                    double creativityAvg =
+                                            safeDouble(row == null ? null : row.creativityAvg());
                                     return new PerformanceTeamStatsMemberResponse(
                                             member.employeeId(),
                                             member.employeeName(),
@@ -95,50 +103,16 @@ public class PerformanceTeamStatsService {
                                             defaultString(member.orgName(), "소속팀"),
                                             roundOneDecimal(
                                                     average(
-                                                            row == null
-                                                                    ? null
-                                                                    : row.performanceAvg(),
-                                                            row == null ? null : row.attitudeAvg(),
-                                                            row == null
-                                                                    ? null
-                                                                    : row.collaborationAvg(),
-                                                            row == null
-                                                                    ? null
-                                                                    : row.creativityAvg())),
+                                                            row == null ? null : performanceAvg,
+                                                            row == null ? null : attitudeAvg,
+                                                            row == null ? null : collaborationAvg,
+                                                            row == null ? null : creativityAvg)),
                                             row == null ? 0 : nvl(row.systemScore()),
-                                            List.of(
-                                                    new PerformanceTeamStatChartItemResponse(
-                                                            "업무 성과",
-                                                            roundOneDecimal(
-                                                                    row == null
-                                                                            ? 0.0
-                                                                            : nvd(
-                                                                                    row
-                                                                                            .performanceAvg()))),
-                                                    new PerformanceTeamStatChartItemResponse(
-                                                            "업무 태도",
-                                                            roundOneDecimal(
-                                                                    row == null
-                                                                            ? 0.0
-                                                                            : nvd(
-                                                                                    row
-                                                                                            .attitudeAvg()))),
-                                                    new PerformanceTeamStatChartItemResponse(
-                                                            "협업 능력",
-                                                            roundOneDecimal(
-                                                                    row == null
-                                                                            ? 0.0
-                                                                            : nvd(
-                                                                                    row
-                                                                                            .collaborationAvg()))),
-                                                    new PerformanceTeamStatChartItemResponse(
-                                                            "창의성",
-                                                            roundOneDecimal(
-                                                                    row == null
-                                                                            ? 0.0
-                                                                            : nvd(
-                                                                                    row
-                                                                                            .creativityAvg())))),
+                                            buildChartItems(
+                                                    performanceAvg,
+                                                    attitudeAvg,
+                                                    collaborationAvg,
+                                                    creativityAvg),
                                             taskMap.getOrDefault(member.employeeId(), List.of()));
                                 })
                         .toList();
@@ -166,8 +140,21 @@ public class PerformanceTeamStatsService {
         return value == null ? 0 : value;
     }
 
-    private double nvd(Double value) {
+    private double safeDouble(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    private List<PerformanceTeamStatChartItemResponse> buildChartItems(
+            double performanceAvg,
+            double attitudeAvg,
+            double collaborationAvg,
+            double creativityAvg) {
+        return List.of(
+                new PerformanceTeamStatChartItemResponse("업무 성과", roundOneDecimal(performanceAvg)),
+                new PerformanceTeamStatChartItemResponse("업무 태도", roundOneDecimal(attitudeAvg)),
+                new PerformanceTeamStatChartItemResponse(
+                        "협업 능력", roundOneDecimal(collaborationAvg)),
+                new PerformanceTeamStatChartItemResponse("창의성", roundOneDecimal(creativityAvg)));
     }
 
     private String blankToNull(String value) {

@@ -441,7 +441,7 @@
             resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$TeamStatsMetricRow">
         SELECT base.employee_id AS employeeId,
                ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
-              ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
+               ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
                ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
                ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
                ROUND(AVG(COALESCE(pr.solving_score, 0)), 1) AS creativityAvg

@@ -89,7 +89,7 @@ public class PerformanceInquiryController {
     }
 
     @Operation(summary = "성과 결과 등록")
-    @PostMapping("/result/{performanceId}")
+    @PostMapping(value = "/result/{performanceId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<Void> updateResult(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
@@ -123,9 +123,6 @@ public class PerformanceInquiryController {
 
     private boolean isEvaluator(CustomUser user) {
         return user.getAuthorities().stream()
-                .anyMatch(
-                        auth ->
-                                "EVALUATOR".equals(auth.getAuthority())
-                                        || "ROLE_EVALUATOR".equals(auth.getAuthority()));
+                .anyMatch(auth -> "ROLE_EVALUATOR".equals(auth.getAuthority()));
     }
 }

@@ -4,6 +4,7 @@ import com.reverse.performance.internal.dto.response.PerformanceDashboardSummary
 import com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DateTimeException;
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class PerformanceDashboardSummaryService {
     public PerformanceDashboardSummaryResponse recalculate(
             Long employeeId, Integer targetYear, Integer targetMonth) {
         try {
+            validateTargetMonth(targetYear, targetMonth);
             Long orgId = performanceHrMemberResolver.resolveOrgId(employeeId);
             int personalKpiAchievementRate =
                     nvl(
@@ -70,7 +72,7 @@ public class PerformanceDashboardSummaryService {
             return toResponse(
                     performanceDashboardSummaryMapper.findDashboardSummary(
                             employeeId, targetYear, targetMonth));
-        } catch (BadSqlGrammarException | IllegalStateException ex) {
+        } catch (BadSqlGrammarException | IllegalStateException | DateTimeException ex) {
             log.warn(
                     "성과 대시보드 요약 재계산을 건너뜁니다. 스키마 또는 HR facade 구성이 완전하지 않을 수 있습니다. employeeId={}, year={}, month={}",
                     employeeId,
@@ -100,6 +102,13 @@ public class PerformanceDashboardSummaryService {
         }
         return new PerformanceDashboardSummaryResponse(
                 currentMonth.getYear(), currentMonth.getMonthValue(), 0, 0, 0, 0.0, 0);
+    }
+
+    private void validateTargetMonth(Integer targetYear, Integer targetMonth) {
+        if (targetYear == null || targetMonth == null) {
+            throw new IllegalArgumentException("targetYear and targetMonth are required");
+        }
+        YearMonth.of(targetYear, targetMonth);
     }
 
     private PerformanceDashboardSummaryResponse toResponse(
