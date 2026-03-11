@@ -2,8 +2,12 @@ package com.reverse.hr.internal.dto.response;
 
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
+import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.domain.enums.RecruitType;
+import com.reverse.hr.internal.domain.enums.SkillCategory;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 public record AdminEmployeeDetailResponseDTO(
         Long employeeId,
@@ -29,4 +33,37 @@ public record AdminEmployeeDetailResponseDTO(
         String areaName,
         String bankName,
         String residentNumberMasked,
-        String accountNumberMasked) {}
+        String accountNumberMasked,
+        List<SkillItem> skills,
+        List<CareerItem> careers,
+        List<HrHistoryItem> hrHistories) {
+
+    public record SkillItem(
+            Long skillId,
+            SkillCategory category,
+            String skillName,
+            String acquisitionDate,
+            String licenseNumber,
+            Long hrFileId) {}
+
+    public record CareerItem(
+            Long careerId,
+            String companyName,
+            String orgName,
+            String startDate,
+            String endDate,
+            Long hrFileId) {}
+
+    public record HrHistoryItem(
+            Long hrEventId,
+            HrEventType eventType,
+            String eventTypeDescription,
+            String eventTitle,
+            LocalDateTime requestedAt,
+            LocalDateTime approvedAt,
+            LocalDate effectiveFrom,
+            LocalDate effectiveTo,
+            String reason,
+            String beforeChange,
+            String afterChange) {}
+}

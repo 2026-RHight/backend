@@ -89,6 +89,22 @@
         WHERE e.employee_id = #{employeeId}
     </select>
 
+    <select id="findHrEventsByEmployeeId" resultType="com.reverse.hr.internal.persistence.row.HrEventItemRow">
+        SELECT he.hr_event_id     AS hrEventId,
+               he.event_type      AS eventType,
+               he.event_title     AS eventTitle,
+               NULL               AS requestedAt,
+               NULL               AS approvedAt,
+               he.effective_from  AS effectiveFrom,
+               he.effective_to    AS effectiveTo,
+               he.reason          AS reason,
+               he.before_change   AS beforeChange,
+               he.after_change    AS afterChange
+        FROM hr_event he
+        WHERE he.employee_id = #{employeeId}
+        ORDER BY he.effective_from DESC, he.hr_event_id DESC
+    </select>
+
     <insert id="insertSensitiveAccessLog">
         INSERT INTO employee_sensitive_access_log (
             viewer_employee_id,

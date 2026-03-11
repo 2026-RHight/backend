@@ -5,6 +5,7 @@ import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.SensitiveFieldType;
 import com.reverse.hr.internal.persistence.row.AdminEmployeeDetailRow;
 import com.reverse.hr.internal.persistence.row.AdminEmployeeListRow;
+import com.reverse.hr.internal.persistence.row.HrEventItemRow;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -28,6 +29,8 @@ public interface AdminEmployeeMapper {
             @Param("employType") EmployType employType);
 
     Optional<AdminEmployeeDetailRow> findEmployeeDetailById(@Param("employeeId") Long employeeId);
+
+    List<HrEventItemRow> findHrEventsByEmployeeId(@Param("employeeId") Long employeeId);
 
     int insertSensitiveAccessLog(
             @Param("viewerEmployeeId") Long viewerEmployeeId,

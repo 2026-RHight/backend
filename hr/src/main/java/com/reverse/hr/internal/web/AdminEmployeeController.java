@@ -11,6 +11,7 @@ import com.reverse.hr.internal.dto.request.AdminEmployeeRevealRequestDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeListItemResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminSensitiveValueResponseDTO;
+import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -48,6 +49,24 @@ public class AdminEmployeeController {
     public ApiResponse<AdminEmployeeDetailResponseDTO> getEmployeeDetail(
             @PathVariable Long employeeId) {
         return ApiResponse.success(adminEmployeeService.getEmployeeDetail(employeeId));
+    }
+
+    @GetMapping("/{employeeId}/skills/{skillId}/evidence")
+    @Operation(summary = "인사관리자 사원 역량 증빙 조회")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC','HR_ADMIN_PAYROLL')")
+    public ApiResponse<EvidenceFileResponseDTO> getEmployeeSkillEvidence(
+            @PathVariable Long employeeId, @PathVariable Long skillId) {
+        return ApiResponse.success(
+                adminEmployeeService.getEmployeeSkillEvidence(employeeId, skillId));
+    }
+
+    @GetMapping("/{employeeId}/careers/{careerId}/evidence")
+    @Operation(summary = "인사관리자 사원 경력 증빙 조회")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC','HR_ADMIN_PAYROLL')")
+    public ApiResponse<EvidenceFileResponseDTO> getEmployeeCareerEvidence(
+            @PathVariable Long employeeId, @PathVariable Long careerId) {
+        return ApiResponse.success(
+                adminEmployeeService.getEmployeeCareerEvidence(employeeId, careerId));
     }
 
     @PostMapping("/{employeeId}/sensitive/reveal")
