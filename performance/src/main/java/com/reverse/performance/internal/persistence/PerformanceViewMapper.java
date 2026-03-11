@@ -1,9 +1,6 @@
 package com.reverse.performance.internal.persistence;
 
-import com.reverse.performance.internal.dto.response.PerformanceApprovalItemResponse;
 import com.reverse.performance.internal.dto.response.PerformanceFeedbackResponse;
-import com.reverse.performance.internal.dto.response.PerformanceInquiryItemResponse;
-import com.reverse.performance.internal.dto.response.PerformancePeerReviewTargetResponse;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -17,10 +14,13 @@ public interface PerformanceViewMapper {
 
     List<PerformanceFeedbackResponse> findDashboardFeedbacks(@Param("employeeId") Long employeeId);
 
-    List<PerformanceInquiryItemResponse> findInquiryItems(
+    List<InquiryItemRow> findInquiryItems(
             @Param("viewerEmployeeId") Long viewerEmployeeId,
             @Param("targetEmployeeId") Long targetEmployeeId,
             @Param("isAdmin") boolean isAdmin);
+
+    List<InquiryItemRow> findInquiryItemsByEmployeeIds(
+            @Param("employeeIds") List<Long> employeeIds);
 
     List<PerformanceMonthlyPoint> findMonthlyMyScores(
             @Param("viewerEmployeeId") Long viewerEmployeeId,
@@ -30,9 +30,7 @@ public interface PerformanceViewMapper {
             @Param("windowEndExclusive") LocalDate windowEndExclusive);
 
     List<PerformanceMonthlyPoint> findMonthlyTeamScores(
-            @Param("viewerEmployeeId") Long viewerEmployeeId,
-            @Param("targetEmployeeId") Long targetEmployeeId,
-            @Param("isAdmin") boolean isAdmin,
+            @Param("employeeIds") List<Long> employeeIds,
             @Param("windowStart") LocalDate windowStart,
             @Param("windowEndExclusive") LocalDate windowEndExclusive);
 
@@ -43,7 +41,7 @@ public interface PerformanceViewMapper {
             @Param("targetYear") Integer targetYear,
             @Param("targetMonth") Integer targetMonth);
 
-    List<PerformanceApprovalItemResponse> findApprovalItems(@Param("employeeId") Long employeeId);
+    List<ApprovalItemRow> findApprovalItems(@Param("employeeId") Long employeeId);
 
     int updatePerformanceResult(
             @Param("performanceId") Long performanceId,
@@ -71,24 +69,29 @@ public interface PerformanceViewMapper {
             @Param("performanceId") Long performanceId,
             @Param("comment") String comment);
 
+    Long findPerformanceOwnerId(@Param("performanceId") Long performanceId);
+
     int countOwnedPerformance(
             @Param("employeeId") Long employeeId, @Param("performanceId") Long performanceId);
 
-    List<PerformanceTeamEvaluationTargetRow> findTeamEvaluationTargets(
-            @Param("employeeId") Long employeeId);
+    Integer countInquiryAccessibleTarget(
+            @Param("viewerEmployeeId") Long viewerEmployeeId,
+            @Param("targetEmployeeId") Long targetEmployeeId);
 
-    List<PerformancePeerReviewTargetResponse> findPeerReviewTargets(
-            @Param("employeeId") Long employeeId);
+    List<Long> findInquiryAccessibleTargetIds(@Param("viewerEmployeeId") Long viewerEmployeeId);
+
+    List<TeamEvaluationMetricRow> findTeamEvaluationMetrics(
+            @Param("evaluatorId") Long evaluatorId, @Param("employeeIds") List<Long> employeeIds);
+
+    List<PeerReviewTargetStateRow> findPeerReviewTargetStates(
+            @Param("employeeId") Long employeeId, @Param("employeeIds") List<Long> employeeIds);
 
     Long findPeerReviewableEvaluationId(@Param("appraiseeId") Long appraiseeId);
 
-    List<String> findManagedTeams(@Param("employeeId") Long employeeId);
+    List<TeamStatsMetricRow> findTeamStatsMetrics(@Param("employeeIds") List<Long> employeeIds);
 
-    List<PerformanceTeamStatsMemberRow> findTeamStatsMembers(
-            @Param("employeeId") Long employeeId, @Param("teamName") String teamName);
-
-    List<PerformanceTeamStatsTaskRow> findTeamStatsTasks(
-            @Param("employeeId") Long employeeId, @Param("teamName") String teamName);
+    List<PerformanceTeamStatsTaskRow> findTeamStatsTasksByEmployeeIds(
+            @Param("employeeIds") List<Long> employeeIds);
 
     record PerformanceTrendPoint(String monthLabel, Integer score) {}
 
@@ -107,11 +110,31 @@ public interface PerformanceViewMapper {
             String feedbackAuthor,
             String feedbackDate) {}
 
-    record PerformanceTeamEvaluationTargetRow(
+    record InquiryItemRow(
             Long id,
-            String name,
-            String role,
-            String department,
+            String type,
+            String title,
+            String coreTask,
+            String date,
+            String status,
+            Integer progress,
+            Long employeeId,
+            String description,
+            String achievement) {}
+
+    record ApprovalItemRow(
+            Long id,
+            Long targetEmployeeId,
+            String title,
+            String date,
+            String status,
+            String type,
+            String achievement,
+            Integer progress,
+            String phase) {}
+
+    record TeamEvaluationMetricRow(
+            Long employeeId,
             String status,
             Integer systemScore,
             Double peerReviewScore,
@@ -120,11 +143,10 @@ public interface PerformanceViewMapper {
             Double collaborationAvg,
             Double creativityAvg) {}
 
-    record PerformanceTeamStatsMemberRow(
-            Long id,
-            String name,
-            String role,
-            String department,
+    record PeerReviewTargetStateRow(Long employeeId, Boolean evaluated) {}
+
+    record TeamStatsMetricRow(
+            Long employeeId,
             Integer systemScore,
             Double performanceAvg,
             Double attitudeAvg,

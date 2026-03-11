@@ -23,4 +23,33 @@
         WHERE e.employee_id = #{employeeId}
     </select>
 
+    <select id="findMyOrganizationMembers"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.OrganizationMemberFacadeRow">
+        SELECT e.employee_id    AS employeeId,
+               e.employee_name  AS employeeName,
+               o.org_id         AS orgId,
+               o.org_name       AS orgName,
+               p.position_id    AS positionId,
+               p.position_name  AS positionName,
+               r.rank_name      AS rankName,
+               j.job_name       AS jobName
+        FROM employee_hr_info target_hr
+        JOIN employee_hr_info hr
+          ON hr.org_id = target_hr.org_id
+        JOIN employee e
+          ON e.employee_id = hr.employee_id
+        LEFT JOIN organization o
+          ON o.org_id = hr.org_id
+        LEFT JOIN hr_rank r
+          ON r.rank_id = hr.rank_id
+        LEFT JOIN hr_position p
+          ON p.position_id = hr.position_id
+        LEFT JOIN job j
+          ON j.job_id = hr.job_id
+        WHERE target_hr.employee_id = #{employeeId}
+          AND e.employ_state = 'WORK'
+        ORDER BY p.position_id DESC, e.employee_name ASC
+    </select>
+
 </mapper>

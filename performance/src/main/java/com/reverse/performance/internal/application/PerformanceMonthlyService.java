@@ -8,6 +8,7 @@ import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PerformanceMonthlyService {
 
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
 
     public PerformanceMonthlyResponse getMonthly(
@@ -33,13 +35,13 @@ public class PerformanceMonthlyService {
                         isAdmin,
                         windowStart,
                         windowEndExclusive);
+        List<Long> teamEmployeeIds =
+                resolveTeamEmployeeIds(viewerEmployeeId, targetEmployeeId, isAdmin);
         List<PerformanceViewMapper.PerformanceMonthlyPoint> teamPoints =
-                performanceViewMapper.findMonthlyTeamScores(
-                        viewerEmployeeId,
-                        targetEmployeeId,
-                        isAdmin,
-                        windowStart,
-                        windowEndExclusive);
+                teamEmployeeIds == null || teamEmployeeIds.isEmpty()
+                        ? Collections.emptyList()
+                        : performanceViewMapper.findMonthlyTeamScores(
+                                teamEmployeeIds, windowStart, windowEndExclusive);
 
         List<String> chartLabels = buildRecentMonthLabels(targetMonth);
         List<Integer> myScores = mapScores(chartLabels, myPoints);
@@ -142,5 +144,19 @@ public class PerformanceMonthlyService {
 
     private int nvl(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private List<Long> resolveTeamEmployeeIds(
+            Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
+        Long baseEmployeeId =
+                isAdmin && targetEmployeeId != null ? targetEmployeeId : viewerEmployeeId;
+        if (baseEmployeeId == null) {
+            return Collections.emptyList();
+        }
+        return performanceHrMemberResolver.getMyOrganizationMembers(baseEmployeeId).stream()
+                .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
     }
 }
