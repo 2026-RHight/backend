@@ -24,6 +24,8 @@ spring:
       host: ${PROD_REDIS_HOST}
       port: ${PROD_REDIS_PORT}
       password: ${PROD_REDIS_PASSWORD}
+      ssl:
+        enabled: true
 
   mail:
     host: ${AWS_MAIL_HOST}
