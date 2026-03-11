@@ -311,6 +311,7 @@
     </select>
 
     <select id="getAttendanceForPayroll" resultType="com.reverse.attendance.dto.response.PayrollAttendanceResponse">
+    <select id="getAttendanceForPayroll" resultType="com.reverse.attendance.dto.PayrollAttendanceResponse">
         SELECT
             #{employeeId} as employeeId,
             #{year} as year,

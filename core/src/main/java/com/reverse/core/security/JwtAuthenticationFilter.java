@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistStore tokenBlacklistStore;
 
     @Override
     protected void doFilterInternal(
@@ -31,7 +32,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 jwtTokenProvider.validateToken(token);
-
+                if (tokenBlacklistStore.isBlacklisted(token)) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 Long employeeId = jwtTokenProvider.getEmployeeId(token);
                 String employeeNum = jwtTokenProvider.getEmployeeNum(token);
                 List<String> roles = jwtTokenProvider.getRoles(token);

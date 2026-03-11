@@ -44,6 +44,14 @@ public interface AuthMapper {
     List<String> findRoleCodesByEmployeeId(@Param("employeeId") Long employeeId);
 
     /**
+     * 사원 ID로 역할 ID 목록을 조회한다.
+     *
+     * @param employeeId 사원 ID
+     * @return 역할 ID 목록
+     */
+    List<Long> findRoleIdsByEmployeeId(@Param("employeeId") Long employeeId);
+
+    /**
      * 비밀번호 초기화 검증용 사용자 정보를 사번으로 조회한다.
      *
      * @param employeeNum 사번

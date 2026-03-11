@@ -38,6 +38,23 @@ CREATE TABLE IF NOT EXISTS role (
     UNIQUE KEY uk_role_role_code (role_code)
     );
 
+CREATE TABLE IF NOT EXISTS app_view (
+                                        view_id BIGINT NOT NULL AUTO_INCREMENT,
+                                        view_code VARCHAR(100) NOT NULL,
+    view_name VARCHAR(100) NOT NULL,
+    view_desc TEXT NULL,
+    PRIMARY KEY (view_id),
+    UNIQUE KEY uk_app_view_view_code (view_code)
+    );
+
+CREATE TABLE IF NOT EXISTS role_view (
+                                         view_id BIGINT NOT NULL,
+                                         role_id BIGINT NOT NULL,
+                                         PRIMARY KEY (view_id, role_id),
+    CONSTRAINT fk_role_view_view FOREIGN KEY (view_id) REFERENCES app_view(view_id),
+    CONSTRAINT fk_role_view_role FOREIGN KEY (role_id) REFERENCES role(role_id)
+    );
+
 CREATE TABLE IF NOT EXISTS employee_role (
                                             employee_id BIGINT NOT NULL,
                                             role_id BIGINT NOT NULL,

@@ -250,4 +250,22 @@ public class JwtTokenProvider {
     private Claims parseClaims(String token) {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
     }
+
+    public long getRemainingMillis(String token) {
+        try {
+            Claims claims =
+                    Jwts.parser()
+                            .verifyWith(secretKey)
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+
+            Date exp = claims.getExpiration();
+            long remaining = exp.getTime() - System.currentTimeMillis();
+
+            return Math.max(remaining, 0);
+        } catch (ExpiredJwtException e) {
+            return 0;
+        }
+    }
 }

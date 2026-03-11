@@ -40,6 +40,188 @@ WHERE NOT EXISTS (
 );
 
 -- ---------------------------------------------------------------------------
+-- App views / role-view mapping
+-- ---------------------------------------------------------------------------
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'MAIN', '메인 대시보드', '메인 화면'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'MAIN'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'NOTICE_LIST', '공지사항', '공지사항 목록'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'NOTICE_LIST'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'HR_MYPAGE', '인사 마이페이지', '마이페이지'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'HR_MYPAGE'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'HR_ORG', '조직/팀 조회', '인사 조직/팀'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'HR_ORG'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'HR_ORGCHART', '조직도', '인사 조직도'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'HR_ORGCHART'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'APPROVAL_MAIN', '전자결재 메인', '전자결재 메인 화면'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'APPROVAL_MAIN'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'PERFORMANCE', '성과관리', '성과관리 화면'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'PERFORMANCE'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ATTENDANCE_MAIN', '근태 메인', '근태 메인 화면'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ATTENDANCE_MAIN'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_MAIN', '관리자 메인', '관리자 대시보드'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_MAIN'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_EMPLOYEES', '사원 관리', '관리자 사원 관리'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_EMPLOYEES'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_HR_CHANGE', '인사변동 관리', '관리자 인사변동'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_HR_CHANGE'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_POLICIES', '규정 관리', '관리자 규정 관리'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_POLICIES'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_NOTICES', '공지 관리', '관리자 공지사항 관리'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_NOTICES'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_ATTENDANCE', '근태 관리(관리자)', '관리자 근태 관리'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_ATTENDANCE'
+);
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+SELECT 'ADMIN_SALARY', '급여 관리(관리자)', '관리자 급여 관리'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM app_view WHERE view_code = 'ADMIN_SALARY'
+);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'EVALUATEE'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'HR_MYPAGE', 'APPROVAL_MAIN', 'PERFORMANCE', 'ATTENDANCE_MAIN')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM role_view rv
+    WHERE rv.view_id = av.view_id
+      AND rv.role_id = r.role_id
+);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'EVALUATOR'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'HR_MYPAGE', 'HR_ORG', 'APPROVAL_MAIN', 'PERFORMANCE', 'ATTENDANCE_MAIN')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM role_view rv
+    WHERE rv.view_id = av.view_id
+      AND rv.role_id = r.role_id
+);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_MASTER'
+WHERE av.view_code IN (
+    'MAIN', 'NOTICE_LIST', 'HR_MYPAGE', 'HR_ORG', 'HR_ORGCHART',
+    'APPROVAL_MAIN', 'PERFORMANCE', 'ATTENDANCE_MAIN',
+    'ADMIN_MAIN', 'ADMIN_EMPLOYEES', 'ADMIN_HR_CHANGE',
+    'ADMIN_POLICIES', 'ADMIN_NOTICES', 'ADMIN_ATTENDANCE', 'ADMIN_SALARY'
+    )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM role_view rv
+    WHERE rv.view_id = av.view_id
+      AND rv.role_id = r.role_id
+);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_BASIC'
+WHERE av.view_code IN (
+    'MAIN', 'NOTICE_LIST', 'HR_MYPAGE', 'HR_ORG', 'HR_ORGCHART',
+    'APPROVAL_MAIN', 'PERFORMANCE', 'ATTENDANCE_MAIN',
+    'ADMIN_MAIN', 'ADMIN_EMPLOYEES', 'ADMIN_HR_CHANGE',
+    'ADMIN_POLICIES', 'ADMIN_NOTICES', 'ADMIN_ATTENDANCE'
+    )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM role_view rv
+    WHERE rv.view_id = av.view_id
+      AND rv.role_id = r.role_id
+);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_PAYROLL'
+WHERE av.view_code IN (
+    'MAIN', 'NOTICE_LIST', 'HR_MYPAGE',
+    'APPROVAL_MAIN', 'PERFORMANCE', 'ATTENDANCE_MAIN',
+    'ADMIN_MAIN', 'ADMIN_ATTENDANCE', 'ADMIN_SALARY'
+    )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM role_view rv
+    WHERE rv.view_id = av.view_id
+      AND rv.role_id = r.role_id
+);
+
+-- ---------------------------------------------------------------------------
 -- HR files (profile)
 -- ---------------------------------------------------------------------------
 INSERT INTO hr_file (hr_file_id, file_url, file_title)

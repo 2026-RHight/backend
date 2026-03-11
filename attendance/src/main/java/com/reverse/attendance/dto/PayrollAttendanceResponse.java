@@ -1,4 +1,4 @@
-package com.reverse.attendance.dto.response;
+package com.reverse.attendance.dto;
 
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;

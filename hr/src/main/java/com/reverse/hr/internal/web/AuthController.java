@@ -43,6 +43,13 @@ public class AuthController {
         return ApiResponse.success();
     }
 
+    @Operation(summary = "로그아웃")
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestHeader("Authorization") String authorization) {
+        authService.logout(authorization);
+        return ApiResponse.success();
+    }
+
     private String extractBearerToken(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
             throw new UnauthorizedException("INVALID_TICKET", "비밀번호 변경 티켓이 필요합니다.");
