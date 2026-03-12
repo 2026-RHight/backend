@@ -20,10 +20,10 @@ public class MonthlyPerformance {
     @Column(name = "employee_id")
     private Long employeeId;
 
-    @Column(name = "year")
+    @Column(name = "performance_year")
     private Integer year;
 
-    @Column(name = "month")
+    @Column(name = "performance_month")
     private Integer month;
 
     @Column(name = "score")
