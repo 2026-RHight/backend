@@ -23,8 +23,6 @@
         INNER JOIN evaluation e
             ON e.employee_id = p.employee_id
            AND e.evaluator_id = #{employeeId}
-           AND e.confirmed_at IS NULL
-           AND e.year = YEAR(CURDATE())
         WHERE p.status = 'WAITING'
     </select>
 
@@ -254,8 +252,6 @@
         INNER JOIN evaluation ev
             ON ev.employee_id = p.employee_id
            AND ev.evaluator_id = #{employeeId}
-           AND ev.confirmed_at IS NULL
-           AND ev.year = YEAR(CURDATE())
         WHERE p.status = 'WAITING'
         ORDER BY p.created_at DESC
     </select>
@@ -303,8 +299,6 @@
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
                 AND ev.evaluator_id = #{employeeId}
-                AND ev.confirmed_at IS NULL
-                AND ev.year = YEAR(CURDATE())
           )
     </update>
 
@@ -319,8 +313,6 @@
               FROM evaluation ev
               WHERE ev.employee_id = performance.employee_id
                 AND ev.evaluator_id = #{employeeId}
-                AND ev.confirmed_at IS NULL
-                AND ev.year = YEAR(CURDATE())
           )
     </update>
 
@@ -348,8 +340,6 @@
         FROM evaluation
         WHERE evaluator_id = #{viewerEmployeeId}
           AND employee_id = #{targetEmployeeId}
-          AND confirmed_at IS NULL
-          AND year = YEAR(CURDATE())
     </select>
 
     <select id="findInquiryAccessibleTargetIds"
@@ -358,8 +348,6 @@
         SELECT DISTINCT employee_id
         FROM evaluation
         WHERE evaluator_id = #{viewerEmployeeId}
-          AND confirmed_at IS NULL
-          AND year = YEAR(CURDATE())
         ORDER BY employee_id
     </select>
 
