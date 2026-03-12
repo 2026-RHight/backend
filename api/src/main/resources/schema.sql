@@ -73,6 +73,22 @@ CREATE TABLE IF NOT EXISTS password_history (
     CONSTRAINT fk_password_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
     );
 
+CREATE TABLE IF NOT EXISTS employee_sensitive_access_log (
+                                                             access_log_id BIGINT NOT NULL AUTO_INCREMENT,
+                                                             viewer_employee_id BIGINT NOT NULL,
+                                                             target_employee_id BIGINT NOT NULL,
+                                                             field_type ENUM('RESIDENT_NUMBER','ACCOUNT_NUMBER') NOT NULL,
+    access_reason VARCHAR(500) NOT NULL,
+    accessed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (access_log_id),
+    KEY idx_sensitive_access_viewer (viewer_employee_id),
+    KEY idx_sensitive_access_target (target_employee_id),
+    KEY idx_sensitive_access_time (accessed_at),
+    CONSTRAINT fk_sensitive_access_viewer FOREIGN KEY (viewer_employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT fk_sensitive_access_target FOREIGN KEY (target_employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT chk_sensitive_access_reason_not_blank CHECK (CHAR_LENGTH(TRIM(access_reason)) > 0)
+    );
+
 CREATE TABLE IF NOT EXISTS organization (
                                             org_id BIGINT NOT NULL AUTO_INCREMENT,
                                             org_name VARCHAR(255) NOT NULL,
@@ -386,18 +402,79 @@ CREATE TABLE IF NOT EXISTS hr_event (
     employee_id BIGINT NOT NULL,
     event_type ENUM('PROMOTION','TRANSFER','STATE_CHANGE','POSITION_CHANGE','ORG_CHANGE') NOT NULL,
     event_title VARCHAR(255) NOT NULL,
-    requested_at DATETIME NULL,
-    approved_at DATETIME NULL,
     effective_from DATE NOT NULL,
     effective_to DATE NULL,
-    excuse VARCHAR(255) NULL,
-    before_change JSON NULL,
-    after_change JSON NULL,
+    reason VARCHAR(255) NULL,
+    before_change VARCHAR(255) NULL,
+    after_change VARCHAR(255) NULL,
     PRIMARY KEY (hr_event_id),
     KEY idx_hr_event_employee (employee_id),
     KEY idx_hr_event_type (event_type),
     KEY idx_hr_event_effective_from (effective_from),
     CONSTRAINT fk_hr_event_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
+);
+
+ALTER TABLE hr_event
+    ADD COLUMN IF NOT EXISTS target_org_id BIGINT NULL AFTER after_change,
+    ADD COLUMN IF NOT EXISTS target_job_id BIGINT NULL AFTER target_org_id,
+    ADD COLUMN IF NOT EXISTS target_position_id BIGINT NULL AFTER target_job_id,
+    ADD COLUMN IF NOT EXISTS target_rank_id BIGINT NULL AFTER target_position_id,
+    ADD COLUMN IF NOT EXISTS target_employee_state ENUM('WORK','LEAVE','RESIGN') NULL AFTER target_rank_id,
+    ADD COLUMN IF NOT EXISTS target_employ_type ENUM('REGULAR','NON_REGULAR','CONTRACT') NULL AFTER target_employee_state,
+    ADD COLUMN IF NOT EXISTS target_area_id BIGINT NULL AFTER target_employ_type,
+    ADD COLUMN IF NOT EXISTS target_effective_from DATE NULL AFTER target_area_id,
+    ADD COLUMN IF NOT EXISTS target_role_ids_json TEXT NULL AFTER target_effective_from,
+    ADD COLUMN IF NOT EXISTS source_approval_id BIGINT NULL AFTER target_role_ids_json,
+    ADD COLUMN IF NOT EXISTS event_status ENUM('PENDING','APPLIED','FAILED') NOT NULL DEFAULT 'PENDING' AFTER source_approval_id,
+    ADD COLUMN IF NOT EXISTS applied_at DATETIME NULL AFTER event_status,
+    ADD COLUMN IF NOT EXISTS applied_error VARCHAR(500) NULL AFTER applied_at;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_source_approval_id
+    ON hr_event (source_approval_id);
+
+ALTER TABLE hr_event
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_org,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_job,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_position,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_rank,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_area;
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_org
+        FOREIGN KEY (target_org_id) REFERENCES organization(org_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_job
+        FOREIGN KEY (target_job_id) REFERENCES job(job_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_position
+        FOREIGN KEY (target_position_id) REFERENCES hr_position(position_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_rank
+        FOREIGN KEY (target_rank_id) REFERENCES hr_rank(rank_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_area
+        FOREIGN KEY (target_area_id) REFERENCES working_area(area_id);
+
+CREATE TABLE IF NOT EXISTS failed_hr_event (
+    failed_event_id BIGINT NOT NULL AUTO_INCREMENT,
+    source_approval_id BIGINT NOT NULL,
+    target_employee_state ENUM('WORK','LEAVE','RESIGN') NOT NULL,
+    effective_from DATE NOT NULL,
+    reason VARCHAR(255) NULL,
+    payload_json TEXT NOT NULL,
+    failure_message VARCHAR(500) NULL,
+    retry_count INT NOT NULL DEFAULT 0,
+    status ENUM('PENDING','RETRYING','RESOLVED','FAILED') NOT NULL DEFAULT 'PENDING',
+    last_retry_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (failed_event_id),
+    UNIQUE KEY uk_failed_hr_event_source_state (source_approval_id, target_employee_state),
+    KEY idx_failed_hr_event_status_created (status, created_at)
 );
 
 -- ==========================================
@@ -528,6 +605,20 @@ CREATE TABLE IF NOT EXISTS electronic_approval (
     PRIMARY KEY (approval_id),
     UNIQUE KEY uk_electronic_approval_doc_id (doc_id)
 );
+
+ALTER TABLE hr_event
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_source_approval;
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_source_approval
+        FOREIGN KEY (source_approval_id) REFERENCES electronic_approval(approval_id);
+
+ALTER TABLE failed_hr_event
+    DROP FOREIGN KEY IF EXISTS fk_failed_hr_event_source_approval;
+
+ALTER TABLE failed_hr_event
+    ADD CONSTRAINT fk_failed_hr_event_source_approval
+        FOREIGN KEY (source_approval_id) REFERENCES electronic_approval(approval_id);
 
 CREATE TABLE IF NOT EXISTS approval_line (
     approval_line_id BIGINT NOT NULL AUTO_INCREMENT,

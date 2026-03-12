@@ -11,7 +11,8 @@
         SELECT employee_id          AS employeeId,
                employee_num         AS employeeNum,
                employee_password    AS password,
-               initial_state        AS initialState
+               initial_state        AS initialState,
+               hire_date            AS hireDate
         FROM employee
         WHERE employee_num = #{employeeNum}
     </select>
@@ -22,7 +23,8 @@
         SELECT employee_id          AS employeeId,
                employee_num         AS employeeNum,
                employee_password    AS password,
-               initial_state AS initialState
+               initial_state        AS initialState,
+               hire_date            AS hireDate
         FROM employee
         WHERE employee_id = #{employeeId}
     </select>

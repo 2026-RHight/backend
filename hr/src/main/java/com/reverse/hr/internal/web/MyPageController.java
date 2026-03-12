@@ -13,6 +13,8 @@ import com.reverse.hr.internal.dto.response.CreateCareerResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateCertificateRequestResponseDTO;
 import com.reverse.hr.internal.dto.response.CreateSkillResponseDTO;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
+import com.reverse.hr.internal.dto.response.MyHrEventDetailResponseDTO;
+import com.reverse.hr.internal.dto.response.MyHrEventResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +49,21 @@ public class MyPageController {
     @Operation(summary = "마이페이지 전체 조회")
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
+    }
+
+    @GetMapping("/hr-events")
+    @Operation(summary = "내 인사 이력 조회")
+    public ApiResponse<List<MyHrEventResponseDTO>> myHrEvents(
+            @AuthenticationPrincipal CustomUser user) {
+        return ApiResponse.success(myPageService.getMyHrEvents(user.getEmployeeId()));
+    }
+
+    @GetMapping("/hr-events/{hrEventId}")
+    @Operation(summary = "내 인사 이력 상세 조회")
+    public ApiResponse<MyHrEventDetailResponseDTO> myHrEventDetail(
+            @AuthenticationPrincipal CustomUser user, @PathVariable Long hrEventId) {
+        return ApiResponse.success(
+                myPageService.getMyHrEventDetail(user.getEmployeeId(), hrEventId));
     }
 
     @PatchMapping("/password")

@@ -70,6 +70,42 @@
         WHERE hr.employee_id = #{employeeId}
     </select>
 
+    <select id="findMyHrEventsByEmployeeId"
+            parameterType="Long"
+            resultType="com.reverse.hr.internal.persistence.row.MyHrEventRow">
+        SELECT he.hr_event_id AS hrEventId,
+               he.event_type AS eventType,
+               he.event_title AS eventTitle,
+               he.effective_from AS effectiveFrom,
+               he.effective_to AS effectiveTo,
+               he.reason AS reason,
+               he.before_change AS beforeChange,
+               he.after_change AS afterChange
+        FROM hr_event he
+        WHERE he.employee_id = #{employeeId}
+          AND he.event_status = 'APPLIED'
+        ORDER BY he.effective_from DESC, he.hr_event_id DESC
+    </select>
+
+    <select id="findMyHrEventDetailByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.MyHrEventDetailRow">
+        SELECT he.hr_event_id AS hrEventId,
+               he.event_type AS eventType,
+               he.event_title AS eventTitle,
+               he.effective_from AS effectiveFrom,
+               he.effective_to AS effectiveTo,
+               he.reason AS reason,
+               he.before_change AS beforeChange,
+               he.after_change AS afterChange,
+               he.event_status AS eventStatus,
+               he.applied_at AS appliedAt
+        FROM hr_event he
+        WHERE he.employee_id = #{employeeId}
+          AND he.hr_event_id = #{hrEventId}
+          AND he.event_status = 'APPLIED'
+        LIMIT 1
+    </select>
+
     <select id="findSkillsByEmployeeId"
             parameterType="Long"
             resultType="com.reverse.hr.internal.persistence.row.SkillItemRow">
