@@ -13,6 +13,7 @@ import com.reverse.payroll.internal.dto.response.AdminPayrollBatchCalculateRespo
 import com.reverse.payroll.internal.dto.response.AdminPayrollEmployeeSearchResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollFinalizeResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
+import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerSummaryResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
 import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
@@ -217,6 +218,16 @@ public class PayrollController {
         return ResponseEntity.ok(
                 payrollService.getAdminPayrollLedgers(
                         year, month, employeeName, departmentName, isFinalized, page, size));
+    }
+
+    @Operation(
+            summary = "관리자 급여대장 월 집계 조회",
+            description = "귀속월 기준 급여대장 전체 건수, 마감 건수, 발송 건수를 조회합니다.")
+    @GetMapping("/admin/ledgers/summary")
+    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    public ResponseEntity<AdminPayrollLedgerSummaryResponse> getAdminPayrollLedgerSummary(
+            @RequestParam int year, @RequestParam int month) {
+        return ResponseEntity.ok(payrollService.getAdminPayrollLedgerSummary(year, month));
     }
 
     @Operation(summary = "관리자 급여대장 CSV 다운로드", description = "귀속월 기준 급여대장 데이터를 CSV로 다운로드합니다.")
