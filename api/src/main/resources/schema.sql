@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS employee (
     profile_id BIGINT NOT NULL,
     PRIMARY KEY (employee_id),
     UNIQUE KEY uk_employee_employee_num (employee_num),
+    UNIQUE KEY uk_employee_email (email),
+    UNIQUE KEY uk_employee_phone (phone),
     CONSTRAINT fk_employee_profile FOREIGN KEY (profile_id) REFERENCES hr_file(hr_file_id)
     );
 
