@@ -20,6 +20,10 @@ public class WeeklyWorkScheduleResponse {
     private String workForm;
     private String scheduleTitle;
     private String memo;
+    private String rejectReason;
+    private String employeeName;
+    private String departmentName;
+    private String positionName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -34,6 +38,10 @@ public class WeeklyWorkScheduleResponse {
                 .workForm(schedule.getWorkForm())
                 .scheduleTitle(schedule.getScheduleTitle())
                 .memo(schedule.getMemo())
+                .rejectReason(schedule.getRejectReason())
+                .employeeName(schedule.getEmployeeName())
+                .departmentName(schedule.getDepartmentName())
+                .positionName(schedule.getPositionName())
                 .createdAt(schedule.getCreatedAt())
                 .updatedAt(schedule.getUpdatedAt())
                 .build();

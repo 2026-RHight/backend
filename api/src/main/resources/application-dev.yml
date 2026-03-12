@@ -26,6 +26,12 @@ spring:
         jdbc:
           time_zone: Asia/Seoul
 
+  data:
+    redis:
+      host: ${DEV_REDIS_HOST}
+      port: ${DEV_REDIS_PORT}
+      password: ${DEV_REDIS_PASSWORD}
+
   mail:
     host: ${AWS_MAIL_HOST}
     port: ${AWS_MAIL_PORT}

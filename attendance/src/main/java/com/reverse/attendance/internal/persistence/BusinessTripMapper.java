@@ -21,6 +21,11 @@ public interface BusinessTripMapper {
             @Param("limit") int limit,
             @Param("offset") int offset);
 
+    List<BusinessTrip> findByEmployeeIdAndDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
+
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     int countOverlappingTrips(

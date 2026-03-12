@@ -1,5 +1,7 @@
 package com.reverse.performance.internal.web;
 
+import com.reverse.core.exception.BadRequestException;
+import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.performance.internal.application.PerformanceInquiryService;
@@ -13,15 +15,19 @@ import com.reverse.performance.internal.dto.response.PerformanceInquiryItemRespo
 import com.reverse.performance.internal.dto.response.PersonalPerformanceResponse;
 import com.reverse.performance.internal.dto.response.TeamPerformanceResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -86,15 +92,40 @@ public class PerformanceInquiryController {
                         isAdmin(user)));
     }
 
-    @Operation(summary = "성과 결과 등록")
-    @PatchMapping(value = "/result/{performanceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<Void> updateResult(
+    @Operation(
+            summary = "성과 결과 등록",
+            requestBody =
+                    @RequestBody(
+                            required = true,
+                            content = {
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                        schema =
+                                                @Schema(
+                                                        implementation =
+                                                                PerformanceResultUpdateRequest
+                                                                        .class)),
+                                @Content(
+                                        mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                                        schema =
+                                                @Schema(
+                                                        implementation =
+                                                                PerformanceResultUpdateRequest
+                                                                        .class))
+                            }))
+    @PostMapping(
+            value = "/result/{performanceId}",
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ApiResponse<Void> updateResultWithAttachments(
             @AuthenticationPrincipal CustomUser user,
             @PathVariable Long performanceId,
-            @RequestPart("request") PerformanceResultUpdateRequest request,
+            @Valid @RequestPart(value = "request", required = false)
+                    PerformanceResultUpdateRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-        performanceInquiryService.updateResult(
-                user.getEmployeeId(), performanceId, request, files == null ? List.of() : files);
+        if (request == null) {
+            throw new BadRequestException("성과 결과 등록 요청이 비어 있습니다.");
+        }
+        performanceInquiryService.updateResult(user.getEmployeeId(), performanceId, request, files);
         return ApiResponse.success();
     }
 
@@ -105,8 +136,19 @@ public class PerformanceInquiryController {
 
     private Long resolveTargetEmployeeId(CustomUser user, Long targetEmployeeId) {
         if (targetEmployeeId == null) {
-            return user.getEmployeeId();
+            return isAdmin(user) || isEvaluator(user) ? null : user.getEmployeeId();
+        }
+        if (targetEmployeeId.equals(user.getEmployeeId())) {
+            return targetEmployeeId;
+        }
+        if (!isAdmin(user) && !isEvaluator(user)) {
+            throw new ForbiddenException("FORBIDDEN", "다른 직원의 성과를 조회할 권한이 없습니다.");
         }
         return targetEmployeeId;
+    }
+
+    private boolean isEvaluator(CustomUser user) {
+        return user.getAuthorities().stream()
+                .anyMatch(auth -> "ROLE_EVALUATOR".equals(auth.getAuthority()));
     }
 }

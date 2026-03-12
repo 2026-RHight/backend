@@ -3,11 +3,13 @@ package com.reverse.attendance.internal.web;
 import com.reverse.attendance.internal.application.WeeklyWorkScheduleService;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
+import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleOverviewResponse;
 import com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse;
 import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -77,6 +79,16 @@ public class WeeklyWorkScheduleController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(scheduleService.getAllSchedules(status, page, size));
+    }
+
+    @Operation(
+            summary = "팀 주간 유연근무 개요 조회",
+            description = "관리자가 특정 주의 팀 유연근무 일정과 코어타임 경고 여부를 조회합니다.")
+    @PreAuthorize(WEEKLY_SCHEDULE_APPROVER_AUTH)
+    @GetMapping("/team-overview")
+    public ResponseEntity<TeamWeeklyScheduleOverviewResponse> getTeamWeeklyOverview(
+            @RequestParam(required = false) LocalDate date) {
+        return ResponseEntity.ok(scheduleService.getTeamWeeklyOverview(date));
     }
 
     // 결재 처리 (승인/반려 - 팀장/관리자용)

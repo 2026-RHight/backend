@@ -5,6 +5,7 @@ import com.reverse.hr.internal.domain.enums.EmployeeState;
 public record MyPageHeaderResponseDTO(
         String employeeName,
         EmployeeState employeeState,
+        String employeeStateDescription,
         String orgName,
         String jobName,
         String positionName,

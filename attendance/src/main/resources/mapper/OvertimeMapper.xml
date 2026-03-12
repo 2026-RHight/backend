@@ -30,6 +30,17 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="findByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.Overtime">
+        SELECT
+            overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
+            start_time as startTime, end_time as endTime, reason as reason,
+            approval_status as approvalStatus, reject_reason as rejectReason
+        FROM overtime_request
+        WHERE employee_id = #{employeeId}
+          AND work_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY start_time ASC, overtime_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM overtime_request

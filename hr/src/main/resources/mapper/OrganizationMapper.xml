@@ -36,6 +36,7 @@
             resultType="com.reverse.hr.internal.persistence.row.OrgMemberRow">
         SELECT e.employee_id     AS employeeId,
                e.employee_name   AS employeeName,
+               f.file_url        AS profileFileUrl,
                e.email           AS email,
                e.phone           AS phone,
                e.ext             AS extensionNum,
@@ -51,6 +52,7 @@
                COALESCE(r.rank_no, 0) AS rankNo
         FROM employee_hr_info h
         JOIN employee e ON e.employee_id = h.employee_id
+        LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
         LEFT JOIN hr_position p ON p.position_id = h.position_id
         LEFT JOIN job j ON j.job_id = h.job_id
         LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
@@ -67,6 +69,56 @@
         FROM employee_hr_info h
         WHERE h.employee_id = #{employeeId}
         LIMIT 1
+    </select>
+
+    <select id="findMembersInSubtree"
+            resultType="com.reverse.hr.internal.persistence.row.OrgMemberRow">
+        SELECT e.employee_id     AS employeeId,
+               e.employee_name   AS employeeName,
+               f.file_url        AS profileFileUrl,
+               e.email           AS email,
+               e.phone           AS phone,
+               e.ext             AS extensionNum,
+               p.position_name   AS positionName,
+               j.job_name        AS jobName,
+               r.rank_name       AS rankName,
+               w.area_name       AS areaName,
+               e.employ_state    AS employeeState,
+               CASE
+                   WHEN p.position_name IN ('대표이사', '대표', '본부장', '센터장', '부서장', '팀장', '실장') THEN 1
+                   ELSE 0
+               END AS leaderSort,
+               COALESCE(r.rank_no, 0) AS rankNo
+        FROM org_closure c
+        JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
+        JOIN employee e ON e.employee_id = h.employee_id
+        LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        LEFT JOIN job j ON j.job_id = h.job_id
+        LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
+        LEFT JOIN working_area w ON w.area_id = h.area_id
+        WHERE c.ancestor_org_id = #{ancestorOrgId}
+          AND e.employ_state = 'WORK'
+          AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
+        ORDER BY leaderSort DESC, rankNo DESC, e.employee_name ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countMembersInSubtree" resultType="long">
+        SELECT COUNT(*)
+        FROM org_closure c
+        JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
+        JOIN employee e ON e.employee_id = h.employee_id
+        WHERE c.ancestor_org_id = #{ancestorOrgId}
+          AND e.employ_state = 'WORK'
+          AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
+    </select>
+
+    <select id="existsSubtreeAccess" resultType="int">
+        SELECT COUNT(*)
+        FROM org_closure
+        WHERE ancestor_org_id = #{ancestorOrgId}
+          AND descendant_org_id = #{descendantOrgId}
     </select>
 
 </mapper>

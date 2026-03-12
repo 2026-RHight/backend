@@ -5,6 +5,7 @@ import com.reverse.hr.internal.domain.enums.EmployeeState;
 public record OrgMemberRow(
         Long employeeId,
         String employeeName,
+        String profileFileUrl,
         String email,
         String phone,
         String extensionNum,

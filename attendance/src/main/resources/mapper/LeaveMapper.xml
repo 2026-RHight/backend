@@ -50,6 +50,24 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="findLeaveRequestsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+        SELECT
+            leave_request_id as leaveRequestId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            leave_type as leaveType,
+            leave_status as leaveStatus,
+            used_days as usedDays,
+            reason as reason,
+            reject_reason as rejectReason
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+          AND start_date &lt;= #{endDate}
+          AND end_date &gt;= #{startDate}
+        ORDER BY start_date ASC, leave_request_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM leave_request

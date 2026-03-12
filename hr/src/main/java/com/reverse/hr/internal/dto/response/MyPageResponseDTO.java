@@ -27,10 +27,13 @@ public record MyPageResponseDTO(
             String rankName,
             String jobName,
             EmployeeState employeeState,
+            String employeeStateDescription,
             String hireDate,
             String tenureText,
             EmployType employType,
+            String employTypeDescription,
             RecruitType recruitType,
+            String recruitTypeDescription,
             String areaName) {}
 
     public record SkillItem(

@@ -8,6 +8,7 @@ import lombok.Getter;
 @Builder
 public class AttendanceCalendarResponse {
 
+    private String targetMonth;
     private int year;
     private int month;
     private List<AttendanceCalendarEventResponse> events;

@@ -24,9 +24,12 @@ public record OrganizationMemberDetailResponseDTO(
             String rankName,
             String jobName,
             EmployeeState employeeState,
+            String employeeStateDescription,
             String hireDate,
             EmployType employType,
+            String employTypeDescription,
             RecruitType recruitType,
+            String recruitTypeDescription,
             String areaName) {}
 
     public record SkillItem(

@@ -18,6 +18,68 @@
         ORDER BY ss.apply_start_date DESC LIMIT 1
     </select>
 
+    <select id="findEmployeeIdsWithSalarySetting" resultType="java.lang.Long">
+        SELECT DISTINCT ss.employee_id
+        FROM salary_setting ss
+        WHERE ss.apply_start_date &lt;= #{targetDate}
+          AND (ss.apply_end_date IS NULL OR ss.apply_end_date &gt;= #{targetDate})
+        ORDER BY ss.employee_id
+    </select>
+
+    <select id="findSalarySettingHistoryByEmployeeId" resultType="com.reverse.payroll.internal.domain.SalarySetting">
+        SELECT
+            ss.id, ss.employee_id, ss.base_salary, ss.meal_allowance,
+            e.bank_name as bankName,
+            e.account_number_enc as accountNumberEnc,
+            e.employee_name as accountHolder,
+            ss.apply_start_date, ss.apply_end_date
+        FROM salary_setting ss
+        JOIN employee e ON ss.employee_id = e.employee_id
+        WHERE ss.employee_id = #{employeeId}
+        ORDER BY ss.apply_start_date DESC, ss.id DESC
+    </select>
+
+    <select id="findSalarySettingById" resultType="com.reverse.payroll.internal.domain.SalarySetting">
+        SELECT
+            ss.id, ss.employee_id, ss.base_salary, ss.meal_allowance,
+            e.bank_name as bankName,
+            e.account_number_enc as accountNumberEnc,
+            e.employee_name as accountHolder,
+            ss.apply_start_date, ss.apply_end_date
+        FROM salary_setting ss
+        JOIN employee e ON ss.employee_id = e.employee_id
+        WHERE ss.id = #{id}
+    </select>
+
+    <select id="existsSalarySettingOverlap" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM salary_setting
+            WHERE employee_id = #{employeeId}
+              AND (#{excludeId} IS NULL OR id != #{excludeId})
+              AND #{applyStartDate} &lt;= COALESCE(apply_end_date, DATE('9999-12-31'))
+              AND COALESCE(#{applyEndDate}, DATE('9999-12-31')) &gt;= apply_start_date
+        )
+    </select>
+
+    <insert id="insertSalarySetting" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO salary_setting (
+            employee_id, base_salary, meal_allowance, apply_start_date, apply_end_date
+        ) VALUES (
+            #{employeeId}, #{baseSalary}, #{mealAllowance}, #{applyStartDate}, #{applyEndDate}
+        )
+    </insert>
+
+    <update id="updateSalarySetting">
+        UPDATE salary_setting
+        SET
+            base_salary = #{baseSalary},
+            meal_allowance = #{mealAllowance},
+            apply_start_date = #{applyStartDate},
+            apply_end_date = #{applyEndDate}
+        WHERE id = #{id}
+    </update>
+
     <select id="findInsuranceRateByApplyYear" resultType="com.reverse.payroll.internal.domain.InsuranceRate">
         SELECT
             insurance_id, apply_year, national_pension_rate, health_insurance_rate,
@@ -25,6 +87,41 @@
         FROM insurance_rate
         WHERE apply_year = #{applyYear}
     </select>
+
+    <select id="findAllInsuranceRates" resultType="com.reverse.payroll.internal.domain.InsuranceRate">
+        SELECT
+            insurance_id, apply_year, national_pension_rate, health_insurance_rate,
+            long_term_care_rate, emp_insurance_rate
+        FROM insurance_rate
+        ORDER BY apply_year DESC
+    </select>
+
+    <select id="findInsuranceRateById" resultType="com.reverse.payroll.internal.domain.InsuranceRate">
+        SELECT
+            insurance_id, apply_year, national_pension_rate, health_insurance_rate,
+            long_term_care_rate, emp_insurance_rate
+        FROM insurance_rate
+        WHERE insurance_id = #{insuranceId}
+    </select>
+
+    <insert id="insertInsuranceRate" useGeneratedKeys="true" keyProperty="insuranceId">
+        INSERT INTO insurance_rate (
+            apply_year, national_pension_rate, health_insurance_rate, long_term_care_rate, emp_insurance_rate
+        ) VALUES (
+            #{applyYear}, #{nationalPensionRate}, #{healthInsuranceRate}, #{longTermCareRate}, #{empInsuranceRate}
+        )
+    </insert>
+
+    <update id="updateInsuranceRate">
+        UPDATE insurance_rate
+        SET
+            apply_year = #{applyYear},
+            national_pension_rate = #{nationalPensionRate},
+            health_insurance_rate = #{healthInsuranceRate},
+            long_term_care_rate = #{longTermCareRate},
+            emp_insurance_rate = #{empInsuranceRate}
+        WHERE insurance_id = #{insuranceId}
+    </update>
 
     <select id="findRecentPayrollLedgersByEmployeeId" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
         SELECT 
@@ -95,6 +192,91 @@
             AND target_month = #{targetMonth}
     </select>
 
+    <select id="findAdminPayrollLedgersByMonth" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT
+            id, employee_id, insurance_id, target_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount,
+            employee_name_snapshot as employeeNameSnapshot,
+            dept_name_snapshot as deptNameSnapshot,
+            position_name_snapshot as positionNameSnapshot,
+            bank_name_snapshot as bankNameSnapshot,
+            account_number_snapshot_enc as accountNumberSnapshotEnc,
+            account_holder_snapshot as accountHolderSnapshot
+        FROM payroll_ledger
+        WHERE target_month = #{targetMonth}
+        <if test="employeeName != null and employeeName != ''">
+            AND employee_name_snapshot LIKE CONCAT('%', #{employeeName}, '%')
+        </if>
+        <if test="departmentName != null and departmentName != ''">
+            AND dept_name_snapshot LIKE CONCAT('%', #{departmentName}, '%')
+        </if>
+        <if test="isFinalized != null and isFinalized != ''">
+            AND is_finalized = #{isFinalized}
+        </if>
+        ORDER BY dept_name_snapshot ASC, employee_name_snapshot ASC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countAdminPayrollLedgersByMonth" resultType="long">
+        SELECT COUNT(*)
+        FROM payroll_ledger
+        WHERE target_month = #{targetMonth}
+        <if test="employeeName != null and employeeName != ''">
+            AND employee_name_snapshot LIKE CONCAT('%', #{employeeName}, '%')
+        </if>
+        <if test="departmentName != null and departmentName != ''">
+            AND dept_name_snapshot LIKE CONCAT('%', #{departmentName}, '%')
+        </if>
+        <if test="isFinalized != null and isFinalized != ''">
+            AND is_finalized = #{isFinalized}
+        </if>
+    </select>
+
+    <select id="countPayrollLedgersByTargetMonth" resultType="int">
+        SELECT COUNT(*)
+        FROM payroll_ledger
+        WHERE target_month = #{targetMonth}
+    </select>
+
+    <select id="countFinalizedPayrollLedgersByTargetMonth" resultType="int">
+        SELECT COUNT(*)
+        FROM payroll_ledger
+        WHERE target_month = #{targetMonth}
+          AND is_finalized = 'Y'
+    </select>
+
+    <update id="finalizePayrollLedgersByTargetMonth">
+        UPDATE payroll_ledger
+        SET is_finalized = 'Y'
+        WHERE target_month = #{targetMonth}
+          AND is_finalized = 'N'
+    </update>
+
+    <update id="updatePayrollLedgerSent">
+        UPDATE payroll_ledger
+        SET is_sent = 'Y'
+        WHERE id = #{ledgerId}
+          AND is_finalized = 'Y'
+          AND is_sent = 'N'
+    </update>
+
+    <select id="countSentPayrollLedgersByTargetMonth" resultType="int">
+        SELECT COUNT(*)
+        FROM payroll_ledger
+        WHERE target_month = #{targetMonth}
+          AND is_sent = 'Y'
+    </select>
+
+    <update id="updatePayrollLedgersSentByTargetMonth">
+        UPDATE payroll_ledger
+        SET is_sent = 'Y'
+        WHERE target_month = #{targetMonth}
+          AND is_finalized = 'Y'
+          AND is_sent = 'N'
+    </update>
+
     <insert id="insertPayrollLedger" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO payroll_ledger (
             employee_id, insurance_id, target_month, salary_amount, overtime_amount,
@@ -116,6 +298,12 @@
     <!-- 사원 비밀번호 단일 조회 -->
     <select id="findEmployeePasswordById" resultType="java.lang.String">
         SELECT employee_password
+        FROM employee
+        WHERE employee_id = #{employeeId}
+    </select>
+
+    <select id="findEmployeeEmailById" resultType="java.lang.String">
+        SELECT email
         FROM employee
         WHERE employee_id = #{employeeId}
     </select>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper">
+
+    <sql id="monthStart">
+        STR_TO_DATE(CONCAT(#{targetYear}, '-', LPAD(#{targetMonth}, 2, '0'), '-01'), '%Y-%m-%d')
+    </sql>
+
+    <sql id="nextMonthStart">
+        DATE_ADD(<include refid="monthStart"/>, INTERVAL 1 MONTH)
+    </sql>
+
+    <sql id="performanceMonthOverlapCondition">
+        DATE(COALESCE(p.start_date, p.created_at)) &lt; <include refid="nextMonthStart"/>
+        AND DATE(
+            COALESCE(
+                p.end_date,
+                p.expected_end_date,
+                LAST_DAY(<include refid="monthStart"/>)
+            )
+        ) &gt;= <include refid="monthStart"/>
+    </sql>
+
+    <select id="findPersonalKpiAchievementRate" parameterType="map" resultType="int">
+        SELECT COALESCE(
+                   ROUND(
+                       SUM(CASE WHEN p.status = 'ENDED' THEN 1 ELSE 0 END) * 100.0
+                       / NULLIF(COUNT(*), 0)
+                   ),
+                   0
+               )
+        FROM performance p
+        WHERE p.employee_id = #{employeeId}
+          AND p.work_item = 'PERSONAL'
+          AND <include refid="performanceMonthOverlapCondition"/>
+    </select>
+
+    <select id="findTeamKpiAchievementRate" parameterType="map" resultType="int">
+        SELECT COALESCE(
+                   ROUND(
+                       SUM(CASE WHEN p.status = 'ENDED' THEN 1 ELSE 0 END) * 100.0
+                       / NULLIF(COUNT(*), 0)
+                   ),
+                   0
+               )
+        FROM performance p
+        WHERE p.employee_id = #{employeeId}
+          AND p.work_item = 'TEAM'
+          AND <include refid="performanceMonthOverlapCondition"/>
+    </select>
+
+    <select id="findMonthlyCoreGoalProgressRate" parameterType="map" resultType="int">
+        SELECT COALESCE(
+                   ROUND(
+                       SUM(CASE WHEN p.status = 'ENDED' THEN 1 ELSE 0 END) * 100.0
+                       / NULLIF(COUNT(*), 0)
+                   ),
+                   0
+               )
+        FROM performance p
+        WHERE p.employee_id = #{employeeId}
+          AND p.expected_end_date IS NOT NULL
+          AND p.expected_end_date &gt;= <include refid="monthStart"/>
+          AND p.expected_end_date &lt;= LAST_DAY(<include refid="monthStart"/>)
+    </select>
+
+    <select id="findCompositeScore" parameterType="map" resultType="int">
+        SELECT COALESCE(
+                   ROUND(
+                       COALESCE(personal_scores.total_score, 0)
+                       * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
+                       +
+                       COALESCE(team_scores.total_score, 0)
+                       * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
+                   ),
+                   0
+               ) AS compositeScore
+        FROM (SELECT #{employeeId} AS employee_id) base
+        LEFT JOIN performance_weight weight_config
+               ON weight_config.org_id = #{orgId}
+        LEFT JOIN (
+            SELECT p.employee_id,
+                   SUM(
+                       LEAST(GREATEST(COALESCE(p.difficulty_score, 0), 0), 10)
+                       *
+                       CASE
+                           WHEN p.expected_end_date IS NULL THEN 1.0
+                           WHEN p.end_date &lt; p.expected_end_date THEN 1.1
+                           WHEN p.end_date = p.expected_end_date THEN 1.0
+                           ELSE GREATEST(0, 1.0 - (DATEDIFF(p.end_date, p.expected_end_date) * 0.05))
+                       END
+                       *
+                       (COALESCE(p.achievement_rate, 0) / 25.0)
+                   ) AS total_score
+            FROM performance p
+            WHERE p.employee_id = #{employeeId}
+              AND p.work_item = 'PERSONAL'
+              AND p.status = 'ENDED'
+              AND p.end_date IS NOT NULL
+              AND p.end_date &gt;= <include refid="monthStart"/>
+              AND p.end_date &lt; <include refid="nextMonthStart"/>
+            GROUP BY p.employee_id
+        ) personal_scores
+               ON personal_scores.employee_id = base.employee_id
+        LEFT JOIN (
+            SELECT p.employee_id,
+                   SUM(
+                       LEAST(GREATEST(COALESCE(p.difficulty_score, 0), 0), 10)
+                       *
+                       CASE
+                           WHEN p.expected_end_date IS NULL THEN 1.0
+                           WHEN p.end_date &lt; p.expected_end_date THEN 1.1
+                           WHEN p.end_date = p.expected_end_date THEN 1.0
+                           ELSE GREATEST(0, 1.0 - (DATEDIFF(p.end_date, p.expected_end_date) * 0.05))
+                       END
+                       *
+                       (COALESCE(p.achievement_rate, 0) / 25.0)
+                   ) AS total_score
+            FROM performance p
+            WHERE p.employee_id = #{employeeId}
+              AND p.work_item = 'TEAM'
+              AND p.status = 'ENDED'
+              AND p.end_date IS NOT NULL
+              AND p.end_date &gt;= <include refid="monthStart"/>
+              AND p.end_date &lt; <include refid="nextMonthStart"/>
+            GROUP BY p.employee_id
+        ) team_scores
+               ON team_scores.employee_id = base.employee_id
+    </select>
+
+    <insert id="upsertDashboardSummary" parameterType="map">
+        INSERT INTO performance_metric_summary(
+            employee_id,
+            metric_year,
+            metric_month,
+            personal_kpi_achievement_rate,
+            team_kpi_achievement_rate,
+            monthly_core_goal_progress_rate,
+            score_change_rate,
+            composite_score,
+            calculated_at
+        ) VALUES (
+            #{employeeId},
+            #{targetYear},
+            #{targetMonth},
+            #{personalKpiAchievementRate},
+            #{teamKpiAchievementRate},
+            #{monthlyCoreGoalProgressRate},
+            #{scoreChangeRate},
+            #{compositeScore},
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            personal_kpi_achievement_rate = VALUES(personal_kpi_achievement_rate),
+            team_kpi_achievement_rate = VALUES(team_kpi_achievement_rate),
+            monthly_core_goal_progress_rate = VALUES(monthly_core_goal_progress_rate),
+            score_change_rate = VALUES(score_change_rate),
+            composite_score = VALUES(composite_score),
+            calculated_at = NOW()
+    </insert>
+
+    <select id="findDashboardSummary"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper$DashboardSummaryRow">
+        SELECT employee_id AS employeeId,
+               metric_year AS metricYear,
+               metric_month AS metricMonth,
+               personal_kpi_achievement_rate AS personalKpiAchievementRate,
+               team_kpi_achievement_rate AS teamKpiAchievementRate,
+               monthly_core_goal_progress_rate AS monthlyCoreGoalProgressRate,
+               score_change_rate AS scoreChangeRate,
+               composite_score AS compositeScore,
+               calculated_at AS calculatedAt
+        FROM performance_metric_summary
+        WHERE employee_id = #{employeeId}
+          AND metric_year = #{targetYear}
+          AND metric_month = #{targetMonth}
+    </select>
+
+    <select id="findLatestDashboardSummary"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper$DashboardSummaryRow">
+        SELECT employee_id AS employeeId,
+               metric_year AS metricYear,
+               metric_month AS metricMonth,
+               personal_kpi_achievement_rate AS personalKpiAchievementRate,
+               team_kpi_achievement_rate AS teamKpiAchievementRate,
+               monthly_core_goal_progress_rate AS monthlyCoreGoalProgressRate,
+               score_change_rate AS scoreChangeRate,
+               composite_score AS compositeScore,
+               calculated_at AS calculatedAt
+        FROM performance_metric_summary
+        WHERE employee_id = #{employeeId}
+        ORDER BY metric_year DESC, metric_month DESC
+        LIMIT 1
+    </select>
+</mapper>

@@ -19,6 +19,7 @@ import com.reverse.attendance.internal.persistence.AttendancePolicyMapper;
 import com.reverse.attendance.internal.persistence.BusinessTripMapper;
 import com.reverse.attendance.internal.persistence.OvertimeMapper;
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -249,7 +250,7 @@ public class AttendanceService {
     @Transactional(readOnly = true)
     public AttendanceWeeklySummaryResponse getWeeklySummary(Long employeeId, LocalDate date) {
         LocalDate targetDate = date == null ? LocalDate.now() : date;
-        LocalDate weekStart = targetDate.with(java.time.DayOfWeek.MONDAY);
+        LocalDate weekStart = targetDate.with(DayOfWeek.MONDAY);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         int totalWorkedMinutes =
@@ -319,7 +320,12 @@ public class AttendanceService {
                 Comparator.comparing(AttendanceCalendarEventResponse::getTargetDate)
                         .thenComparing(AttendanceCalendarEventResponse::getEventId));
 
-        return AttendanceCalendarResponse.builder().year(year).month(month).events(events).build();
+        return AttendanceCalendarResponse.builder()
+                .targetMonth(String.format("%04d-%02d", year, month))
+                .year(year)
+                .month(month)
+                .events(events)
+                .build();
     }
 
     // 💡 내부 헬퍼 메서드: 규정 조회 로직 분리 (가독성을 높이기 위함)
@@ -425,6 +431,18 @@ public class AttendanceService {
                         attendance.getModifyReason() != null
                                 ? attendance.getModifyReason()
                                 : attendance.getTardyReason())
+                .title(attendance.getStatus().getDescription())
+                .status(attendance.getStatus().name())
+                .targetDate(attendance.getWorkDate())
+                .startDateTime(
+                        attendance.getCheckInTime() == null
+                                ? null
+                                : attendance.getWorkDate().atTime(attendance.getCheckInTime()))
+                .endDateTime(
+                        attendance.getCheckOutTime() == null
+                                ? null
+                                : attendance.getWorkDate().atTime(attendance.getCheckOutTime()))
+                .memo(attendance.getModifyReason())
                 .build();
     }
 
@@ -439,6 +457,22 @@ public class AttendanceService {
                         item.getStartDate() != null ? item.getStartDate().atStartOfDay() : null)
                 .endDateTime(item.getEndDate() != null ? item.getEndDate().atTime(23, 59) : null)
                 .memo(item.getReason())
+                .build();
+    }
+
+    private AttendanceCalendarEventResponse toWeeklyScheduleEvent(WeeklyWorkSchedule item) {
+        return AttendanceCalendarEventResponse.builder()
+                .eventId("weekly-" + item.getWeeklyId())
+                .category("WEEKLY_SCHEDULE")
+                .title(
+                        item.getScheduleTitle() != null
+                                ? item.getScheduleTitle()
+                                : item.getWorkForm())
+                .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
+                .targetDate(item.getPlanDate())
+                .startDateTime(item.getStartDate())
+                .endDateTime(item.getEndDate())
+                .memo(item.getMemo())
                 .build();
     }
 
@@ -465,22 +499,6 @@ public class AttendanceService {
                 .startDateTime(item.getStartDatetime())
                 .endDateTime(item.getEndDatetime())
                 .memo(item.getReason())
-                .build();
-    }
-
-    private AttendanceCalendarEventResponse toWeeklyScheduleEvent(WeeklyWorkSchedule item) {
-        return AttendanceCalendarEventResponse.builder()
-                .eventId("weekly-" + item.getWeeklyId())
-                .category("WEEKLY_SCHEDULE")
-                .title(
-                        item.getScheduleTitle() != null
-                                ? item.getScheduleTitle()
-                                : item.getWorkForm())
-                .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
-                .targetDate(item.getPlanDate())
-                .startDateTime(item.getStartDate())
-                .endDateTime(item.getEndDate())
-                .memo(item.getMemo())
                 .build();
     }
 

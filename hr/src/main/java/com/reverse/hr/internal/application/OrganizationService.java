@@ -2,6 +2,7 @@ package com.reverse.hr.internal.application;
 
 import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.exception.UnauthorizedException;
+import com.reverse.core.response.PageResponse;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
@@ -50,34 +51,46 @@ public class OrganizationService {
 
     public List<OrganizationMemberResponseDTO> getOrganizationMembers(Long orgId) {
         List<OrgMemberRow> rows = organizationMapper.findOrganizationMembers(orgId);
-        return rows.stream()
-                .map(
-                        row ->
-                                new OrganizationMemberResponseDTO(
-                                        row.employeeId(),
-                                        row.employeeName(),
-                                        row.email(),
-                                        row.phone(),
-                                        row.extensionNum(),
-                                        row.positionName(),
-                                        row.jobName(),
-                                        row.rankName(),
-                                        row.areaName(),
-                                        row.employeeState()))
-                .toList();
+        return rows.stream().map(this::toOrganizationMemberResponse).toList();
     }
 
-    public List<OrganizationMemberResponseDTO> getMyOrganizationMembers(Long employeeId) {
-        Long orgId = organizationMapper.findMyOrgIdByEmployeeId(employeeId);
-        if (orgId == null) {
+    public PageResponse<OrganizationMemberResponseDTO> getMyOrganizationMembers(
+            Long employeeId, Long filterOrgId, int page, int size) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+
+        Long myOrgId = organizationMapper.findMyOrgIdByEmployeeId(employeeId);
+        if (myOrgId == null) {
             throw new NotFoundException("ORG_NOT_FOUND", "소속 조직 정보가 없습니다.");
         }
-        return getOrganizationMembers(orgId);
+
+        if (filterOrgId != null
+                && organizationMapper.existsSubtreeAccess(myOrgId, filterOrgId) == 0) {
+            throw new UnauthorizedException(
+                    "ORG_MEMBER_ACCESS_DENIED", "하위 조직 범위 내에서만 구성원을 조회할 수 있습니다.");
+        }
+
+        int limit = safeSize;
+        long offsetLong = (long) (safePage - 1) * safeSize;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("조회 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+
+        long total = organizationMapper.countMembersInSubtree(myOrgId, filterOrgId);
+        List<OrganizationMemberResponseDTO> content =
+                organizationMapper
+                        .findMembersInSubtree(myOrgId, filterOrgId, limit, offset)
+                        .stream()
+                        .map(this::toOrganizationMemberResponse)
+                        .toList();
+
+        return PageResponse.of(content, safePage, safeSize, total);
     }
 
     public OrganizationMemberDetailResponseDTO getOrganizationMemberDetail(
             Long viewerEmployeeId, Long targetEmployeeId) {
-        validateSameTeamAccess(viewerEmployeeId, targetEmployeeId);
+        validateSubtreeAccess(viewerEmployeeId, targetEmployeeId);
 
         BasicInfoRow basicInfoRow =
                 myPageMapper
@@ -114,9 +127,12 @@ public class OrganizationService {
                         hrInfoRow.rankName(),
                         hrInfoRow.jobName(),
                         hrInfoRow.employeeState(),
+                        toEmployeeStateDescription(hrInfoRow.employeeState()),
                         formatDate(hrInfoRow.hireDate()),
                         hrInfoRow.employType(),
+                        toEmployTypeDescription(hrInfoRow.employType()),
                         hrInfoRow.recruitType(),
+                        toRecruitTypeDescription(hrInfoRow.recruitType()),
                         hrInfoRow.areaName());
 
         List<OrganizationMemberDetailResponseDTO.SkillItem> skills =
@@ -150,7 +166,7 @@ public class OrganizationService {
 
     public EvidenceFileResponseDTO getOrganizationMemberSkillEvidence(
             Long viewerEmployeeId, Long targetEmployeeId, Long skillId) {
-        validateSameTeamAccess(viewerEmployeeId, targetEmployeeId);
+        validateSubtreeAccess(viewerEmployeeId, targetEmployeeId);
         HrFileRow fileRow =
                 myPageMapper
                         .findSkillFileByIdAndEmployeeId(targetEmployeeId, skillId)
@@ -165,7 +181,7 @@ public class OrganizationService {
 
     public EvidenceFileResponseDTO getOrganizationMemberCareerEvidence(
             Long viewerEmployeeId, Long targetEmployeeId, Long careerId) {
-        validateSameTeamAccess(viewerEmployeeId, targetEmployeeId);
+        validateSubtreeAccess(viewerEmployeeId, targetEmployeeId);
         HrFileRow fileRow =
                 myPageMapper
                         .findCareerFileByIdAndEmployeeId(targetEmployeeId, careerId)
@@ -178,7 +194,7 @@ public class OrganizationService {
                 fileRow.getHrFileId(), fileRow.getFileTitle(), fileRow.getFileUrl());
     }
 
-    private void validateSameTeamAccess(Long viewerEmployeeId, Long targetEmployeeId) {
+    private void validateSubtreeAccess(Long viewerEmployeeId, Long targetEmployeeId) {
         Long myOrgId = organizationMapper.findMyOrgIdByEmployeeId(viewerEmployeeId);
         Long targetOrgId = organizationMapper.findMyOrgIdByEmployeeId(targetEmployeeId);
 
@@ -190,9 +206,48 @@ public class OrganizationService {
             throw new NotFoundException("TARGET_ORG_NOT_FOUND", "대상 사원의 소속 조직 정보가 없습니다.");
         }
 
-        if (!myOrgId.equals(targetOrgId)) {
-            throw new UnauthorizedException("ORG_MEMBER_ACCESS_DENIED", "같은 팀 구성원만 조회할 수 있습니다.");
+        if (organizationMapper.existsSubtreeAccess(myOrgId, targetOrgId) == 0) {
+            throw new UnauthorizedException(
+                    "ORG_MEMBER_ACCESS_DENIED", "내 조직 및 하위 조직 구성원만 조회할 수 있습니다.");
         }
+    }
+
+    private OrganizationMemberResponseDTO toOrganizationMemberResponse(OrgMemberRow row) {
+        return new OrganizationMemberResponseDTO(
+                row.employeeId(),
+                row.employeeName(),
+                row.profileFileUrl(),
+                row.email(),
+                row.phone(),
+                row.extensionNum(),
+                row.positionName(),
+                row.jobName(),
+                row.rankName(),
+                row.areaName(),
+                row.employeeState(),
+                toEmployeeStateDescription(row.employeeState()));
+    }
+
+    private String toEmployeeStateDescription(
+            com.reverse.hr.internal.domain.enums.EmployeeState state) {
+        if (state == null) {
+            return null;
+        }
+        return state.getDescription();
+    }
+
+    private String toEmployTypeDescription(com.reverse.hr.internal.domain.enums.EmployType type) {
+        if (type == null) {
+            return null;
+        }
+        return type.getDescription();
+    }
+
+    private String toRecruitTypeDescription(com.reverse.hr.internal.domain.enums.RecruitType type) {
+        if (type == null) {
+            return null;
+        }
+        return type.getDescription();
     }
 
     private String formatDate(LocalDate date) {

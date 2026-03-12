@@ -88,7 +88,7 @@ public class AttendanceController {
         return ResponseEntity.ok(records);
     }
 
-    @Operation(summary = "주간 근태 요약 조회", description = "특정 기준일이 속한 주의 근무 요약을 조회합니다.")
+    @Operation(summary = "주간 근무 요약 조회", description = "특정 날짜가 포함된 주의 근무시간 요약을 조회합니다.")
     @GetMapping("/weekly-summary")
     @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<AttendanceWeeklySummaryResponse> getWeeklySummary(
@@ -97,7 +97,7 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getWeeklySummary(user.getEmployeeId(), date));
     }
 
-    @Operation(summary = "월간 근태 캘린더 조회", description = "특정 월의 근태/신청 일정 이벤트를 조회합니다.")
+    @Operation(summary = "월간 근무 캘린더 조회", description = "특정 월의 근태/휴가/출장/연장근무/유연근무 이벤트를 조회합니다.")
     @GetMapping("/calendar")
     @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<AttendanceCalendarResponse> getCalendar(

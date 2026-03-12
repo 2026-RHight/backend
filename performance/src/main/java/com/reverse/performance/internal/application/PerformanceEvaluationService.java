@@ -8,6 +8,9 @@ import com.reverse.performance.internal.dto.response.PerformanceTeamEvaluationTa
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,31 +20,91 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class PerformanceEvaluationService {
 
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
     private final PerformanceService performanceService;
 
     public List<PerformanceTeamEvaluationTargetResponse> getTeamEvaluationTargets(Long employeeId) {
-        return performanceViewMapper.findTeamEvaluationTargets(employeeId).stream()
+        List<PerformanceHrMemberResolver.OrganizationMemberSnapshot> members =
+                performanceHrMemberResolver.getMyOrganizationMembers(employeeId).stream()
+                        .filter(member -> !employeeId.equals(member.employeeId()))
+                        .toList();
+        if (members.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, PerformanceViewMapper.TeamEvaluationMetricRow> metricMap =
+                performanceViewMapper
+                        .findTeamEvaluationMetrics(
+                                employeeId,
+                                members.stream()
+                                        .map(
+                                                PerformanceHrMemberResolver
+                                                                .OrganizationMemberSnapshot
+                                                        ::employeeId)
+                                        .toList())
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        PerformanceViewMapper.TeamEvaluationMetricRow::employeeId,
+                                        Function.identity()));
+
+        return members.stream()
                 .map(
-                        row ->
-                                new PerformanceTeamEvaluationTargetResponse(
-                                        row.id(),
-                                        row.name(),
-                                        row.role(),
-                                        row.department(),
-                                        row.status(),
-                                        nvl(row.systemScore()),
-                                        nvd(row.peerReviewScore()),
-                                        new PerformanceTeamEvaluationAveragesResponse(
-                                                nvd(row.performanceAvg()),
-                                                nvd(row.attitudeAvg()),
-                                                nvd(row.collaborationAvg()),
-                                                nvd(row.creativityAvg()))))
+                        member -> {
+                            PerformanceViewMapper.TeamEvaluationMetricRow row =
+                                    metricMap.get(member.employeeId());
+                            return new PerformanceTeamEvaluationTargetResponse(
+                                    member.employeeId(),
+                                    member.employeeName(),
+                                    defaultString(member.jobName(), "팀원"),
+                                    defaultString(member.orgName(), "소속팀"),
+                                    row == null ? "평가 대기" : row.status(),
+                                    row == null ? 0 : nvl(row.systemScore()),
+                                    row == null ? 0.0 : nvd(row.peerReviewScore()),
+                                    new PerformanceTeamEvaluationAveragesResponse(
+                                            row == null ? 0.0 : nvd(row.performanceAvg()),
+                                            row == null ? 0.0 : nvd(row.attitudeAvg()),
+                                            row == null ? 0.0 : nvd(row.collaborationAvg()),
+                                            row == null ? 0.0 : nvd(row.creativityAvg())));
+                        })
                 .toList();
     }
 
     public List<PerformancePeerReviewTargetResponse> getPeerReviewTargets(Long employeeId) {
-        return performanceViewMapper.findPeerReviewTargets(employeeId);
+        List<PerformanceHrMemberResolver.OrganizationMemberSnapshot> members =
+                performanceHrMemberResolver.getMyOrganizationMembers(employeeId).stream()
+                        .filter(member -> !employeeId.equals(member.employeeId()))
+                        .toList();
+        if (members.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Boolean> evaluatedMap =
+                performanceViewMapper
+                        .findPeerReviewTargetStates(
+                                employeeId,
+                                members.stream()
+                                        .map(
+                                                PerformanceHrMemberResolver
+                                                                .OrganizationMemberSnapshot
+                                                        ::employeeId)
+                                        .toList())
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        PerformanceViewMapper.PeerReviewTargetStateRow::employeeId,
+                                        PerformanceViewMapper.PeerReviewTargetStateRow::evaluated));
+
+        return members.stream()
+                .map(
+                        member ->
+                                new PerformancePeerReviewTargetResponse(
+                                        member.employeeId(),
+                                        member.employeeName(),
+                                        defaultString(member.orgName(), "소속팀"),
+                                        evaluatedMap.getOrDefault(member.employeeId(), false)))
+                .toList();
     }
 
     @Transactional
@@ -55,10 +118,6 @@ public class PerformanceEvaluationService {
                 new TeamEvalRequest(
                         evaluatorId,
                         request.appraiseeId(),
-                        null,
-                        null,
-                        null,
-                        null,
                         null,
                         request.performanceScore(),
                         request.performanceComment(),
@@ -76,5 +135,9 @@ public class PerformanceEvaluationService {
 
     private double nvd(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    private String defaultString(String value, String defaultValue) {
+        return value == null || value.isBlank() ? defaultValue : value;
     }
 }

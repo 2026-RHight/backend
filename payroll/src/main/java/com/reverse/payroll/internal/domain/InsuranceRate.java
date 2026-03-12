@@ -19,11 +19,13 @@ public class InsuranceRate {
 
     @Builder
     public InsuranceRate(
+            Long insuranceId,
             int applyYear,
             BigDecimal nationalPensionRate,
             BigDecimal healthInsuranceRate,
             BigDecimal longTermCareRate,
             BigDecimal empInsuranceRate) {
+        this.insuranceId = insuranceId;
         this.applyYear = applyYear;
         this.nationalPensionRate = nationalPensionRate;
         this.healthInsuranceRate = healthInsuranceRate;
