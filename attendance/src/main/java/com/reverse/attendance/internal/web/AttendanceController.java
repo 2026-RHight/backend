@@ -11,6 +11,7 @@ import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -64,11 +65,13 @@ public class AttendanceController {
     @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<AttendanceSummaryResponse> getMonthlySummary(
             @AuthenticationPrincipal CustomUser user,
-            @RequestParam int year,
-            @RequestParam int month) {
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        YearMonth targetMonth = resolveYearMonth(year, month);
 
         AttendanceSummaryResponse summary =
-                attendanceService.getMonthlySummary(user.getEmployeeId(), year, month);
+                attendanceService.getMonthlySummary(
+                        user.getEmployeeId(), targetMonth.getYear(), targetMonth.getMonthValue());
         return ResponseEntity.ok(summary);
     }
 
@@ -79,12 +82,17 @@ public class AttendanceController {
     @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<List<AttendanceRecordResponse>> getMonthlyRecords(
             @AuthenticationPrincipal CustomUser user,
-            @RequestParam int year,
-            @RequestParam int month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
             @RequestParam(required = false) String status) {
+        YearMonth targetMonth = resolveYearMonth(year, month);
 
         List<AttendanceRecordResponse> records =
-                attendanceService.getMonthlyRecords(user.getEmployeeId(), year, month, status);
+                attendanceService.getMonthlyRecords(
+                        user.getEmployeeId(),
+                        targetMonth.getYear(),
+                        targetMonth.getMonthValue(),
+                        status);
         return ResponseEntity.ok(records);
     }
 
@@ -102,8 +110,18 @@ public class AttendanceController {
     @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
     public ResponseEntity<AttendanceCalendarResponse> getCalendar(
             @AuthenticationPrincipal CustomUser user,
-            @RequestParam int year,
-            @RequestParam int month) {
-        return ResponseEntity.ok(attendanceService.getCalendar(user.getEmployeeId(), year, month));
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        YearMonth targetMonth = resolveYearMonth(year, month);
+        return ResponseEntity.ok(
+                attendanceService.getCalendar(
+                        user.getEmployeeId(), targetMonth.getYear(), targetMonth.getMonthValue()));
+    }
+
+    private YearMonth resolveYearMonth(Integer year, Integer month) {
+        YearMonth now = YearMonth.now();
+        int resolvedYear = year == null ? now.getYear() : year;
+        int resolvedMonth = month == null ? now.getMonthValue() : month;
+        return YearMonth.of(resolvedYear, resolvedMonth);
     }
 }

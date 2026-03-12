@@ -13,6 +13,7 @@ import com.reverse.core.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -60,19 +61,26 @@ public class AttendanceAdminController {
     @GetMapping("/dashboard")
     @PreAuthorize(ATTENDANCE_REPORT_VIEW_AUTH)
     public ResponseEntity<AdminAttendanceDashboardResponse> getDashboard(
-            @RequestParam int year, @RequestParam int month) {
-        return ResponseEntity.ok(attendanceAdminService.getDashboard(year, month));
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        YearMonth targetMonth = resolveYearMonth(year, month);
+        return ResponseEntity.ok(
+                attendanceAdminService.getDashboard(
+                        targetMonth.getYear(), targetMonth.getMonthValue()));
     }
 
     @Operation(summary = "월간 근태 리포트", description = "사원별 월간 근태 집계 리포트를 조회합니다.")
     @GetMapping("/reports")
     @PreAuthorize(ATTENDANCE_REPORT_VIEW_AUTH)
     public ResponseEntity<PageResponse<AdminAttendanceReportResponse>> getMonthlyReport(
-            @RequestParam int year,
-            @RequestParam int month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(attendanceAdminService.getMonthlyReport(year, month, page, size));
+        YearMonth targetMonth = resolveYearMonth(year, month);
+        return ResponseEntity.ok(
+                attendanceAdminService.getMonthlyReport(
+                        targetMonth.getYear(), targetMonth.getMonthValue(), page, size));
     }
 
     @Operation(summary = "관리자 일별 근태 목록 조회", description = "관리자가 기간별 직원 근태 기록 목록을 조회합니다.")
@@ -90,13 +98,19 @@ public class AttendanceAdminController {
     @GetMapping("/history")
     @PreAuthorize(ATTENDANCE_REPORT_VIEW_AUTH)
     public ResponseEntity<PageResponse<AttendanceHistoryResponse>> getHistory(
-            @RequestParam int year,
-            @RequestParam int month,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Long employeeId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
+        YearMonth targetMonth = resolveYearMonth(year, month);
         return ResponseEntity.ok(
-                attendanceAdminService.getHistory(year, month, employeeId, page, size));
+                attendanceAdminService.getHistory(
+                        targetMonth.getYear(),
+                        targetMonth.getMonthValue(),
+                        employeeId,
+                        page,
+                        size));
     }
 
     @Operation(summary = "월 근태 마감", description = "지정한 월의 근태 데이터를 마감 처리합니다.")
@@ -113,5 +127,12 @@ public class AttendanceAdminController {
     public ResponseEntity<AttendanceMonthlyCloseResponse> reopenMonth(
             @Valid @RequestBody AttendanceMonthlyCloseRequest request) {
         return ResponseEntity.ok(attendanceAdminService.reopenMonth(request));
+    }
+
+    private YearMonth resolveYearMonth(Integer year, Integer month) {
+        YearMonth now = YearMonth.now();
+        int resolvedYear = year == null ? now.getYear() : year;
+        int resolvedMonth = month == null ? now.getMonthValue() : month;
+        return YearMonth.of(resolvedYear, resolvedMonth);
     }
 }
