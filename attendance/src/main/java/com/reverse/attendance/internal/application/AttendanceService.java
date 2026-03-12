@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -284,52 +285,47 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public AttendanceCalendarResponse getCalendar(Long employeeId, int year, int month) {
+        String targetMonth = String.format("%04d-%02d", year, month);
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
-
         List<AttendanceCalendarEventResponse> events = new ArrayList<>();
-        events.addAll(
-                attendanceMapper.findRecordsByDateRange(employeeId, monthStart, monthEnd).stream()
-                        .map(this::toAttendanceEvent)
-                        .collect(Collectors.toList()));
-        events.addAll(
-                leaveMapper
-                        .findLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
-                        .stream()
-                        .map(this::toLeaveEvent)
-                        .collect(Collectors.toList()));
-        events.addAll(
-                weeklyWorkScheduleMapper
-                        .findByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
-                        .stream()
-                        .map(this::toWeeklyScheduleEvent)
-                        .collect(Collectors.toList()));
-        events.addAll(
-                overtimeMapper
-                        .findByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
-                        .stream()
-                        .map(this::toOvertimeEvent)
-                        .collect(Collectors.toList()));
-        events.addAll(
-                businessTripMapper
-                        .findByEmployeeIdAndDateRange(
-                                employeeId,
-                                monthStart.atStartOfDay(),
-                                monthEnd.plusDays(1).atStartOfDay().minusSeconds(1))
-                        .stream()
-                        .map(this::toBusinessTripEvent)
-                        .collect(Collectors.toList()));
+
+        attendanceMapper.findMonthlyRecords(employeeId, targetMonth, null).stream()
+                .filter(record -> record.getWorkDate() != null)
+                .map(this::toAttendanceEvent)
+                .forEach(events::add);
+
+        leaveMapper
+                .findLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
+                .stream()
+                .map(this::toLeaveEvent)
+                .forEach(events::add);
+
+        overtimeMapper.findByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd).stream()
+                .map(this::toOvertimeEvent)
+                .forEach(events::add);
+
+        businessTripMapper
+                .findByEmployeeIdAndDateRange(
+                        employeeId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59))
+                .stream()
+                .map(this::toBusinessTripEvent)
+                .forEach(events::add);
+
+        weeklyWorkScheduleMapper
+                .findByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
+                .stream()
+                .map(this::toWeeklyScheduleEvent)
+                .forEach(events::add);
+
         events.sort(
-                java.util.Comparator.comparing(AttendanceCalendarEventResponse::getTargetDate)
-                        .thenComparing(
-                                event ->
-                                        event.getStartDateTime() == null
-                                                ? LocalDateTime.MIN
-                                                : event.getStartDateTime())
+                Comparator.comparing(AttendanceCalendarEventResponse::getTargetDate)
                         .thenComparing(AttendanceCalendarEventResponse::getEventId));
 
         return AttendanceCalendarResponse.builder()
                 .targetMonth(String.format("%04d-%02d", year, month))
+                .year(year)
+                .month(month)
                 .events(events)
                 .build();
     }
@@ -400,7 +396,6 @@ public class AttendanceService {
                         (attendance.getCheckOutTime().toSecondOfDay()
                                         - attendance.getCheckInTime().toSecondOfDay())
                                 / 60);
-
         return baseWorkedMinutes
                 + toMinutes(attendance.getOvertimeHours())
                 + toMinutes(attendance.getNightWorkHours())
@@ -418,6 +413,26 @@ public class AttendanceService {
         return AttendanceCalendarEventResponse.builder()
                 .eventId("attendance-" + attendance.getAttendanceId())
                 .category("ATTENDANCE")
+                .title(
+                        attendance.getStatus() != null
+                                ? attendance.getStatus().getDescription()
+                                : "근태 기록")
+                .status(attendance.getStatus() != null ? attendance.getStatus().name() : null)
+                .targetDate(attendance.getWorkDate())
+                .startDateTime(
+                        attendance.getCheckInTime() != null
+                                ? LocalDateTime.of(
+                                        attendance.getWorkDate(), attendance.getCheckInTime())
+                                : null)
+                .endDateTime(
+                        attendance.getCheckOutTime() != null
+                                ? LocalDateTime.of(
+                                        attendance.getWorkDate(), attendance.getCheckOutTime())
+                                : null)
+                .memo(
+                        attendance.getModifyReason() != null
+                                ? attendance.getModifyReason()
+                                : attendance.getTardyReason())
                 .title(attendance.getStatus().getDescription())
                 .status(attendance.getStatus().name())
                 .targetDate(attendance.getWorkDate())
@@ -433,55 +448,63 @@ public class AttendanceService {
                 .build();
     }
 
-    private AttendanceCalendarEventResponse toLeaveEvent(LeaveRequest leaveRequest) {
+    private AttendanceCalendarEventResponse toLeaveEvent(LeaveRequest item) {
         return AttendanceCalendarEventResponse.builder()
-                .eventId("leave-" + leaveRequest.getLeaveRequestId())
+                .eventId("leave-" + item.getLeaveRequestId())
                 .category("LEAVE")
-                .title(leaveRequest.getLeaveType().name())
-                .status(leaveRequest.getLeaveStatus().name())
-                .targetDate(leaveRequest.getStartDate())
-                .startDateTime(leaveRequest.getStartDate().atStartOfDay())
-                .endDateTime(leaveRequest.getEndDate().plusDays(1).atStartOfDay().minusSeconds(1))
-                .memo(leaveRequest.getReason())
+                .title(item.getLeaveType() != null ? item.getLeaveType().name() : "휴가")
+                .status(item.getLeaveStatus() != null ? item.getLeaveStatus().name() : null)
+                .targetDate(item.getStartDate())
+                .startDateTime(
+                        item.getStartDate() != null ? item.getStartDate().atStartOfDay() : null)
+                .endDateTime(item.getEndDate() != null ? item.getEndDate().atTime(23, 59) : null)
+                .memo(item.getReason())
                 .build();
     }
 
-    private AttendanceCalendarEventResponse toWeeklyScheduleEvent(WeeklyWorkSchedule schedule) {
+    private AttendanceCalendarEventResponse toWeeklyScheduleEvent(WeeklyWorkSchedule item) {
         return AttendanceCalendarEventResponse.builder()
-                .eventId("weekly-" + schedule.getWeeklyId())
+                .eventId("weekly-" + item.getWeeklyId())
                 .category("WEEKLY_SCHEDULE")
-                .title(schedule.getScheduleTitle())
-                .status(schedule.getApprovalStatus().name())
-                .targetDate(schedule.getPlanDate())
-                .startDateTime(schedule.getStartDate())
-                .endDateTime(schedule.getEndDate())
-                .memo(schedule.getMemo())
+                .title(
+                        item.getScheduleTitle() != null
+                                ? item.getScheduleTitle()
+                                : item.getWorkForm())
+                .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
+                .targetDate(item.getPlanDate())
+                .startDateTime(item.getStartDate())
+                .endDateTime(item.getEndDate())
+                .memo(item.getMemo())
                 .build();
     }
 
-    private AttendanceCalendarEventResponse toOvertimeEvent(Overtime overtime) {
+    private AttendanceCalendarEventResponse toOvertimeEvent(Overtime item) {
         return AttendanceCalendarEventResponse.builder()
-                .eventId("overtime-" + overtime.getOvertimeId())
+                .eventId("overtime-" + item.getOvertimeId())
                 .category("OVERTIME")
                 .title("연장근무")
-                .status(overtime.getApprovalStatus().name())
-                .targetDate(overtime.getWorkDate())
-                .startDateTime(overtime.getStartTime())
-                .endDateTime(overtime.getEndTime())
-                .memo(overtime.getReason())
+                .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
+                .targetDate(item.getWorkDate())
+                .startDateTime(item.getStartTime())
+                .endDateTime(item.getEndTime())
+                .memo(item.getReason())
                 .build();
     }
 
-    private AttendanceCalendarEventResponse toBusinessTripEvent(BusinessTrip businessTrip) {
+    private AttendanceCalendarEventResponse toBusinessTripEvent(BusinessTrip item) {
         return AttendanceCalendarEventResponse.builder()
-                .eventId("trip-" + businessTrip.getTripId())
+                .eventId("trip-" + item.getTripId())
                 .category("BUSINESS_TRIP")
-                .title(businessTrip.getTripType().name())
-                .status(businessTrip.getApprovalStatus().name())
-                .targetDate(businessTrip.getStartDatetime().toLocalDate())
-                .startDateTime(businessTrip.getStartDatetime())
-                .endDateTime(businessTrip.getEndDatetime())
-                .memo(businessTrip.getReason())
+                .title(item.getTripType() != null ? item.getTripType().name() : "출장")
+                .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
+                .targetDate(toDate(item.getStartDatetime()))
+                .startDateTime(item.getStartDatetime())
+                .endDateTime(item.getEndDatetime())
+                .memo(item.getReason())
                 .build();
+    }
+
+    private LocalDate toDate(LocalDateTime value) {
+        return value != null ? value.toLocalDate() : null;
     }
 }

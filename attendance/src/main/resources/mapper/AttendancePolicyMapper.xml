@@ -8,6 +8,7 @@
         SELECT
             policy_id as policyId,
             employee_id as employeeId,
+            policy_name as policyName,
             std_start_time as stdStartTime,
             std_end_time as stdEndTime,
             core_time_start as coreTimeStart,
@@ -23,6 +24,7 @@
     <insert id="upsert">
         INSERT INTO attendance_policy (
             employee_id,
+            policy_name,
             std_start_time,
             std_end_time,
             core_time_start,
@@ -33,6 +35,7 @@
             updated_at
         ) VALUES (
             #{employeeId},
+            #{policyName},
             #{stdStartTime},
             #{stdEndTime},
             #{coreTimeStart},
@@ -43,6 +46,7 @@
             NOW()
         )
         ON DUPLICATE KEY UPDATE
+            policy_name = VALUES(policy_name),
             std_start_time = VALUES(std_start_time),
             std_end_time = VALUES(std_end_time),
             core_time_start = VALUES(core_time_start),
