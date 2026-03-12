@@ -861,7 +861,6 @@ CREATE TABLE IF NOT EXISTS peer_review (
     team_contribution INT NULL,
     culture_contribution INT NULL,
     comment TEXT NULL,
-    eval_year INT NOT NULL,
     created_at DATETIME NOT NULL,
     PRIMARY KEY (peer_review_id),
     UNIQUE KEY ux_peer_review_eval_reviewer (eval_id, reviewer_id),
