@@ -22,6 +22,13 @@ public interface MyPageMapper {
     // 인사 정보
     Optional<HrInfoRow> findHrInfoByEmployeeId(@Param("employeeId") Long employeeId);
 
+    // 내 인사 이력
+    List<MyHrEventRow> findMyHrEventsByEmployeeId(@Param("employeeId") Long employeeId);
+
+    // 내 인사 이력 상세
+    Optional<MyHrEventDetailRow> findMyHrEventDetailByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("hrEventId") Long hrEventId);
+
     // 역량 정보
     List<SkillItemRow> findSkillsByEmployeeId(@Param("employeeId") Long employeeId);
 

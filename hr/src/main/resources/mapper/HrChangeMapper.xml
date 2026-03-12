@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.HrChangeMapper">
+
+    <sql id="employeeSearchWhere">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    e.employee_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR e.employee_num LIKE CONCAT('%', #{keyword}, '%')
+                    OR o.org_name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="orgId != null">
+                AND EXISTS (
+                    SELECT 1
+                    FROM org_closure oc
+                    WHERE oc.ancestor_org_id = #{orgId}
+                      AND oc.descendant_org_id = h.org_id
+                )
+            </if>
+        </where>
+    </sql>
+
+    <select id="findEmployeesForHrChange"
+            resultType="com.reverse.hr.internal.persistence.row.HrChangeEmployeeSearchRow">
+        SELECT e.employee_id   AS employeeId,
+               e.employee_num  AS employeeNum,
+               e.employee_name AS employeeName,
+               o.org_name      AS orgName,
+               p.position_name AS positionName,
+               j.job_name      AS jobName,
+               r.rank_name     AS rankName,
+               e.employ_state  AS employeeState,
+               h.employ_type   AS employType,
+               w.area_name     AS areaName
+        FROM employee e
+                 JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+                 LEFT JOIN hr_position p ON p.position_id = h.position_id
+                 LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
+                 LEFT JOIN job j ON j.job_id = h.job_id
+                 LEFT JOIN working_area w ON w.area_id = h.area_id
+        <include refid="employeeSearchWhere"/>
+        ORDER BY e.employee_name ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countEmployeesForHrChange" resultType="long">
+        SELECT COUNT(*)
+        FROM employee e
+                 JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+        <include refid="employeeSearchWhere"/>
+    </select>
+
+    <select id="findCurrentInfoByEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.HrChangeCurrentInfoRow">
+        SELECT e.employee_id    AS employeeId,
+               e.employee_num   AS employeeNum,
+               e.employee_name  AS employeeName,
+               h.org_id         AS orgId,
+               o.org_name       AS orgName,
+               h.job_id         AS jobId,
+               j.job_name       AS jobName,
+               h.position_id    AS positionId,
+               p.position_name  AS positionName,
+               h.rank_id        AS rankId,
+               r.rank_name      AS rankName,
+               e.employ_state   AS employeeState,
+               h.employ_type    AS employType,
+               h.area_id        AS areaId,
+               w.area_name      AS areaName,
+               h.effective_from AS effectiveFrom
+        FROM employee e
+                 JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+                 LEFT JOIN job j ON j.job_id = h.job_id
+                 LEFT JOIN hr_position p ON p.position_id = h.position_id
+                 LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
+                 LEFT JOIN working_area w ON w.area_id = h.area_id
+        WHERE e.employee_id = #{employeeId}
+        LIMIT 1
+    </select>
+
+    <select id="findRoleIdsByEmployeeId" resultType="long">
+        SELECT er.role_id
+        FROM employee_role er
+        WHERE er.employee_id = #{employeeId}
+        ORDER BY er.role_id
+    </select>
+
+    <select id="findRoleCodesByEmployeeId" resultType="string">
+        SELECT r.role_code
+        FROM employee_role er
+                 JOIN role r ON r.role_id = er.role_id
+        WHERE er.employee_id = #{employeeId}
+        ORDER BY r.role_code
+    </select>
+
+    <select id="findAllOrganizations" resultType="com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow">
+        SELECT o.org_id AS id,
+               o.org_name AS name
+        FROM organization o
+        WHERE o.is_active = TRUE
+        ORDER BY o.org_level ASC, o.sort_order ASC, o.org_name ASC
+    </select>
+
+    <select id="findAllJobs" resultType="com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow">
+        SELECT j.job_id AS id,
+               j.job_name AS name
+        FROM job j
+        ORDER BY j.job_name ASC
+    </select>
+
+    <select id="findAllPositions" resultType="com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow">
+        SELECT p.position_id AS id,
+               p.position_name AS name
+        FROM hr_position p
+        ORDER BY p.position_name ASC
+    </select>
+
+    <select id="findAllRanks" resultType="com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow">
+        SELECT r.rank_id AS id,
+               r.rank_name AS name
+        FROM hr_rank r
+        ORDER BY COALESCE(r.rank_no, 0) ASC, r.rank_name ASC
+    </select>
+
+    <select id="findAllWorkingAreas" resultType="com.reverse.hr.internal.persistence.row.HrChangeSimpleOptionRow">
+        SELECT w.area_id AS id,
+               w.area_name AS name
+        FROM working_area w
+        ORDER BY w.area_name ASC
+    </select>
+
+    <select id="findAllRoles" resultType="com.reverse.hr.internal.persistence.row.HrChangeRoleOptionRow">
+        SELECT r.role_id AS roleId,
+               r.role_code AS roleCode,
+               r.role_name AS roleName,
+               r.description AS description
+        FROM role r
+        ORDER BY r.role_name ASC, r.role_code ASC
+    </select>
+
+    <select id="findRoleIdByCode" resultType="long">
+        SELECT r.role_id
+        FROM role r
+        WHERE r.role_code = #{roleCode}
+        LIMIT 1
+    </select>
+
+    <select id="existsOrganization" resultType="int">
+        SELECT COUNT(*)
+        FROM organization
+        WHERE org_id = #{orgId}
+          AND is_active = TRUE
+    </select>
+
+    <select id="existsJob" resultType="int">
+        SELECT COUNT(*)
+        FROM job
+        WHERE job_id = #{jobId}
+    </select>
+
+    <select id="existsPosition" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_position
+        WHERE position_id = #{positionId}
+    </select>
+
+    <select id="existsRank" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_rank
+        WHERE rank_id = #{rankId}
+    </select>
+
+    <select id="existsWorkingArea" resultType="int">
+        SELECT COUNT(*)
+        FROM working_area
+        WHERE area_id = #{areaId}
+    </select>
+
+    <select id="existsRole" resultType="int">
+        SELECT COUNT(*)
+        FROM role
+        WHERE role_id = #{roleId}
+    </select>
+
+    <update id="updateEmployeeState">
+        UPDATE employee
+        SET employ_state = #{employeeState}
+        WHERE employee_id = #{employeeId}
+    </update>
+
+    <update id="updateEmployeeHrInfo">
+        UPDATE employee_hr_info
+        SET org_id = #{orgId},
+            position_id = #{positionId},
+            rank_id = #{rankId},
+            job_id = #{jobId},
+            employ_type = #{employType},
+            area_id = #{areaId},
+            effective_from = #{effectiveFrom}
+        WHERE employee_id = #{employeeId}
+    </update>
+
+    <delete id="deleteEmployeeRoles">
+        DELETE FROM employee_role
+        WHERE employee_id = #{employeeId}
+    </delete>
+
+    <insert id="insertEmployeeRole">
+        INSERT INTO employee_role (employee_id, role_id)
+        VALUES (#{employeeId}, #{roleId})
+    </insert>
+
+    <insert id="insertHrEvent">
+        INSERT INTO hr_event (
+            employee_id,
+            event_type,
+            event_title,
+            effective_from,
+            effective_to,
+            reason,
+            before_change,
+            after_change,
+            target_org_id,
+            target_job_id,
+            target_position_id,
+            target_rank_id,
+            target_employee_state,
+            target_employ_type,
+            target_area_id,
+            target_effective_from,
+            target_role_ids_json,
+            source_approval_id,
+            event_status
+        ) VALUES (
+            #{employeeId},
+            #{eventType},
+            #{eventTitle},
+            #{effectiveFrom},
+            #{effectiveTo},
+            #{reason},
+            #{beforeChange},
+            #{afterChange},
+            #{targetOrgId},
+            #{targetJobId},
+            #{targetPositionId},
+            #{targetRankId},
+            #{targetEmployeeState},
+            #{targetEmployType},
+            #{targetAreaId},
+            #{targetEffectiveFrom},
+            #{targetRoleIdsJson},
+            #{sourceApprovalId},
+            'PENDING'
+        )
+    </insert>
+
+    <select id="findLastInsertedHrEventId" resultType="long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <select id="findEmployeeIdByApprovalId" resultType="long">
+        SELECT ea.drafter_id
+        FROM electronic_approval ea
+        WHERE ea.approval_id = #{approvalId}
+        LIMIT 1
+    </select>
+
+    <select id="existsHrEventBySourceApprovalId" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_event
+        WHERE source_approval_id = #{sourceApprovalId}
+    </select>
+
+    <select id="acquireSchedulerLock" resultType="int">
+        SELECT GET_LOCK(#{lockName}, 0)
+    </select>
+
+    <select id="releaseSchedulerLock" resultType="int">
+        SELECT RELEASE_LOCK(#{lockName})
+    </select>
+
+    <select id="findDuePendingHrEvents" resultType="com.reverse.hr.internal.persistence.row.HrChangePendingEventRow">
+        SELECT he.hr_event_id AS hrEventId,
+               he.employee_id AS employeeId,
+               he.target_org_id AS targetOrgId,
+               he.target_job_id AS targetJobId,
+               he.target_position_id AS targetPositionId,
+               he.target_rank_id AS targetRankId,
+               he.target_employee_state AS targetEmployeeState,
+               he.target_employ_type AS targetEmployType,
+               he.target_area_id AS targetAreaId,
+               he.target_effective_from AS targetEffectiveFrom,
+               he.target_role_ids_json AS targetRoleIdsJson
+        FROM hr_event he
+        WHERE he.event_status = 'PENDING'
+          AND he.target_effective_from <![CDATA[<=]]> #{baseDate}
+        ORDER BY he.target_effective_from ASC, he.hr_event_id ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="markHrEventApplied">
+        UPDATE hr_event
+        SET event_status = 'APPLIED',
+            applied_at = NOW(),
+            applied_error = NULL
+        WHERE hr_event_id = #{hrEventId}
+          AND event_status = 'PENDING'
+    </update>
+
+    <update id="markHrEventFailed">
+        UPDATE hr_event
+        SET event_status = 'FAILED',
+            applied_error = LEFT(#{appliedError}, 500)
+        WHERE hr_event_id = #{hrEventId}
+          AND event_status = 'PENDING'
+    </update>
+
+    <sql id="eventWhere">
+        <where>
+            <if test="eventType != null">
+                AND he.event_type = #{eventType}
+            </if>
+            <if test="eventStatus != null">
+                AND he.event_status = #{eventStatus}
+            </if>
+            <if test="eventStatus == null">
+                AND he.event_status = 'APPLIED'
+            </if>
+            <if test="employeeId != null">
+                AND he.employee_id = #{employeeId}
+            </if>
+            <if test="fromDate != null">
+                AND he.effective_from <![CDATA[>=]]> #{fromDate}
+            </if>
+            <if test="toDate != null">
+                AND he.effective_from <![CDATA[<=]]> #{toDate}
+            </if>
+        </where>
+    </sql>
+
+    <select id="findHrChangeEvents" resultType="com.reverse.hr.internal.persistence.row.HrChangeEventRow">
+        SELECT he.hr_event_id AS hrEventId,
+               he.employee_id AS employeeId,
+               e.employee_name AS employeeName,
+               he.event_type AS eventType,
+               he.event_title AS eventTitle,
+               he.before_change AS beforeChange,
+               he.after_change AS afterChange,
+               he.reason AS reason,
+               he.effective_from AS effectiveFrom,
+               he.effective_to AS effectiveTo,
+               he.event_status AS eventStatus,
+               he.applied_at AS appliedAt,
+               he.applied_error AS appliedError
+        FROM hr_event he
+                 JOIN employee e ON e.employee_id = he.employee_id
+        <include refid="eventWhere"/>
+        ORDER BY he.effective_from DESC, he.hr_event_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countHrChangeEvents" resultType="long">
+        SELECT COUNT(*)
+        FROM hr_event he
+        <include refid="eventWhere"/>
+    </select>
+
+</mapper>
