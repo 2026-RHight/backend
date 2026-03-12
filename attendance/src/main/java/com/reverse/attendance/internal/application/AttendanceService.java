@@ -286,6 +286,8 @@ public class AttendanceService {
     @Transactional(readOnly = true)
     public AttendanceCalendarResponse getCalendar(Long employeeId, int year, int month) {
         String targetMonth = String.format("%04d-%02d", year, month);
+        LocalDate monthStart = LocalDate.of(year, month, 1);
+        LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
         List<AttendanceCalendarEventResponse> events = new ArrayList<>();
 
         attendanceMapper.findMonthlyRecords(employeeId, targetMonth, null).stream()
@@ -293,26 +295,26 @@ public class AttendanceService {
                 .map(this::toAttendanceEvent)
                 .forEach(events::add);
 
-        leaveMapper.findLeaveRequestsByEmployeeId(employeeId, 1000, 0).stream()
-                .filter(
-                        item ->
-                                isInMonth(item.getStartDate(), year, month)
-                                        || isInMonth(item.getEndDate(), year, month))
+        leaveMapper
+                .findLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
+                .stream()
                 .map(this::toLeaveEvent)
                 .forEach(events::add);
 
-        overtimeMapper.findByEmployeeId(employeeId, 1000, 0).stream()
-                .filter(item -> isInMonth(item.getWorkDate(), year, month))
+        overtimeMapper.findByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd).stream()
                 .map(this::toOvertimeEvent)
                 .forEach(events::add);
 
-        businessTripMapper.findByEmployeeId(employeeId, 1000, 0).stream()
-                .filter(item -> isInMonth(toDate(item.getStartDatetime()), year, month))
+        businessTripMapper
+                .findByEmployeeIdAndDateRange(
+                        employeeId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59))
+                .stream()
                 .map(this::toBusinessTripEvent)
                 .forEach(events::add);
 
-        weeklyWorkScheduleMapper.findByEmployeeId(employeeId, 1000, 0).stream()
-                .filter(item -> isInMonth(item.getPlanDate(), year, month))
+        weeklyWorkScheduleMapper
+                .findByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
+                .stream()
                 .map(this::toWeeklyScheduleEvent)
                 .forEach(events::add);
 
@@ -500,10 +502,6 @@ public class AttendanceService {
                 .endDateTime(item.getEndDatetime())
                 .memo(item.getReason())
                 .build();
-    }
-
-    private boolean isInMonth(LocalDate date, int year, int month) {
-        return date != null && date.getYear() == year && date.getMonthValue() == month;
     }
 
     private LocalDate toDate(LocalDateTime value) {
