@@ -796,7 +796,7 @@ CREATE TABLE IF NOT EXISTS evaluation (
     eval_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
     evaluator_id BIGINT NOT NULL,
-    year INT NOT NULL,
+    performance_year INT NOT NULL,
     evaluation_score INT NULL,
     confirmed_at DATETIME NULL,
     created_at DATETIME NOT NULL,
@@ -804,7 +804,7 @@ CREATE TABLE IF NOT EXISTS evaluation (
     PRIMARY KEY (eval_id),
     KEY idx_evaluation_employee (employee_id),
     KEY idx_evaluation_evaluator (evaluator_id),
-    UNIQUE KEY uk_evaluation_employee_year_evaluator (employee_id, year, evaluator_id),
+    UNIQUE KEY uk_evaluation_employee_year_evaluator (employee_id, performance_year, evaluator_id),
     CONSTRAINT fk_evaluation_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_evaluation_evaluator_employee FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id)
 );
@@ -812,12 +812,12 @@ CREATE TABLE IF NOT EXISTS evaluation (
 CREATE TABLE IF NOT EXISTS monthly_performance (
     monthly_performance_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
-    year INT NOT NULL,
-    month INT NOT NULL,
+    performance_year INT NOT NULL,
+    performance_month INT NOT NULL,
     score INT NOT NULL,
     calculated_at DATETIME NOT NULL,
     PRIMARY KEY (monthly_performance_id),
-    UNIQUE KEY uk_monthly_performance_employee_year_month (employee_id, year, month),
+    UNIQUE KEY uk_monthly_performance_employee_year_month (employee_id, performance_year, performance_month),
     KEY idx_monthly_performance_employee (employee_id),
     CONSTRAINT fk_monthly_performance_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
@@ -825,8 +825,8 @@ CREATE TABLE IF NOT EXISTS monthly_performance (
 CREATE TABLE IF NOT EXISTS performance_metric_summary (
     performance_metric_summary_id BIGINT NOT NULL AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
-    metric_year INT NOT NULL,
-    metric_month INT NOT NULL,
+    performance_year INT NOT NULL,
+    performance_month INT NOT NULL,
     personal_kpi_achievement_rate INT NOT NULL DEFAULT 0,
     team_kpi_achievement_rate INT NOT NULL DEFAULT 0,
     monthly_core_goal_progress_rate INT NOT NULL DEFAULT 0,
@@ -834,7 +834,7 @@ CREATE TABLE IF NOT EXISTS performance_metric_summary (
     composite_score INT NOT NULL DEFAULT 0,
     calculated_at DATETIME NOT NULL,
     PRIMARY KEY (performance_metric_summary_id),
-    UNIQUE KEY uk_performance_metric_summary_employee_month (employee_id, metric_year, metric_month),
+    UNIQUE KEY uk_performance_metric_summary_employee_month (employee_id, performance_year, performance_month),
     KEY idx_performance_metric_summary_employee (employee_id),
     CONSTRAINT fk_performance_metric_summary_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id)
 );
@@ -875,7 +875,7 @@ CREATE TABLE IF NOT EXISTS team_evaluation (
     team_evaluation_id BIGINT NOT NULL AUTO_INCREMENT,
     evaluator_id BIGINT NOT NULL,
     appraisee_id BIGINT NOT NULL,
-    evaluation_year INT NOT NULL,
+    performance_year INT NOT NULL,
     performance_score INT NULL,
     performance_comment TEXT NULL,
     attitude_score INT NULL,
@@ -889,8 +889,8 @@ CREATE TABLE IF NOT EXISTS team_evaluation (
     PRIMARY KEY (team_evaluation_id),
     KEY idx_team_evaluation_evaluator (evaluator_id),
     KEY idx_team_evaluation_appraisee (appraisee_id),
-    KEY idx_team_evaluation_year (evaluation_year),
-    UNIQUE KEY uk_team_evaluation_evaluator_appraisee_year (evaluator_id, appraisee_id, evaluation_year),
+    KEY idx_team_evaluation_year (performance_year),
+    UNIQUE KEY uk_team_evaluation_evaluator_appraisee_year (evaluator_id, appraisee_id, performance_year),
     CONSTRAINT fk_team_evaluation_evaluator FOREIGN KEY (evaluator_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_team_evaluation_appraisee FOREIGN KEY (appraisee_id) REFERENCES employee(employee_id)
 );

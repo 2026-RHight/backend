@@ -23,7 +23,7 @@ public class Evaluation {
     @Column(name = "evaluator_id")
     private Long evaluatorId;
 
-    @Column(name = "year")
+    @Column(name = "performance_year")
     private Integer year;
 
     @Column(name = "evaluation_score")
