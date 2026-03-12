@@ -26,6 +26,7 @@ import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,6 +44,7 @@ public class PerformanceService {
     private final MonthlyPerformanceMapper monthlyPerformanceMapper;
     private final PeerReviewMapper peerReviewMapper;
     private final PerformanceMapper performanceMapper;
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
     private final TeamEvalMapper teamEvalMapper;
     private final WaitingPerformanceMapper waitingPerformanceMapper;
@@ -137,8 +139,20 @@ public class PerformanceService {
     }
 
     @Transactional
-    public void saveEvaluation(EvalRequest dto) {
-        evaluationMapper.saveEvaluation(dto);
+    public void saveEvaluation(Long evaluatorId, EvalRequest dto) {
+        if (evaluatorId == null || dto == null || dto.employeeId() == null) {
+            throw new ResponseStatusException(
+                    BAD_REQUEST, "evaluatorId and employeeId are required");
+        }
+
+        boolean allowed =
+                performanceHrMemberResolver.getMyOrganizationMembers(evaluatorId).stream()
+                        .anyMatch(member -> dto.employeeId().equals(member.employeeId()));
+        if (!allowed) {
+            throw new AccessDeniedException("평가할 권한이 없는 직원입니다.");
+        }
+
+        evaluationMapper.saveEvaluation(dto.withEvaluatorId(evaluatorId));
     }
 
     @Transactional(readOnly = true)
