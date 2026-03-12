@@ -51,6 +51,49 @@
         WHERE ss.id = #{id}
     </select>
 
+    <select id="searchEmployees" resultType="com.reverse.payroll.internal.persistence.PayrollMapper$EmployeeSearchRow">
+        SELECT
+            e.employee_id AS employeeId,
+            e.employee_num AS employeeNum,
+            e.employee_name AS employeeName,
+            o.org_name AS departmentName,
+            p.position_name AS positionName,
+            e.employ_state AS employState
+        FROM employee e
+        LEFT JOIN employee_hr_info h ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON h.org_id = o.org_id
+        LEFT JOIN hr_position p ON h.position_id = p.position_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (
+                    CAST(e.employee_id AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+                    OR e.employee_num LIKE CONCAT('%', #{keyword}, '%')
+                    OR e.employee_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR o.org_name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY e.employ_state = 'WORK' DESC, e.employee_name ASC, e.employee_id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countEmployees" resultType="long">
+        SELECT COUNT(*)
+        FROM employee e
+        LEFT JOIN employee_hr_info h ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON h.org_id = o.org_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (
+                    CAST(e.employee_id AS CHAR) LIKE CONCAT('%', #{keyword}, '%')
+                    OR e.employee_num LIKE CONCAT('%', #{keyword}, '%')
+                    OR e.employee_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR o.org_name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+    </select>
+
     <select id="existsSalarySettingOverlap" resultType="boolean">
         SELECT EXISTS(
             SELECT 1
@@ -173,6 +216,24 @@
             account_holder_snapshot as accountHolderSnapshot
         FROM payroll_ledger
         WHERE id = #{id}
+    </select>
+
+    <select id="findPayrollLedgersByEmployeeIdAndMonthRange" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
+        SELECT
+            id, employee_id, insurance_id, target_month, salary_amount, overtime_amount,
+            meal_amount, total_payment, net_pay, is_finalized, is_sent,
+            national_pension_amount, health_insurance_amount, long_term_care_amount,
+            emp_insurance_amount, income_tax_amount, local_tax_amount,
+            employee_name_snapshot as employeeNameSnapshot,
+            dept_name_snapshot as deptNameSnapshot,
+            position_name_snapshot as positionNameSnapshot,
+            bank_name_snapshot as bankNameSnapshot,
+            account_number_snapshot_enc as accountNumberSnapshotEnc,
+            account_holder_snapshot as accountHolderSnapshot
+        FROM payroll_ledger
+        WHERE employee_id = #{employeeId}
+          AND target_month BETWEEN #{startMonth} AND #{endMonth}
+        ORDER BY target_month DESC, id DESC
     </select>
 
     <select id="findPayrollLedgerByYearMonth" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
@@ -313,6 +374,25 @@
             e.employee_name as employeeName,
             o.org_name as departmentName,
             p.position_name as positionName
+        FROM employee e
+        LEFT JOIN employee_hr_info h ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON h.org_id = o.org_id
+        LEFT JOIN hr_position p ON h.position_id = p.position_id
+        WHERE e.employee_id = #{employeeId}
+    </select>
+
+    <select id="findEmployeeSeveranceInfo" resultType="com.reverse.payroll.internal.persistence.PayrollMapper$SeveranceEmployeeInfo">
+        SELECT
+            e.employee_id AS employeeId,
+            e.employee_num AS employeeNum,
+            e.employee_name AS employeeName,
+            o.org_name AS departmentName,
+            p.position_name AS positionName,
+            e.hire_date AS hireDate,
+            e.employ_state AS employState,
+            e.bank_name AS bankName,
+            e.account_number_enc AS accountNumberEnc,
+            e.employee_name AS accountHolder
         FROM employee e
         LEFT JOIN employee_hr_info h ON e.employee_id = h.employee_id
         LEFT JOIN organization o ON h.org_id = o.org_id
