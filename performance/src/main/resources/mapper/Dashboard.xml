@@ -17,8 +17,8 @@
         FROM performance p
         LEFT JOIN monthly_performance m
                ON m.employee_id = p.employee_id
-              AND m.performance_year = YEAR(p.end_date)
-              AND m.performance_month = MONTH(p.end_date)
+              AND m.performance_year = YEAR(COALESCE(p.end_date, p.created_at))
+              AND m.performance_month = MONTH(COALESCE(p.end_date, p.created_at))
         WHERE p.employee_id = #{id}
           AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         ORDER BY p.created_at DESC
