@@ -597,7 +597,7 @@ public class MyPageService {
 
     private void validateEvidenceFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new NotFoundException("증빙 파일은 필수입니다.");
+            throw new IllegalArgumentException("증빙 파일은 필수입니다.");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
