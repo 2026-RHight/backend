@@ -12,6 +12,7 @@ public class AttendancePolicyResponse {
 
     private Long policyId;
     private Long employeeId;
+    private String policyName;
     private LocalTime stdStartTime;
     private LocalTime stdEndTime;
     private LocalTime coreTimeStart;
@@ -25,6 +26,7 @@ public class AttendancePolicyResponse {
         return AttendancePolicyResponse.builder()
                 .policyId(policy.getPolicyId())
                 .employeeId(policy.getEmployeeId())
+                .policyName(policy.getPolicyName())
                 .stdStartTime(policy.getStdStartTime())
                 .stdEndTime(policy.getStdEndTime())
                 .coreTimeStart(policy.getCoreTimeStart())

@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS employee_hr_info (
 CREATE TABLE IF NOT EXISTS attendance_policy (
     policy_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     employee_id BIGINT NOT NULL,
+    policy_name VARCHAR(100) COMMENT '근태 정책명',
     std_start_time TIME NOT NULL COMMENT '표준 출근 시간',
     std_end_time TIME NOT NULL COMMENT '표준 퇴근 시간',
     core_time_start TIME COMMENT '코어타임 시작',
@@ -257,7 +258,8 @@ ALTER TABLE leave_balance
 
 ALTER TABLE attendance_policy
     ADD COLUMN IF NOT EXISTS employee_id BIGINT NULL AFTER policy_id,
-    ADD COLUMN IF NOT EXISTS std_start_time TIME NULL AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS policy_name VARCHAR(100) NULL AFTER employee_id,
+    ADD COLUMN IF NOT EXISTS std_start_time TIME NULL AFTER policy_name,
     ADD COLUMN IF NOT EXISTS std_end_time TIME NULL AFTER std_start_time,
     ADD COLUMN IF NOT EXISTS break_time_start TIME NULL AFTER core_time_end,
     ADD COLUMN IF NOT EXISTS break_time_end TIME NULL AFTER break_time_start;

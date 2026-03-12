@@ -43,6 +43,11 @@ public interface AttendanceMapper {
             @Param("targetMonth") String targetMonth,
             @Param("status") String status);
 
+    List<Attendance> findRecordsByDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
     List<AdminAttendanceReportResponse> findMonthlyEmployeeReports(
             @Param("targetMonth") String targetMonth,
             @Param("weekRangeStart") LocalDate weekRangeStart,

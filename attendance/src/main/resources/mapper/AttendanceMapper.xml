@@ -208,6 +208,28 @@
         ORDER BY work_date DESC
     </select>
 
+    <select id="findRecordsByDateRange" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            attendance_id as attendanceId,
+            employee_id as employeeId,
+            work_date as workDate,
+            check_in_time as checkInTime,
+            check_out_time as checkOutTime,
+            status as status,
+            tardy_reason as tardyReason,
+            modify_reason as modifyReason,
+            is_closed as closed,
+            overtime_hours as overtimeHours,
+            night_work_hours as nightWorkHours,
+            holiday_work_hours as holidayWorkHours,
+            is_unpaid_leave as unpaidLeave
+        FROM attendance_record
+        WHERE employee_id = #{employeeId}
+          AND work_date >= #{startDate}
+          AND work_date <= #{endDate}
+        ORDER BY work_date ASC, attendance_id ASC
+    </select>
+
     <select id="findMonthlyEmployeeReports" resultType="com.reverse.attendance.internal.dto.response.AdminAttendanceReportResponse">
         SELECT
             s.employeeId as employeeId,

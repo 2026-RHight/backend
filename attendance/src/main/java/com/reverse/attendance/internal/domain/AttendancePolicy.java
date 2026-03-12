@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 public class AttendancePolicy {
     private Long policyId;
     private Long employeeId;
+    private String policyName;
     private LocalTime stdStartTime;
     private LocalTime stdEndTime;
     private LocalTime coreTimeStart;
@@ -24,6 +25,7 @@ public class AttendancePolicy {
     public AttendancePolicy(
             Long policyId,
             Long employeeId,
+            String policyName,
             LocalTime stdStartTime,
             LocalTime stdEndTime,
             LocalTime coreTimeStart,
@@ -34,6 +36,7 @@ public class AttendancePolicy {
             LocalDateTime updatedAt) {
         this.policyId = policyId;
         this.employeeId = employeeId;
+        this.policyName = policyName;
         this.stdStartTime = stdStartTime;
         this.stdEndTime = stdEndTime;
         this.coreTimeStart = coreTimeStart;

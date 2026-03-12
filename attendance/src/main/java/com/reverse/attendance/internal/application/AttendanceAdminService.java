@@ -58,6 +58,7 @@ public class AttendanceAdminService {
         AttendancePolicy policy =
                 AttendancePolicy.builder()
                         .employeeId(employeeId)
+                        .policyName(request.getPolicyName())
                         .stdStartTime(request.getStdStartTime())
                         .stdEndTime(request.getStdEndTime())
                         .coreTimeStart(request.getCoreTimeStart())
