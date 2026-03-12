@@ -16,10 +16,12 @@ import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.AdminInsuranceRateResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollBatchCalculateFailureResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollBatchCalculateResponse;
+import com.reverse.payroll.internal.dto.response.AdminPayrollEmployeeSearchResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollFinalizeResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
+import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
 import com.reverse.payroll.internal.event.PayrollPayslipSendRequestedEvent;
@@ -30,6 +32,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -302,6 +305,21 @@ public class PayrollService {
         return PageResponse.of(content, page, size, totalElements);
     }
 
+    public PageResponse<AdminPayrollEmployeeSearchResponse> searchPayrollEmployees(
+            String keyword, int page, int size) {
+        validatePage(page, size);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        int offset = (page - 1) * size;
+
+        long totalElements = payrollMapper.countEmployees(normalizedKeyword);
+        List<AdminPayrollEmployeeSearchResponse> content =
+                payrollMapper.searchEmployees(normalizedKeyword, size, offset).stream()
+                        .map(AdminPayrollEmployeeSearchResponse::from)
+                        .collect(Collectors.toList());
+
+        return PageResponse.of(content, page, size, totalElements);
+    }
+
     public byte[] exportAdminPayrollLedgersCsv(
             int year, int month, String employeeName, String departmentName, String isFinalized) {
         validateYearMonth(year, month);
@@ -457,6 +475,104 @@ public class PayrollService {
                 .sentCount(sentCount)
                 .alreadySentCount(alreadySentCount)
                 .message("메일 발송 요청을 등록했습니다. 실제 SMTP 발송 결과는 비동기 로그를 확인해야 합니다.")
+                .build();
+    }
+
+    public AdminSeverancePreviewResponse getSeverancePreview(
+            Long employeeId, LocalDate retirementDate) {
+        if (retirementDate == null) {
+            throw new IllegalArgumentException("퇴직일이 필요합니다.");
+        }
+
+        PayrollMapper.SeveranceEmployeeInfo employee =
+                payrollMapper
+                        .findEmployeeSeveranceInfo(employeeId)
+                        .orElseThrow(() -> new NotFoundException("존재하지 않는 사원입니다."));
+
+        if (retirementDate.isBefore(employee.hireDate())) {
+            throw new IllegalArgumentException("퇴직일은 입사일보다 빠를 수 없습니다.");
+        }
+
+        long serviceDays = ChronoUnit.DAYS.between(employee.hireDate(), retirementDate) + 1;
+        BigDecimal serviceYears =
+                BigDecimal.valueOf(serviceDays)
+                        .divide(new BigDecimal("365"), 4, RoundingMode.HALF_UP);
+        boolean eligible = serviceDays >= 365;
+
+        LocalDate referenceEndDate = retirementDate.withDayOfMonth(1);
+        LocalDate referenceStartDate = referenceEndDate.minusMonths(2);
+        String referenceStartMonth =
+                String.format(
+                        "%04d-%02d",
+                        referenceStartDate.getYear(), referenceStartDate.getMonthValue());
+        String referenceEndMonth =
+                String.format(
+                        "%04d-%02d", referenceEndDate.getYear(), referenceEndDate.getMonthValue());
+
+        List<PayrollLedger> referenceLedgers =
+                payrollMapper.findPayrollLedgersByEmployeeIdAndMonthRange(
+                        employeeId, referenceStartMonth, referenceEndMonth);
+
+        BigDecimal averageMonthlyWage;
+        String note;
+
+        if (!referenceLedgers.isEmpty()) {
+            BigDecimal totalReferencePayment =
+                    referenceLedgers.stream()
+                            .map(PayrollLedger::getTotalPayment)
+                            .filter(value -> value != null)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averageMonthlyWage =
+                    totalReferencePayment.divide(
+                            BigDecimal.valueOf(referenceLedgers.size()), 0, RoundingMode.HALF_UP);
+            note = "최근 급여대장 기준 최근 3개월 평균 지급총액으로 계산한 예상값입니다.";
+        } else {
+            LocalDate referenceDate = retirementDate.withDayOfMonth(1);
+            SalarySetting salarySetting =
+                    payrollMapper
+                            .findSalarySettingByEmployeeId(employeeId, referenceDate)
+                            .orElse(null);
+            averageMonthlyWage =
+                    salarySetting == null
+                            ? BigDecimal.ZERO
+                            : safeAdd(
+                                    salarySetting.getBaseSalary(),
+                                    salarySetting.getMealAllowance());
+            note =
+                    salarySetting == null
+                            ? "최근 급여대장이 없어 예상 급여를 0원으로 계산했습니다."
+                            : "최근 급여대장이 없어 현재 급여 설정 기준으로 예상값을 계산했습니다.";
+        }
+
+        BigDecimal estimatedSeveranceAmount =
+                eligible
+                        ? averageMonthlyWage
+                                .multiply(serviceYears)
+                                .setScale(0, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+        return AdminSeverancePreviewResponse.builder()
+                .employeeId(employee.employeeId())
+                .employeeNum(employee.employeeNum())
+                .employeeName(employee.employeeName())
+                .departmentName(employee.departmentName())
+                .positionName(employee.positionName())
+                .employState(employee.employState())
+                .hireDate(employee.hireDate())
+                .retirementDate(retirementDate)
+                .serviceDays(serviceDays)
+                .serviceYears(serviceYears.setScale(2, RoundingMode.HALF_UP))
+                .eligible(eligible)
+                .referenceMonthCount(referenceLedgers.isEmpty() ? 0 : referenceLedgers.size())
+                .referenceStartMonth(referenceStartMonth)
+                .referenceEndMonth(referenceEndMonth)
+                .averageMonthlyWage(averageMonthlyWage)
+                .estimatedSeveranceAmount(estimatedSeveranceAmount)
+                .bankName(employee.bankName())
+                .maskedAccountNumber(
+                        maskPlainAccountNumber(decryptAccountNumber(employee.accountNumberEnc())))
+                .accountHolder(employee.accountHolder())
+                .note(eligible ? note : "근속기간이 1년 미만이면 법정 퇴직금 지급 대상이 아닙니다. " + note)
                 .build();
     }
 

@@ -22,6 +22,13 @@ public interface PayrollMapper {
 
     Optional<SalarySetting> findSalarySettingById(@Param("id") Long id);
 
+    List<EmployeeSearchRow> searchEmployees(
+            @Param("keyword") String keyword,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    long countEmployees(@Param("keyword") String keyword);
+
     boolean existsSalarySettingOverlap(
             @Param("employeeId") Long employeeId,
             @Param("applyStartDate") LocalDate applyStartDate,
@@ -53,6 +60,11 @@ public interface PayrollMapper {
 
     // 급여 명세서 상세 조회
     Optional<PayrollLedger> findPayrollLedgerById(@Param("id") Long id);
+
+    List<PayrollLedger> findPayrollLedgersByEmployeeIdAndMonthRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startMonth") String startMonth,
+            @Param("endMonth") String endMonth);
 
     // 특정 사원급여 명세서 조회
     Optional<PayrollLedger> findPayrollLedgerByYearMonth(
@@ -95,5 +107,27 @@ public interface PayrollMapper {
     // 급여명세서용 사원 기본 정보 조회
     Optional<EmployeePayslipInfo> findEmployeePayslipInfo(@Param("employeeId") Long employeeId);
 
+    Optional<SeveranceEmployeeInfo> findEmployeeSeveranceInfo(@Param("employeeId") Long employeeId);
+
     record EmployeePayslipInfo(String employeeName, String departmentName, String positionName) {}
+
+    record EmployeeSearchRow(
+            Long employeeId,
+            String employeeNum,
+            String employeeName,
+            String departmentName,
+            String positionName,
+            String employState) {}
+
+    record SeveranceEmployeeInfo(
+            Long employeeId,
+            String employeeNum,
+            String employeeName,
+            String departmentName,
+            String positionName,
+            LocalDate hireDate,
+            String employState,
+            String bankName,
+            String accountNumberEnc,
+            String accountHolder) {}
 }

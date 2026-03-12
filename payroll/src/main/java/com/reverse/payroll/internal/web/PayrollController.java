@@ -10,14 +10,17 @@ import com.reverse.payroll.internal.dto.request.AdminSalarySettingUpsertRequest;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
 import com.reverse.payroll.internal.dto.response.AdminInsuranceRateResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollBatchCalculateResponse;
+import com.reverse.payroll.internal.dto.response.AdminPayrollEmployeeSearchResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollFinalizeResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
+import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -160,6 +163,26 @@ public class PayrollController {
             @PathVariable Long employeeId, @RequestParam int year, @RequestParam int month) {
         var ledger = payrollService.calculateAndSavePayroll(employeeId, year, month);
         return ResponseEntity.ok(ledger.getId());
+    }
+
+    @Operation(
+            summary = "관리자 급여 대상 사원 검색",
+            description = "급여 설정/퇴직금 계산에 사용할 사원을 이름, 사번, 부서, ID 기준으로 검색합니다.")
+    @GetMapping("/admin/employees/search")
+    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    public ResponseEntity<PageResponse<AdminPayrollEmployeeSearchResponse>> searchPayrollEmployees(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(payrollService.searchPayrollEmployees(keyword, page, size));
+    }
+
+    @Operation(summary = "관리자 퇴직금 미리 계산", description = "사원과 퇴직일을 기준으로 예상 퇴직금을 계산합니다.")
+    @GetMapping("/admin/severance/{employeeId}")
+    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    public ResponseEntity<AdminSeverancePreviewResponse> getSeverancePreview(
+            @PathVariable Long employeeId, @RequestParam LocalDate retirementDate) {
+        return ResponseEntity.ok(payrollService.getSeverancePreview(employeeId, retirementDate));
     }
 
     @Operation(
