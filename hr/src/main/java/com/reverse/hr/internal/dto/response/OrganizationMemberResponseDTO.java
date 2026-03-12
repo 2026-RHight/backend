@@ -5,6 +5,8 @@ import com.reverse.hr.internal.domain.enums.EmployeeState;
 public record OrganizationMemberResponseDTO(
         Long employeeId,
         String employeeName,
+        Long orgId,
+        String orgName,
         String profileFileUrl,
         String email,
         String phone,

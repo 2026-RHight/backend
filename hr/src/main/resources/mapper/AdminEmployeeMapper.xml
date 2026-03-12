@@ -42,6 +42,18 @@
         WHERE role_id = #{roleId}
     </select>
 
+    <select id="existsEmail" resultType="int">
+        SELECT COUNT(*)
+        FROM employee
+        WHERE email = #{email}
+    </select>
+
+    <select id="existsPhone" resultType="int">
+        SELECT COUNT(*)
+        FROM employee
+        WHERE phone = #{phone}
+    </select>
+
     <select id="findRoleIdByCode" resultType="long">
         SELECT role_id
         FROM role
@@ -55,6 +67,14 @@
         WHERE employee_num LIKE CONCAT(#{datePrefix}, '%')
           AND CHAR_LENGTH(employee_num) = 10
           AND employee_num REGEXP CONCAT('^', #{datePrefix}, '[0-9]{4}$')
+    </select>
+
+    <select id="findHrFileIdByUrl" resultType="long">
+        SELECT hr_file_id
+        FROM hr_file
+        WHERE file_url = #{fileUrl}
+        ORDER BY hr_file_id ASC
+        LIMIT 1
     </select>
 
     <insert id="insertDefaultProfileFile">

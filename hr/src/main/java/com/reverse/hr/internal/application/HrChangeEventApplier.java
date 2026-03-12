@@ -52,6 +52,8 @@ public class HrChangeEventApplier {
                     parseRoleIdsFromJson(pendingEvent.targetRoleIdsJson()));
         }
 
+        hrChangeMapper.closePreviousAppliedEventEffectiveTo(pendingEvent.hrEventId());
+
         int marked = hrChangeMapper.markHrEventApplied(pendingEvent.hrEventId());
         if (marked != 1) {
             throw new IllegalStateException("인사 이벤트 상태 반영 중 오류가 발생했습니다.");

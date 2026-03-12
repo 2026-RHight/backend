@@ -113,6 +113,8 @@ public interface HrChangeMapper {
 
     int markHrEventApplied(@Param("hrEventId") Long hrEventId);
 
+    int closePreviousAppliedEventEffectiveTo(@Param("hrEventId") Long hrEventId);
+
     int markHrEventFailed(
             @Param("hrEventId") Long hrEventId, @Param("appliedError") String appliedError);
 

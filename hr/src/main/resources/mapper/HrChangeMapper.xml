@@ -315,6 +315,18 @@
           AND event_status = 'PENDING'
     </update>
 
+    <update id="closePreviousAppliedEventEffectiveTo">
+        UPDATE hr_event prev
+            JOIN hr_event cur ON cur.hr_event_id = #{hrEventId}
+        SET prev.effective_to = DATE_SUB(cur.target_effective_from, INTERVAL 1 DAY)
+        WHERE prev.employee_id = cur.employee_id
+          AND prev.event_type = cur.event_type
+          AND prev.event_status = 'APPLIED'
+          AND prev.effective_to IS NULL
+          AND prev.hr_event_id != cur.hr_event_id
+          AND prev.effective_from <![CDATA[<]]> cur.target_effective_from
+    </update>
+
     <update id="markHrEventFailed">
         UPDATE hr_event
         SET event_status = 'FAILED',

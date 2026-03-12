@@ -13,6 +13,7 @@ import com.reverse.hr.internal.persistence.row.BasicInfoRow;
 import com.reverse.hr.internal.persistence.row.CareerItemRow;
 import com.reverse.hr.internal.persistence.row.HrFileRow;
 import com.reverse.hr.internal.persistence.row.HrInfoRow;
+import com.reverse.hr.internal.persistence.row.MyHrEventRow;
 import com.reverse.hr.internal.persistence.row.OrgMemberRow;
 import com.reverse.hr.internal.persistence.row.OrgTreeNodeRow;
 import com.reverse.hr.internal.persistence.row.SkillItemRow;
@@ -111,6 +112,7 @@ public class OrganizationService {
 
         List<SkillItemRow> skillRows = myPageMapper.findSkillsByEmployeeId(targetEmployeeId);
         List<CareerItemRow> careerRows = myPageMapper.findCareersByEmployeeId(targetEmployeeId);
+        List<MyHrEventRow> hrEventRows = myPageMapper.findMyHrEventsByEmployeeId(targetEmployeeId);
 
         OrganizationMemberDetailResponseDTO.PersonalInfo personalInfo =
                 new OrganizationMemberDetailResponseDTO.PersonalInfo(
@@ -161,7 +163,26 @@ public class OrganizationService {
                                                 row.hrFileId()))
                         .toList();
 
-        return new OrganizationMemberDetailResponseDTO(personalInfo, hrInfo, skills, careers);
+        List<OrganizationMemberDetailResponseDTO.HrHistoryItem> hrHistories =
+                hrEventRows.stream()
+                        .map(
+                                row ->
+                                        new OrganizationMemberDetailResponseDTO.HrHistoryItem(
+                                                row.hrEventId(),
+                                                row.eventType(),
+                                                row.eventType() == null
+                                                        ? null
+                                                        : row.eventType().getDescription(),
+                                                row.eventTitle(),
+                                                formatDate(row.effectiveFrom()),
+                                                formatDate(row.effectiveTo()),
+                                                row.reason(),
+                                                row.beforeChange(),
+                                                row.afterChange()))
+                        .toList();
+
+        return new OrganizationMemberDetailResponseDTO(
+                personalInfo, hrInfo, skills, careers, hrHistories);
     }
 
     public EvidenceFileResponseDTO getOrganizationMemberSkillEvidence(
@@ -216,6 +237,8 @@ public class OrganizationService {
         return new OrganizationMemberResponseDTO(
                 row.employeeId(),
                 row.employeeName(),
+                row.orgId(),
+                row.orgName(),
                 row.profileFileUrl(),
                 row.email(),
                 row.phone(),

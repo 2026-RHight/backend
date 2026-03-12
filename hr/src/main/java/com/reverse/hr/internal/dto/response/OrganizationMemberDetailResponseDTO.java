@@ -2,6 +2,7 @@ package com.reverse.hr.internal.dto.response;
 
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
+import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.domain.enums.RecruitType;
 import com.reverse.hr.internal.domain.enums.SkillCategory;
 import java.util.List;
@@ -10,7 +11,8 @@ public record OrganizationMemberDetailResponseDTO(
         PersonalInfo personalInfo,
         HrInfo hrInfo,
         List<SkillItem> skills,
-        List<CareerItem> careers) {
+        List<CareerItem> careers,
+        List<HrHistoryItem> hrHistories) {
     public record PersonalInfo(
             String employeeName,
             String email,
@@ -47,4 +49,15 @@ public record OrganizationMemberDetailResponseDTO(
             String startDate,
             String endDate,
             Long hrFileId) {}
+
+    public record HrHistoryItem(
+            Long hrEventId,
+            HrEventType eventType,
+            String eventTypeDescription,
+            String eventTitle,
+            String effectiveFrom,
+            String effectiveTo,
+            String reason,
+            String beforeChange,
+            String afterChange) {}
 }
