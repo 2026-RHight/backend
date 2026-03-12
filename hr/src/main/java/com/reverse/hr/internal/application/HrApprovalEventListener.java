@@ -75,17 +75,63 @@ public class HrApprovalEventListener {
         }
 
         String failureMessage = lastException == null ? "unknown" : lastException.getMessage();
-        String payloadJson = buildFailurePayload(approvalId, effectiveFrom, reason, targetState);
-        failedHrEventService.recordFailure(
-                approvalId, targetState, effectiveFrom, reason, payloadJson, failureMessage);
-        adminAlertService.notifyHrEventFailure(approvalId, targetState, reason, failureMessage);
-
-        if (lastException != null) {
+        String payloadJson = "{\"approvalId\":" + approvalId + ",\"payloadSerializeError\":true}";
+        try {
+            payloadJson = buildFailurePayload(approvalId, effectiveFrom, reason, targetState);
+        } catch (Throwable payloadEx) {
             log.error(
-                    "HR 승인 이벤트 최종 실패. approvalId={}, state={}",
+                    "HR 승인 이벤트 실패 페이로드 생성 실패. approvalId={}, state={}, secondaryError={}",
                     approvalId,
                     targetState,
-                    lastException);
+                    payloadEx.getMessage(),
+                    payloadEx);
+        }
+
+        try {
+            failedHrEventService.recordFailure(
+                    approvalId, targetState, effectiveFrom, reason, payloadJson, failureMessage);
+        } catch (Throwable recordEx) {
+            log.error(
+                    "HR 승인 이벤트 실패 이력 저장 실패. approvalId={}, state={}, secondaryError={}",
+                    approvalId,
+                    targetState,
+                    recordEx.getMessage(),
+                    recordEx);
+        }
+
+        try {
+            adminAlertService.notifyHrEventFailure(approvalId, targetState, reason, failureMessage);
+        } catch (Throwable alertEx) {
+            log.error(
+                    "HR 승인 이벤트 실패 알림 전송 실패. approvalId={}, state={}, secondaryError={}",
+                    approvalId,
+                    targetState,
+                    alertEx.getMessage(),
+                    alertEx);
+        }
+
+        try {
+            if (lastException != null) {
+                log.error(
+                        "HR 승인 이벤트 최종 실패. approvalId={}, state={}",
+                        approvalId,
+                        targetState,
+                        lastException);
+            } else {
+                log.error("HR 승인 이벤트 최종 실패. approvalId={}, state={}", approvalId, targetState);
+            }
+        } catch (Throwable finalLogEx) {
+            System.err.println(
+                    "HR 승인 이벤트 최종 실패 로그 출력 실패. approvalId="
+                            + approvalId
+                            + ", state="
+                            + targetState
+                            + ", secondaryError="
+                            + finalLogEx.getMessage());
+            if (lastException != null) {
+                lastException.printStackTrace(System.err);
+            }
+            finalLogEx.printStackTrace(System.err);
         }
     }
 

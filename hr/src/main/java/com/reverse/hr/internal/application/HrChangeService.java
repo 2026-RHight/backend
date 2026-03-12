@@ -56,6 +56,7 @@ public class HrChangeService {
     private int applyBatchSize;
 
     private final HrChangeMapper hrChangeMapper;
+    private final HrChangeEventApplier hrChangeEventApplier;
     private final OrganizationService organizationService;
     private final ObjectMapper objectMapper;
 
@@ -148,7 +149,8 @@ public class HrChangeService {
                 coalesce(request.employeeState(), before.employeeState());
         EmployType resolvedEmployType = coalesce(request.employType(), before.employType());
         Long resolvedAreaId = coalesce(request.areaId(), before.areaId());
-        LocalDate resolvedEffectiveFrom = coalesce(request.effectiveFrom(), LocalDate.now());
+        LocalDate resolvedEffectiveFrom =
+                coalesce(request.effectiveFrom(), LocalDate.now(SEOUL_ZONE));
         String targetRoleIdsJson = toTargetRoleIdsJson(request.roleIds());
 
         boolean roleChanged = false;
@@ -251,7 +253,7 @@ public class HrChangeService {
 
                 for (HrChangePendingEventRow pendingEvent : dueEvents) {
                     try {
-                        applySingleEvent(pendingEvent);
+                        hrChangeEventApplier.applyInNewTransaction(pendingEvent);
                         totalProcessed++;
                     } catch (Exception ex) {
                         log.warn(
@@ -369,58 +371,6 @@ public class HrChangeService {
                         .toList();
 
         return PageResponse.of(content, safePage, safeSize, total);
-    }
-
-    private void applySingleEvent(HrChangePendingEventRow pendingEvent) {
-        validateResolvedIds(
-                pendingEvent.targetOrgId(),
-                pendingEvent.targetJobId(),
-                pendingEvent.targetPositionId(),
-                pendingEvent.targetRankId(),
-                pendingEvent.targetAreaId());
-
-        int updatedEmp =
-                hrChangeMapper.updateEmployeeState(
-                        pendingEvent.employeeId(), pendingEvent.targetEmployeeState());
-        int updatedHrInfo =
-                hrChangeMapper.updateEmployeeHrInfo(
-                        pendingEvent.employeeId(),
-                        pendingEvent.targetOrgId(),
-                        pendingEvent.targetPositionId(),
-                        pendingEvent.targetRankId(),
-                        pendingEvent.targetJobId(),
-                        pendingEvent.targetEmployType(),
-                        pendingEvent.targetAreaId(),
-                        pendingEvent.targetEffectiveFrom());
-
-        if (updatedEmp != 1 || updatedHrInfo != 1) {
-            throw new IllegalStateException("인사 정보 반영 중 오류가 발생했습니다.");
-        }
-
-        if (pendingEvent.targetRoleIdsJson() != null
-                && !pendingEvent.targetRoleIdsJson().isBlank()) {
-            replaceRolesWithExactSet(
-                    pendingEvent.employeeId(),
-                    parseRoleIdsFromJson(pendingEvent.targetRoleIdsJson()));
-        }
-
-        int marked = hrChangeMapper.markHrEventApplied(pendingEvent.hrEventId());
-        if (marked != 1) {
-            throw new IllegalStateException("인사 이벤트 상태 반영 중 오류가 발생했습니다.");
-        }
-    }
-
-    private void replaceRolesWithExactSet(Long employeeId, List<Long> roleIds) {
-        for (Long roleId : roleIds) {
-            if (hrChangeMapper.existsRole(roleId) == 0) {
-                throw new IllegalArgumentException("유효하지 않은 권한 ID입니다: " + roleId);
-            }
-        }
-
-        hrChangeMapper.deleteEmployeeRoles(employeeId);
-        for (Long roleId : roleIds) {
-            hrChangeMapper.insertEmployeeRole(employeeId, roleId);
-        }
     }
 
     private String toTargetRoleIdsJson(List<Long> requestedRoleIds) {

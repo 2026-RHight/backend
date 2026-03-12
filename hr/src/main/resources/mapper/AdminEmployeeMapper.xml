@@ -49,10 +49,12 @@
         LIMIT 1
     </select>
 
-    <select id="existsEmployeeNum" resultType="int">
-        SELECT COUNT(*)
+    <select id="findMaxDailyEmployeeSequence" resultType="int">
+        SELECT MAX(CAST(RIGHT(employee_num, 4) AS UNSIGNED))
         FROM employee
-        WHERE employee_num = #{employeeNum}
+        WHERE employee_num LIKE CONCAT(#{datePrefix}, '%')
+          AND CHAR_LENGTH(employee_num) = 10
+          AND employee_num REGEXP CONCAT('^', #{datePrefix}, '[0-9]{4}$')
     </select>
 
     <insert id="insertDefaultProfileFile">
@@ -191,7 +193,17 @@
                h.employ_type   AS employType,
                w.area_name     AS areaName
         FROM employee e
-                 LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN (
+                     SELECT x.*
+                     FROM employee_hr_info x
+                     JOIN (
+                         SELECT employee_id, MAX(effective_from) AS effective_from
+                         FROM employee_hr_info
+                         GROUP BY employee_id
+                    )  latest
+                     ON latest.employee_id = x.employee_id
+                     AND latest.effective_from = x.effective_from
+                  ) h ON h.employee_id = e.employee_id
                  LEFT JOIN organization o ON o.org_id = h.org_id
                  LEFT JOIN hr_position p ON p.position_id = h.position_id
                  LEFT JOIN hr_rank r ON r.rank_id = h.rank_id

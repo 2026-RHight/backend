@@ -77,14 +77,15 @@ CREATE TABLE IF NOT EXISTS employee_sensitive_access_log (
                                                              viewer_employee_id BIGINT NOT NULL,
                                                              target_employee_id BIGINT NOT NULL,
                                                              field_type ENUM('RESIDENT_NUMBER','ACCOUNT_NUMBER') NOT NULL,
-    access_reason VARCHAR(500) NULL,
+    access_reason VARCHAR(500) NOT NULL,
     accessed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (access_log_id),
     KEY idx_sensitive_access_viewer (viewer_employee_id),
     KEY idx_sensitive_access_target (target_employee_id),
     KEY idx_sensitive_access_time (accessed_at),
     CONSTRAINT fk_sensitive_access_viewer FOREIGN KEY (viewer_employee_id) REFERENCES employee(employee_id),
-    CONSTRAINT fk_sensitive_access_target FOREIGN KEY (target_employee_id) REFERENCES employee(employee_id)
+    CONSTRAINT fk_sensitive_access_target FOREIGN KEY (target_employee_id) REFERENCES employee(employee_id),
+    CONSTRAINT chk_sensitive_access_reason_not_blank CHECK (CHAR_LENGTH(TRIM(access_reason)) > 0)
     );
 
 CREATE TABLE IF NOT EXISTS organization (
@@ -428,6 +429,33 @@ ALTER TABLE hr_event
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_source_approval_id
     ON hr_event (source_approval_id);
 
+ALTER TABLE hr_event
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_org,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_job,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_position,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_rank,
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_target_area;
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_org
+        FOREIGN KEY (target_org_id) REFERENCES organization(org_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_job
+        FOREIGN KEY (target_job_id) REFERENCES job(job_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_position
+        FOREIGN KEY (target_position_id) REFERENCES hr_position(position_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_rank
+        FOREIGN KEY (target_rank_id) REFERENCES hr_rank(rank_id);
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_target_area
+        FOREIGN KEY (target_area_id) REFERENCES working_area(area_id);
+
 CREATE TABLE IF NOT EXISTS failed_hr_event (
     failed_event_id BIGINT NOT NULL AUTO_INCREMENT,
     source_approval_id BIGINT NOT NULL,
@@ -534,6 +562,20 @@ CREATE TABLE IF NOT EXISTS electronic_approval (
     PRIMARY KEY (approval_id),
     UNIQUE KEY uk_electronic_approval_doc_id (doc_id)
 );
+
+ALTER TABLE hr_event
+    DROP FOREIGN KEY IF EXISTS fk_hr_event_source_approval;
+
+ALTER TABLE hr_event
+    ADD CONSTRAINT fk_hr_event_source_approval
+        FOREIGN KEY (source_approval_id) REFERENCES electronic_approval(approval_id);
+
+ALTER TABLE failed_hr_event
+    DROP FOREIGN KEY IF EXISTS fk_failed_hr_event_source_approval;
+
+ALTER TABLE failed_hr_event
+    ADD CONSTRAINT fk_failed_hr_event_source_approval
+        FOREIGN KEY (source_approval_id) REFERENCES electronic_approval(approval_id);
 
 CREATE TABLE IF NOT EXISTS approval_line (
     approval_line_id BIGINT NOT NULL AUTO_INCREMENT,

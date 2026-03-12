@@ -30,7 +30,7 @@ public interface AdminEmployeeMapper {
 
     Long findRoleIdByCode(@Param("roleCode") String roleCode);
 
-    int existsEmployeeNum(@Param("employeeNum") String employeeNum);
+    Integer findMaxDailyEmployeeSequence(@Param("datePrefix") String datePrefix);
 
     int insertDefaultProfileFile(
             @Param("fileUrl") String fileUrl, @Param("fileTitle") String fileTitle);

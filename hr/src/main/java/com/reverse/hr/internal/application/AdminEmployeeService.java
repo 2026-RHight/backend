@@ -27,10 +27,13 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,6 +44,7 @@ public class AdminEmployeeService {
             "https://static.rhight.local/profiles/default.png";
     private static final String DEFAULT_PROFILE_FILE_TITLE = "기본 프로필 이미지";
     private static final String EMPLOYEE_NUM_DATE_PATTERN = "%1$ty%1$tm%1$td";
+    private static final int EMPLOYEE_NUM_RETRY_ATTEMPTS = 20;
     private static final int TEMP_PASSWORD_LENGTH = 14;
     private static final String TEMP_PASSWORD_CHARS =
             "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
@@ -73,7 +77,6 @@ public class AdminEmployeeService {
         roleIds.add(evaluateeRoleId);
         validateRoleIds(roleIds);
 
-        String employeeNum = generateEmployeeNum(request.hireDate());
         String tempPassword = generateTempPassword();
         String encodedPassword = passwordEncoder.encode(tempPassword);
 
@@ -89,25 +92,42 @@ public class AdminEmployeeService {
             throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.");
         }
 
-        int insertedEmployee =
-                adminEmployeeMapper.insertEmployee(
+        String employeeNum = null;
+        int insertedEmployee = 0;
+        for (int attempt = 1; attempt <= EMPLOYEE_NUM_RETRY_ATTEMPTS; attempt++) {
+            employeeNum = generateEmployeeNum(request.hireDate(), attempt - 1);
+            try {
+                insertedEmployee =
+                        adminEmployeeMapper.insertEmployee(
+                                employeeNum,
+                                request.employeeName(),
+                                encodedPassword,
+                                request.phone(),
+                                request.extensionNum(),
+                                request.email(),
+                                request.address(),
+                                request.birthDate(),
+                                request.bankName(),
+                                accountEnc,
+                                accountHash,
+                                residentEnc,
+                                residentHash,
+                                true,
+                                request.employeeState(),
+                                request.hireDate(),
+                                profileId);
+                break;
+            } catch (DuplicateKeyException ex) {
+                log.warn(
+                        "사번 중복으로 재시도합니다. employeeNum={}, attempt={}/{}",
                         employeeNum,
-                        request.employeeName(),
-                        encodedPassword,
-                        request.phone(),
-                        request.extensionNum(),
-                        request.email(),
-                        request.address(),
-                        request.birthDate(),
-                        request.bankName(),
-                        accountEnc,
-                        accountHash,
-                        residentEnc,
-                        residentHash,
-                        true,
-                        request.employeeState(),
-                        request.hireDate(),
-                        profileId);
+                        attempt,
+                        EMPLOYEE_NUM_RETRY_ATTEMPTS);
+                if (attempt == EMPLOYEE_NUM_RETRY_ATTEMPTS) {
+                    throw new IllegalStateException("사번 생성 충돌이 반복되어 등록에 실패했습니다.", ex);
+                }
+            }
+        }
         if (insertedEmployee != 1) {
             throw new IllegalStateException("사원 기본 정보 저장 중 오류가 발생했습니다.");
         }
@@ -413,16 +433,15 @@ public class AdminEmployeeService {
         }
     }
 
-    private String generateEmployeeNum(LocalDate hireDate) {
+    private String generateEmployeeNum(LocalDate hireDate, int sequenceOffset) {
         String datePrefix = String.format(Locale.KOREA, EMPLOYEE_NUM_DATE_PATTERN, hireDate);
-        for (int i = 0; i < 50; i++) {
-            int suffix = secureRandom.nextInt(10_000);
-            String employeeNum = datePrefix + String.format(Locale.KOREA, "%04d", suffix);
-            if (adminEmployeeMapper.existsEmployeeNum(employeeNum) == 0) {
-                return employeeNum;
-            }
+        Integer maxSequence = adminEmployeeMapper.findMaxDailyEmployeeSequence(datePrefix);
+        int nextSequence =
+                (maxSequence == null ? 1 : maxSequence + 1) + Math.max(0, sequenceOffset);
+        if (nextSequence <= 9999) {
+            return datePrefix + String.format(Locale.KOREA, "%04d", nextSequence);
         }
-        throw new IllegalStateException("사번 생성에 실패했습니다. 다시 시도해주세요.");
+        throw new IllegalStateException("사번 생성 한도를 초과했습니다. 관리자에게 문의해주세요.");
     }
 
     private String generateTempPassword() {

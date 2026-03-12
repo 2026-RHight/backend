@@ -32,6 +32,7 @@
             reason = VALUES(reason),
             payload_json = VALUES(payload_json),
             failure_message = VALUES(failure_message),
+            retry_count = 0,
             status = 'PENDING',
             updated_at = NOW()
     </insert>
