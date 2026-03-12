@@ -37,7 +37,7 @@ public class PerformanceEvaluationController {
     @PostMapping("/evaluation")
     public ApiResponse<Void> createEvaluation(
             @RequestBody EvalRequest dto, @AuthenticationPrincipal CustomUser user) {
-        performanceService.saveEvaluation(dto.withEvaluatorId(user.getEmployeeId()));
+        performanceService.saveEvaluation(user.getEmployeeId(), dto);
         return ApiResponse.success();
     }
 
