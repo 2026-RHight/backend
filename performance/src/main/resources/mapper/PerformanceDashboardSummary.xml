@@ -133,8 +133,8 @@
     <insert id="upsertDashboardSummary" parameterType="map">
         INSERT INTO performance_metric_summary(
             employee_id,
-            metric_year,
-            metric_month,
+            performance_year,
+            performance_month,
             personal_kpi_achievement_rate,
             team_kpi_achievement_rate,
             monthly_core_goal_progress_rate,
@@ -165,8 +165,8 @@
             parameterType="map"
             resultType="com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper$DashboardSummaryRow">
         SELECT employee_id AS employeeId,
-               metric_year AS metricYear,
-               metric_month AS metricMonth,
+               performance_year AS metricYear,
+               performance_month AS metricMonth,
                personal_kpi_achievement_rate AS personalKpiAchievementRate,
                team_kpi_achievement_rate AS teamKpiAchievementRate,
                monthly_core_goal_progress_rate AS monthlyCoreGoalProgressRate,
@@ -175,16 +175,16 @@
                calculated_at AS calculatedAt
         FROM performance_metric_summary
         WHERE employee_id = #{employeeId}
-          AND metric_year = #{targetYear}
-          AND metric_month = #{targetMonth}
+          AND performance_year = #{targetYear}
+          AND performance_month = #{targetMonth}
     </select>
 
     <select id="findLatestDashboardSummary"
             parameterType="long"
             resultType="com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper$DashboardSummaryRow">
         SELECT employee_id AS employeeId,
-               metric_year AS metricYear,
-               metric_month AS metricMonth,
+               performance_year AS metricYear,
+               performance_month AS metricMonth,
                personal_kpi_achievement_rate AS personalKpiAchievementRate,
                team_kpi_achievement_rate AS teamKpiAchievementRate,
                monthly_core_goal_progress_rate AS monthlyCoreGoalProgressRate,
@@ -193,7 +193,7 @@
                calculated_at AS calculatedAt
         FROM performance_metric_summary
         WHERE employee_id = #{employeeId}
-        ORDER BY metric_year DESC, metric_month DESC
+        ORDER BY performance_year DESC, performance_month DESC
         LIMIT 1
     </select>
 </mapper>

@@ -1646,7 +1646,7 @@ WHERE e.employee_num = '2402040002'
 INSERT INTO evaluation (
     employee_id,
     evaluator_id,
-    year,
+    performance_year,
     evaluation_score,
     confirmed_at,
     created_at,
@@ -1669,13 +1669,13 @@ WHERE appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402
       FROM evaluation ev
       WHERE ev.employee_id = appraisee.employee_id
         AND ev.evaluator_id = evaluator.employee_id
-        AND ev.year = 2026
+        AND ev.performance_year = 2026
   );
 
 INSERT INTO team_evaluation (
     evaluator_id,
     appraisee_id,
-    evaluation_year,
+    performance_year,
     performance_score,
     performance_comment,
     attitude_score,
@@ -1710,7 +1710,7 @@ WHERE appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402
       FROM team_evaluation te
       WHERE te.evaluator_id = evaluator.employee_id
         AND te.appraisee_id = appraisee.employee_id
-        AND te.evaluation_year = 2026
+        AND te.performance_year = 2026
   );
 
 INSERT INTO peer_review (
@@ -1741,7 +1741,7 @@ JOIN employee appraisee
   ON appraisee.employee_id = ev.employee_id
 JOIN employee reviewer
   ON reviewer.employee_num = '2402040007'
-WHERE ev.year = 2026
+WHERE ev.performance_year = 2026
   AND appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
   AND NOT EXISTS (
       SELECT 1
@@ -1778,7 +1778,7 @@ JOIN employee appraisee
   ON appraisee.employee_id = ev.employee_id
 JOIN employee reviewer
   ON reviewer.employee_num = '2402040008'
-WHERE ev.year = 2026
+WHERE ev.performance_year = 2026
   AND appraisee.employee_num IN ('2402040002', '2402040003', '2402040004', '2402040005', '2402040006')
   AND NOT EXISTS (
       SELECT 1
@@ -2126,8 +2126,8 @@ WHERE NOT EXISTS (
 
 INSERT INTO monthly_performance (
     employee_id,
-    year,
-    month,
+    performance_year,
+    performance_month,
     score,
     calculated_at
 )

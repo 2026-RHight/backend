@@ -6,7 +6,7 @@
     <insert id="saveEvaluation"
             parameterType="com.reverse.performance.internal.dto.request.EvalRequest">
         INSERT INTO evaluation(
-            employee_id, evaluator_id, year, evaluation_score, confirmed_at, created_at)
+            employee_id, evaluator_id, performance_year, evaluation_score, confirmed_at, created_at)
         VALUES (
             #{employeeId}, #{evaluatorId}, #{year}, #{evaluationScore}, NULL, NOW()
         )

@@ -37,8 +37,8 @@
             FROM performance p
             LEFT JOIN monthly_performance mp
               ON mp.employee_id = p.employee_id
-             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
-             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE p.employee_id = #{employeeId}
               AND COALESCE(p.end_date, p.created_at) >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
         ) base
@@ -157,8 +157,8 @@
             FROM performance p
             LEFT JOIN monthly_performance mp
               ON mp.employee_id = p.employee_id
-             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
-             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE <include refid="targetEmployeeCondition"/>
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) >= #{windowStart}
               AND DATE(COALESCE(mp.calculated_at, p.end_date, p.created_at)) &lt; #{windowEndExclusive}
@@ -179,8 +179,8 @@
             FROM performance p
             LEFT JOIN monthly_performance mp
               ON mp.employee_id = p.employee_id
-             AND mp.year = YEAR(COALESCE(p.end_date, p.created_at))
-             AND mp.month = MONTH(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_year = YEAR(COALESCE(p.end_date, p.created_at))
+             AND mp.performance_month = MONTH(COALESCE(p.end_date, p.created_at))
             WHERE 1 = 1
             <choose>
                 <when test="employeeIds != null and employeeIds.size() > 0">
@@ -225,8 +225,8 @@
         LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
         LEFT JOIN monthly_performance mp
           ON mp.employee_id = p.employee_id
-         AND mp.year = #{targetYear}
-         AND mp.month = #{targetMonth}
+         AND mp.performance_year = #{targetYear}
+         AND mp.performance_month = #{targetMonth}
         WHERE <include refid="targetEmployeeCondition"/>
           AND YEAR(COALESCE(p.end_date, p.created_at)) = #{targetYear}
           AND MONTH(COALESCE(p.end_date, p.created_at)) = #{targetMonth}
@@ -361,7 +361,7 @@
                        FROM team_evaluation te_done
                        WHERE te_done.evaluator_id = #{evaluatorId}
                          AND te_done.appraisee_id = base.employee_id
-                         AND te_done.evaluation_year = YEAR(CURDATE())
+                         AND te_done.performance_year = YEAR(CURDATE())
                    ) THEN '완료'
                    WHEN EXISTS (
                        SELECT 1
@@ -384,7 +384,7 @@
         LEFT JOIN evaluation ev
           ON ev.employee_id = base.employee_id
          AND ev.confirmed_at IS NULL
-         AND ev.year = YEAR(CURDATE())
+         AND ev.performance_year = YEAR(CURDATE())
         LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
         GROUP BY base.employee_id
         ORDER BY base.employee_id
@@ -404,7 +404,7 @@
                              FROM evaluation ev
                              WHERE ev.employee_id = base.employee_id
                                AND ev.confirmed_at IS NULL
-                               AND ev.year = YEAR(CURDATE())
+                               AND ev.performance_year = YEAR(CURDATE())
                          )
                    ) THEN TRUE
                    ELSE FALSE
@@ -420,7 +420,7 @@
         FROM evaluation ev
         WHERE ev.employee_id = #{appraiseeId}
           AND ev.confirmed_at IS NULL
-        ORDER BY ev.year DESC, ev.created_at DESC
+        ORDER BY ev.performance_year DESC, ev.created_at DESC
         LIMIT 1
     </select>
 
@@ -440,7 +440,7 @@
         LEFT JOIN evaluation ev
           ON ev.employee_id = base.employee_id
          AND ev.confirmed_at IS NULL
-         AND ev.year = YEAR(CURDATE())
+         AND ev.performance_year = YEAR(CURDATE())
         LEFT JOIN peer_review pr ON pr.eval_id = ev.eval_id
         GROUP BY base.employee_id
         ORDER BY base.employee_id
