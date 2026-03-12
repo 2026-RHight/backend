@@ -16,7 +16,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none # 운영은 실수를 막기 위해 무조건 validate
+      ddl-auto: none # 운영은 실수를 막기 위해 무조건 validate. 하이.
     show-sql: false
 
   data:
