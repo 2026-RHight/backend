@@ -5,6 +5,7 @@ import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.FieldCryptoService;
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
+import com.reverse.hr.internal.domain.enums.HrEventStatus;
 import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.domain.enums.RecruitType;
 import com.reverse.hr.internal.domain.enums.SensitiveFieldType;
@@ -262,13 +263,16 @@ public class AdminEmployeeService {
                                                 history.eventType(),
                                                 description(history.eventType()),
                                                 history.eventTitle(),
-                                                history.requestedAt(),
-                                                history.approvedAt(),
                                                 history.effectiveFrom(),
                                                 history.effectiveTo(),
                                                 history.reason(),
                                                 history.beforeChange(),
-                                                history.afterChange()))
+                                                history.afterChange(),
+                                                history.sourceApprovalId(),
+                                                history.eventStatus(),
+                                                description(history.eventStatus()),
+                                                history.appliedAt(),
+                                                history.appliedError()))
                         .toList();
 
         return new AdminEmployeeDetailResponseDTO(
@@ -369,6 +373,10 @@ public class AdminEmployeeService {
     }
 
     private String description(HrEventType value) {
+        return value == null ? null : value.getDescription();
+    }
+
+    private String description(HrEventStatus value) {
         return value == null ? null : value.getDescription();
     }
 

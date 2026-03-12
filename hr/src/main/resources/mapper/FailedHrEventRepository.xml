@@ -74,18 +74,20 @@
         SET status = 'RESOLVED',
             updated_at = NOW()
         WHERE failed_event_id = #{failedEventId}
+          AND status = 'RETRYING'
     </update>
 
     <update id="markRetryFailure">
         UPDATE failed_hr_event
-        SET retry_count = retry_count + 1,
-            failure_message = LEFT(#{failureMessage}, 500),
+        SET failure_message = LEFT(#{failureMessage}, 500),
             status = CASE
                          WHEN retry_count + 1 <![CDATA[>=]]> #{maxRetryCount} THEN 'FAILED'
                          ELSE 'PENDING'
                      END,
+            retry_count = retry_count + 1,
             updated_at = NOW()
         WHERE failed_event_id = #{failedEventId}
+          AND status = 'RETRYING'
     </update>
 
 </mapper>

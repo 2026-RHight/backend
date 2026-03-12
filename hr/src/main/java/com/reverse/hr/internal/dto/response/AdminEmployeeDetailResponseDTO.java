@@ -2,6 +2,7 @@ package com.reverse.hr.internal.dto.response;
 
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
+import com.reverse.hr.internal.domain.enums.HrEventStatus;
 import com.reverse.hr.internal.domain.enums.HrEventType;
 import com.reverse.hr.internal.domain.enums.RecruitType;
 import com.reverse.hr.internal.domain.enums.SkillCategory;
@@ -59,11 +60,14 @@ public record AdminEmployeeDetailResponseDTO(
             HrEventType eventType,
             String eventTypeDescription,
             String eventTitle,
-            LocalDateTime requestedAt,
-            LocalDateTime approvedAt,
             LocalDate effectiveFrom,
             LocalDate effectiveTo,
             String reason,
             String beforeChange,
-            String afterChange) {}
+            String afterChange,
+            Long sourceApprovalId,
+            HrEventStatus eventStatus,
+            String eventStatusDescription,
+            LocalDateTime appliedAt,
+            String appliedError) {}
 }

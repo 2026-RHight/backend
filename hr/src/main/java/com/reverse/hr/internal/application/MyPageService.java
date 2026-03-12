@@ -77,7 +77,7 @@ public class MyPageService {
         MyPageHeaderRow row =
                 myPageMapper
                         .findMyPageHeaderByEmployeeId(employeeId)
-                        .orElseThrow(() -> new IllegalStateException("상단 헤더 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("상단 헤더 정보를 찾을 수 없습니다."));
 
         return new MyPageHeaderResponseDTO(
                 row.employeeName(),
@@ -97,7 +97,7 @@ public class MyPageService {
         BasicInfoRow basicInfoRow =
                 myPageMapper
                         .findBasicInfoByEmployeeId(employeeId)
-                        .orElseThrow(() -> new IllegalStateException("기본 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("기본 정보를 찾을 수 없습니다."));
 
         String residentPlain = decryptNullable(basicInfoRow.residentNumberEnc());
         String accountPlain = decryptNullable(basicInfoRow.accountNumberEnc());
@@ -108,7 +108,7 @@ public class MyPageService {
         HrInfoRow hrInfoRow =
                 myPageMapper
                         .findHrInfoByEmployeeId(employeeId)
-                        .orElseThrow(() -> new IllegalStateException("인사 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("인사 정보를 찾을 수 없습니다."));
 
         List<SkillItemRow> skillRows = myPageMapper.findSkillsByEmployeeId(employeeId);
         List<CareerItemRow> careerRows = myPageMapper.findCareersByEmployeeId(employeeId);
@@ -281,12 +281,12 @@ public class MyPageService {
         BasicInfoRow basicInfoRow =
                 myPageMapper
                         .findBasicInfoByEmployeeId(employeeId)
-                        .orElseThrow(() -> new IllegalStateException("기본 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("기본 정보를 찾을 수 없습니다."));
 
         HrInfoRow hrInfoRow =
                 myPageMapper
                         .findHrInfoByEmployeeId(employeeId)
-                        .orElseThrow(() -> new IllegalStateException("인사 정보를 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("인사 정보를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
         String html = buildCertificateHtml(basicInfoRow, hrInfoRow, request, now);
@@ -470,7 +470,7 @@ public class MyPageService {
         HrFileRow fileRow =
                 myPageMapper
                         .findSkillFileByIdAndEmployeeId(employeeId, skillId)
-                        .orElseThrow(() -> new IllegalStateException("증빙 파일을 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("증빙 파일을 찾을 수 없습니다."));
 
         return new EvidenceFileResponseDTO(
                 fileRow.getHrFileId(), fileRow.getFileTitle(), fileRow.getFileUrl());
@@ -480,7 +480,7 @@ public class MyPageService {
         HrFileRow fileRow =
                 myPageMapper
                         .findCareerFileByIdAndEmployeeId(employeeId, careerId)
-                        .orElseThrow(() -> new IllegalStateException("증빙 파일을 찾을 수 없습니다."));
+                        .orElseThrow(() -> new NotFoundException("증빙 파일을 찾을 수 없습니다."));
 
         return new EvidenceFileResponseDTO(
                 fileRow.getHrFileId(), fileRow.getFileTitle(), fileRow.getFileUrl());
@@ -597,7 +597,7 @@ public class MyPageService {
 
     private void validateEvidenceFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("증빙 파일은 필수입니다.");
+            throw new NotFoundException("증빙 파일은 필수입니다.");
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
