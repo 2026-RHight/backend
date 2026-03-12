@@ -27,10 +27,10 @@ public class PerformanceDashboardSummary {
     @Column(name = "employee_id", nullable = false)
     private Long employeeId;
 
-    @Column(name = "metric_year")
+    @Column(name = "performance_year")
     private Integer metricYear;
 
-    @Column(name = "metric_month")
+    @Column(name = "performance_month")
     private Integer metricMonth;
 
     @Column(name = "personal_kpi_achievement_rate")
