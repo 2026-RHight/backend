@@ -19,6 +19,7 @@ import com.reverse.payroll.internal.dto.response.AdminPayrollBatchCalculateRespo
 import com.reverse.payroll.internal.dto.response.AdminPayrollEmployeeSearchResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollFinalizeResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
+import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerSummaryResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
 import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
@@ -303,6 +304,24 @@ public class PayrollService {
                         .collect(Collectors.toList());
 
         return PageResponse.of(content, page, size, totalElements);
+    }
+
+    public AdminPayrollLedgerSummaryResponse getAdminPayrollLedgerSummary(int year, int month) {
+        validateYearMonth(year, month);
+        String targetMonth = String.format("%04d-%02d", year, month);
+
+        int totalCount = payrollMapper.countPayrollLedgersByTargetMonth(targetMonth);
+        int finalizedCount = payrollMapper.countFinalizedPayrollLedgersByTargetMonth(targetMonth);
+        int sentCount = payrollMapper.countSentPayrollLedgersByTargetMonth(targetMonth);
+
+        return AdminPayrollLedgerSummaryResponse.builder()
+                .targetMonth(targetMonth)
+                .totalCount(totalCount)
+                .finalizedCount(finalizedCount)
+                .pendingFinalizeCount(Math.max(totalCount - finalizedCount, 0))
+                .sentCount(sentCount)
+                .pendingSendCount(Math.max(finalizedCount - sentCount, 0))
+                .build();
     }
 
     public PageResponse<AdminPayrollEmployeeSearchResponse> searchPayrollEmployees(
