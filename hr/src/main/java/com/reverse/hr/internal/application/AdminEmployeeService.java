@@ -1,5 +1,6 @@
 package com.reverse.hr.internal.application;
 
+import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.FieldCryptoService;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,8 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminEmployeeService {
 
     private static final String DEFAULT_EVALUATEE_ROLE_CODE = "EVALUATEE";
-    private static final String DEFAULT_PROFILE_FILE_URL =
-            "https://static.rhight.local/profiles/default.png";
+    private static final String DEFAULT_PROFILE_FILE_NAME = "basicprofile.webp";
+    private static final String DEFAULT_PROFILE_FILE_KEY = "hr/profile/basicprofile.webp";
     private static final String DEFAULT_PROFILE_FILE_TITLE = "기본 프로필 이미지";
     private static final String EMPLOYEE_NUM_DATE_PATTERN = "%1$ty%1$tm%1$td";
     private static final int EMPLOYEE_NUM_RETRY_ATTEMPTS = 20;
@@ -58,6 +60,12 @@ public class AdminEmployeeService {
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Value("${cloud.s3.endpoint}")
+    private String s3Endpoint;
+
+    @Value("${cloud.s3.bucket}")
+    private String s3Bucket;
+
     @Transactional
     public AdminEmployeeCreateResponseDTO createEmployee(AdminEmployeeCreateRequestDTO request) {
         validateReferenceIds(
@@ -66,6 +74,7 @@ public class AdminEmployeeService {
                 request.positionId(),
                 request.rankId(),
                 request.areaId());
+        validateUniqueContact(request.email(), request.phone());
 
         Long evaluateeRoleId = adminEmployeeMapper.findRoleIdByCode(DEFAULT_EVALUATEE_ROLE_CODE);
         if (evaluateeRoleId == null) {
@@ -86,12 +95,7 @@ public class AdminEmployeeService {
         String residentEnc = fieldCryptoService.encrypt(request.residentNumber());
         String residentHash = residentHashService.hash(request.residentNumber());
 
-        adminEmployeeMapper.insertDefaultProfileFile(
-                DEFAULT_PROFILE_FILE_URL, DEFAULT_PROFILE_FILE_TITLE);
-        Long profileId = adminEmployeeMapper.findLastInsertedHrFileId();
-        if (profileId == null || profileId < 1) {
-            throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.");
-        }
+        Long profileId = resolveDefaultProfileId();
 
         String employeeNum = null;
         int insertedEmployee = 0;
@@ -119,6 +123,18 @@ public class AdminEmployeeService {
                                 profileId);
                 break;
             } catch (DuplicateKeyException ex) {
+                DuplicateType duplicateType = resolveDuplicateType(ex);
+                if (duplicateType == DuplicateType.EMAIL) {
+                    log.warn("이메일 중복으로 사원 등록 실패");
+                    throw new BadRequestException("이미 사용 중인 이메일입니다.");
+                }
+                if (duplicateType == DuplicateType.PHONE) {
+                    log.warn("전화번호 중복으로 사원 등록 실패.");
+                    throw new BadRequestException("이미 사용 중인 전화번호입니다.");
+                }
+                if (duplicateType != DuplicateType.EMPLOYEE_NUM) {
+                    throw new IllegalStateException("사원 등록 중 중복 제약 위반이 발생했습니다.", ex);
+                }
                 log.warn(
                         "사번 중복으로 재시도합니다. employeeNum={}, attempt={}/{}",
                         employeeNum,
@@ -439,6 +455,86 @@ public class AdminEmployeeService {
                 throw new NotFoundException("ROLE_NOT_FOUND", "유효하지 않은 권한이 포함되어 있습니다.");
             }
         }
+    }
+
+    private void validateUniqueContact(String email, String phone) {
+        if (adminEmployeeMapper.existsEmail(email) > 0) {
+            throw new BadRequestException("이미 사용 중인 이메일입니다.");
+        }
+        if (adminEmployeeMapper.existsPhone(phone) > 0) {
+            throw new BadRequestException("이미 사용 중인 전화번호입니다.");
+        }
+    }
+
+    private DuplicateType resolveDuplicateType(DuplicateKeyException ex) {
+        String message = ex.getMessage();
+        if (message == null) {
+            return DuplicateType.UNKNOWN;
+        }
+        String lowerMessage = message.toLowerCase(Locale.ROOT);
+        if (lowerMessage.contains("uk_employee_email") || lowerMessage.contains("email")) {
+            return DuplicateType.EMAIL;
+        }
+        if (lowerMessage.contains("uk_employee_phone") || lowerMessage.contains("phone")) {
+            return DuplicateType.PHONE;
+        }
+        if (lowerMessage.contains("uk_employee_employee_num")
+                || lowerMessage.contains("employee_num")) {
+            return DuplicateType.EMPLOYEE_NUM;
+        }
+        return DuplicateType.UNKNOWN;
+    }
+
+    private enum DuplicateType {
+        EMPLOYEE_NUM,
+        EMAIL,
+        PHONE,
+        UNKNOWN
+    }
+
+    private Long resolveDefaultProfileId() {
+        String defaultProfileFileUrl = buildDefaultProfileFileUrl();
+        Long profileIdByKey = adminEmployeeMapper.findHrFileIdByFileKey(DEFAULT_PROFILE_FILE_KEY);
+        if (profileIdByKey != null && profileIdByKey > 0) {
+            return profileIdByKey;
+        }
+        try {
+            adminEmployeeMapper.insertDefaultProfileFile(
+                    DEFAULT_PROFILE_FILE_KEY, defaultProfileFileUrl, DEFAULT_PROFILE_FILE_TITLE);
+            Long insertedId = adminEmployeeMapper.findLastInsertedHrFileId();
+            if (insertedId != null && insertedId > 0) {
+                return insertedId;
+            }
+        } catch (DuplicateKeyException ex) {
+            log.debug("기본 프로필 중복 생성 감지. 기존 row 재사용. fileKey={}", DEFAULT_PROFILE_FILE_KEY);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.", ex);
+        }
+
+        Long existingId = adminEmployeeMapper.findHrFileIdByFileKey(DEFAULT_PROFILE_FILE_KEY);
+        if (existingId == null || existingId < 1) {
+            existingId = adminEmployeeMapper.findHrFileIdByUrl(defaultProfileFileUrl);
+        }
+        if (existingId == null || existingId < 1) {
+            throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.");
+        }
+        return existingId;
+    }
+
+    private String buildDefaultProfileFileUrl() {
+        String normalizedEndpoint = trimTrailingSlash(s3Endpoint);
+        return normalizedEndpoint + "/" + s3Bucket + "/hr/profile/" + DEFAULT_PROFILE_FILE_NAME;
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     private String generateEmployeeNum(LocalDate hireDate, int sequenceOffset) {

@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS hr_file (
                                     file_key VARCHAR(1024) NULL,
                                     file_url TEXT NOT NULL,
                                     file_title VARCHAR(255) NULL,
-    PRIMARY KEY (hr_file_id)
+    PRIMARY KEY (hr_file_id),
+    UNIQUE KEY uk_hr_file_file_key (file_key)
     );
 
 CREATE TABLE IF NOT EXISTS employee (

@@ -24,7 +24,7 @@
             SELECT h.org_id, COUNT(*) AS member_count
             FROM employee_hr_info h
             JOIN employee e ON e.employee_id = h.employee_id
-            WHERE e.employ_state = 'WORK'
+            WHERE e.employ_state IN ('WORK', 'LEAVE')
             GROUP BY h.org_id
         ) m ON m.org_id = o.org_id
         WHERE o.is_active = TRUE
@@ -36,6 +36,8 @@
             resultType="com.reverse.hr.internal.persistence.row.OrgMemberRow">
         SELECT e.employee_id     AS employeeId,
                e.employee_name   AS employeeName,
+               h.org_id          AS orgId,
+               o.org_name        AS orgName,
                f.file_url        AS profileFileUrl,
                e.email           AS email,
                e.phone           AS phone,
@@ -52,14 +54,16 @@
                COALESCE(r.rank_no, 0) AS rankNo
         FROM employee_hr_info h
         JOIN employee e ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
         LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
         LEFT JOIN hr_position p ON p.position_id = h.position_id
         LEFT JOIN job j ON j.job_id = h.job_id
         LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
         LEFT JOIN working_area w ON w.area_id = h.area_id
         WHERE h.org_id = #{orgId}
-          AND e.employ_state = 'WORK'
-        ORDER BY leaderSort DESC, rankNo DESC, e.employee_name ASC
+          /* 조직도/내조직 구성원 정책: 재직(WORK) + 휴직(LEAVE) 포함 */
+          AND e.employ_state IN ('WORK', 'LEAVE')
+        ORDER BY rankNo DESC, e.employee_name ASC
     </select>
 
     <select id="findMyOrgIdByEmployeeId"
@@ -75,6 +79,8 @@
             resultType="com.reverse.hr.internal.persistence.row.OrgMemberRow">
         SELECT e.employee_id     AS employeeId,
                e.employee_name   AS employeeName,
+               h.org_id          AS orgId,
+               o.org_name        AS orgName,
                f.file_url        AS profileFileUrl,
                e.email           AS email,
                e.phone           AS phone,
@@ -92,15 +98,17 @@
         FROM org_closure c
         JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
         JOIN employee e ON e.employee_id = h.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
         LEFT JOIN hr_file f ON f.hr_file_id = e.profile_id
         LEFT JOIN hr_position p ON p.position_id = h.position_id
         LEFT JOIN job j ON j.job_id = h.job_id
         LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
         LEFT JOIN working_area w ON w.area_id = h.area_id
         WHERE c.ancestor_org_id = #{ancestorOrgId}
-          AND e.employ_state = 'WORK'
+          /* 조직도/내조직 구성원 정책: 재직(WORK) + 휴직(LEAVE) 포함 */
+          AND e.employ_state IN ('WORK', 'LEAVE')
           AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
-        ORDER BY leaderSort DESC, rankNo DESC, e.employee_name ASC
+        ORDER BY rankNo DESC, e.employee_name ASC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
@@ -110,7 +118,7 @@
         JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
         JOIN employee e ON e.employee_id = h.employee_id
         WHERE c.ancestor_org_id = #{ancestorOrgId}
-          AND e.employ_state = 'WORK'
+          AND e.employ_state IN ('WORK', 'LEAVE')
           AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
     </select>
 

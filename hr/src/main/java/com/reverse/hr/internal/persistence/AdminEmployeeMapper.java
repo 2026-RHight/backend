@@ -28,12 +28,22 @@ public interface AdminEmployeeMapper {
 
     int existsRole(@Param("roleId") Long roleId);
 
+    int existsEmail(@Param("email") String email);
+
+    int existsPhone(@Param("phone") String phone);
+
     Long findRoleIdByCode(@Param("roleCode") String roleCode);
 
     Integer findMaxDailyEmployeeSequence(@Param("datePrefix") String datePrefix);
 
+    Long findHrFileIdByFileKey(@Param("fileKey") String fileKey);
+
+    Long findHrFileIdByUrl(@Param("fileUrl") String fileUrl);
+
     int insertDefaultProfileFile(
-            @Param("fileUrl") String fileUrl, @Param("fileTitle") String fileTitle);
+            @Param("fileKey") String fileKey,
+            @Param("fileUrl") String fileUrl,
+            @Param("fileTitle") String fileTitle);
 
     Long findLastInsertedHrFileId();
 
