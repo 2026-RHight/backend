@@ -61,6 +61,7 @@
         LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
         LEFT JOIN working_area w ON w.area_id = h.area_id
         WHERE h.org_id = #{orgId}
+          /* 조직도/내조직 구성원 정책: 재직(WORK) + 휴직(LEAVE) 포함 */
           AND e.employ_state IN ('WORK', 'LEAVE')
         ORDER BY rankNo DESC, e.employee_name ASC
     </select>
@@ -104,7 +105,8 @@
         LEFT JOIN hr_rank r ON r.rank_id = h.rank_id
         LEFT JOIN working_area w ON w.area_id = h.area_id
         WHERE c.ancestor_org_id = #{ancestorOrgId}
-          AND e.employ_state = 'WORK'
+          /* 조직도/내조직 구성원 정책: 재직(WORK) + 휴직(LEAVE) 포함 */
+          AND e.employ_state IN ('WORK', 'LEAVE')
           AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
         ORDER BY rankNo DESC, e.employee_name ASC
         LIMIT #{limit} OFFSET #{offset}
@@ -116,7 +118,7 @@
         JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
         JOIN employee e ON e.employee_id = h.employee_id
         WHERE c.ancestor_org_id = #{ancestorOrgId}
-          AND e.employ_state = 'WORK'
+          AND e.employ_state IN ('WORK', 'LEAVE')
           AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
     </select>
 

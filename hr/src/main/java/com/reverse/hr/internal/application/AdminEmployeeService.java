@@ -44,6 +44,7 @@ public class AdminEmployeeService {
 
     private static final String DEFAULT_EVALUATEE_ROLE_CODE = "EVALUATEE";
     private static final String DEFAULT_PROFILE_FILE_NAME = "basicprofile.webp";
+    private static final String DEFAULT_PROFILE_FILE_KEY = "hr/profile/basicprofile.webp";
     private static final String DEFAULT_PROFILE_FILE_TITLE = "기본 프로필 이미지";
     private static final String EMPLOYEE_NUM_DATE_PATTERN = "%1$ty%1$tm%1$td";
     private static final int EMPLOYEE_NUM_RETRY_ATTEMPTS = 20;
@@ -124,11 +125,11 @@ public class AdminEmployeeService {
             } catch (DuplicateKeyException ex) {
                 DuplicateType duplicateType = resolveDuplicateType(ex);
                 if (duplicateType == DuplicateType.EMAIL) {
-                    log.warn("이메일 중복으로 사원 등록 실패. email={}", request.email());
+                    log.warn("이메일 중복으로 사원 등록 실패");
                     throw new BadRequestException("이미 사용 중인 이메일입니다.");
                 }
                 if (duplicateType == DuplicateType.PHONE) {
-                    log.warn("전화번호 중복으로 사원 등록 실패. phone={}", request.phone());
+                    log.warn("전화번호 중복으로 사원 등록 실패.");
                     throw new BadRequestException("이미 사용 중인 전화번호입니다.");
                 }
                 if (duplicateType != DuplicateType.EMPLOYEE_NUM) {
@@ -493,18 +494,31 @@ public class AdminEmployeeService {
 
     private Long resolveDefaultProfileId() {
         String defaultProfileFileUrl = buildDefaultProfileFileUrl();
-        Long profileId = adminEmployeeMapper.findHrFileIdByUrl(defaultProfileFileUrl);
-        if (profileId != null && profileId > 0) {
-            return profileId;
+        Long profileIdByKey = adminEmployeeMapper.findHrFileIdByFileKey(DEFAULT_PROFILE_FILE_KEY);
+        if (profileIdByKey != null && profileIdByKey > 0) {
+            return profileIdByKey;
+        }
+        try {
+            adminEmployeeMapper.insertDefaultProfileFile(
+                    DEFAULT_PROFILE_FILE_KEY, defaultProfileFileUrl, DEFAULT_PROFILE_FILE_TITLE);
+            Long insertedId = adminEmployeeMapper.findLastInsertedHrFileId();
+            if (insertedId != null && insertedId > 0) {
+                return insertedId;
+            }
+        } catch (DuplicateKeyException ex) {
+            log.debug("기본 프로필 중복 생성 감지. 기존 row 재사용. fileKey={}", DEFAULT_PROFILE_FILE_KEY);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.", ex);
         }
 
-        adminEmployeeMapper.insertDefaultProfileFile(
-                defaultProfileFileUrl, DEFAULT_PROFILE_FILE_TITLE);
-        Long insertedId = adminEmployeeMapper.findLastInsertedHrFileId();
-        if (insertedId == null || insertedId < 1) {
+        Long existingId = adminEmployeeMapper.findHrFileIdByFileKey(DEFAULT_PROFILE_FILE_KEY);
+        if (existingId == null || existingId < 1) {
+            existingId = adminEmployeeMapper.findHrFileIdByUrl(defaultProfileFileUrl);
+        }
+        if (existingId == null || existingId < 1) {
             throw new IllegalStateException("기본 프로필 생성 중 오류가 발생했습니다.");
         }
-        return insertedId;
+        return existingId;
     }
 
     private String buildDefaultProfileFileUrl() {

@@ -79,13 +79,23 @@
 
     <insert id="insertDefaultProfileFile">
         INSERT INTO hr_file (
+            file_key,
             file_url,
             file_title
         ) VALUES (
+            #{fileKey},
             #{fileUrl},
             #{fileTitle}
         )
     </insert>
+
+    <select id="findHrFileIdByFileKey" resultType="long">
+        SELECT hr_file_id
+        FROM hr_file
+        WHERE file_key = #{fileKey}
+        ORDER BY hr_file_id ASC
+        LIMIT 1
+    </select>
 
     <select id="findLastInsertedHrFileId" resultType="long">
         SELECT LAST_INSERT_ID()
