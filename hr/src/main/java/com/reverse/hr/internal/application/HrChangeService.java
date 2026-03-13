@@ -173,16 +173,15 @@ public class HrChangeService {
             throw new IllegalArgumentException("변경할 값이 없습니다.");
         }
 
-        validateSingleChange(
-                before,
-                resolvedOrgId,
-                resolvedJobId,
-                resolvedPositionId,
-                resolvedRankId,
-                resolvedEmployeeState,
-                resolvedEmployType,
-                resolvedAreaId,
-                roleChanged);
+        if (hrChangeMapper.existsPendingHrEventByEmployeeId(employeeId) > 0) {
+            throw new IllegalArgumentException("이미 예약된 인사 변경이 있습니다. 적용 후 다시 시도해주세요.");
+        }
+
+        // 권한만 변경된 경우에는 인사 히스토리(hr_event)를 남기지 않고 즉시 권한만 반영한다.
+        if (roleChanged && !profileChanged) {
+            replaceRolesWithExactSet(employeeId, parseRoleIdsFromJson(targetRoleIdsJson));
+            return new HrChangeUpdateResponseDTO(employeeId, null, null, "권한 변경");
+        }
 
         validateResolvedIds(
                 resolvedOrgId, resolvedJobId, resolvedPositionId, resolvedRankId, resolvedAreaId);
@@ -191,10 +190,13 @@ public class HrChangeService {
                 resolveEventType(
                         before,
                         resolvedOrgId,
+                        resolvedJobId,
                         resolvedAreaId,
                         resolvedPositionId,
                         resolvedRankId,
-                        resolvedEmployeeState);
+                        resolvedEmployeeState,
+                        resolvedEmployType,
+                        roleChanged);
 
         String beforeChange = buildBeforeChange(before);
         String afterChange =
@@ -450,16 +452,15 @@ public class HrChangeService {
     private HrEventType resolveEventType(
             HrChangeCurrentInfoRow before,
             Long resolvedOrgId,
+            Long resolvedJobId,
             Long resolvedAreaId,
             Long resolvedPositionId,
             Long resolvedRankId,
-            EmployeeState resolvedEmployeeState) {
+            EmployeeState resolvedEmployeeState,
+            EmployType resolvedEmployType,
+            boolean roleChanged) {
         if (!Objects.equals(before.rankId(), resolvedRankId)) {
             return HrEventType.PROMOTION;
-        }
-        if (!Objects.equals(before.orgId(), resolvedOrgId)
-                || !Objects.equals(before.areaId(), resolvedAreaId)) {
-            return HrEventType.TRANSFER;
         }
         if (!Objects.equals(before.positionId(), resolvedPositionId)) {
             return HrEventType.POSITION_CHANGE;
@@ -467,31 +468,29 @@ public class HrChangeService {
         if (!Objects.equals(before.employeeState(), resolvedEmployeeState)) {
             return HrEventType.STATE_CHANGE;
         }
+        if (!Objects.equals(before.orgId(), resolvedOrgId)) {
+            return HrEventType.ORG_CHANGE;
+        }
+        if (!Objects.equals(before.jobId(), resolvedJobId)
+                || !Objects.equals(before.areaId(), resolvedAreaId)
+                || !Objects.equals(before.employType(), resolvedEmployType)
+                || roleChanged) {
+            return HrEventType.TRANSFER;
+        }
+        // profileChanged/roleChanged 검증을 통과한 경우에만 호출되지만, 방어적으로 기본값 유지
         return HrEventType.ORG_CHANGE;
     }
 
-    private void validateSingleChange(
-            HrChangeCurrentInfoRow before,
-            Long resolvedOrgId,
-            Long resolvedJobId,
-            Long resolvedPositionId,
-            Long resolvedRankId,
-            EmployeeState resolvedEmployeeState,
-            EmployType resolvedEmployType,
-            Long resolvedAreaId,
-            boolean roleChanged) {
-        int changedCount = 0;
-        if (!Objects.equals(before.orgId(), resolvedOrgId)) changedCount++;
-        if (!Objects.equals(before.jobId(), resolvedJobId)) changedCount++;
-        if (!Objects.equals(before.positionId(), resolvedPositionId)) changedCount++;
-        if (!Objects.equals(before.rankId(), resolvedRankId)) changedCount++;
-        if (!Objects.equals(before.employeeState(), resolvedEmployeeState)) changedCount++;
-        if (!Objects.equals(before.employType(), resolvedEmployType)) changedCount++;
-        if (!Objects.equals(before.areaId(), resolvedAreaId)) changedCount++;
-        if (roleChanged) changedCount++;
+    private void replaceRolesWithExactSet(Long employeeId, List<Long> roleIds) {
+        for (Long roleId : roleIds) {
+            if (hrChangeMapper.existsRole(roleId) == 0) {
+                throw new IllegalArgumentException("유효하지 않은 권한 ID입니다: " + roleId);
+            }
+        }
 
-        if (changedCount > 1) {
-            throw new IllegalArgumentException("한 번에 하나의 인사 항목만 변경할 수 있습니다.");
+        hrChangeMapper.deleteEmployeeRoles(employeeId);
+        for (Long roleId : roleIds) {
+            hrChangeMapper.insertEmployeeRole(employeeId, roleId);
         }
     }
 

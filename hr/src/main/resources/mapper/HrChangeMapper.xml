@@ -279,6 +279,13 @@
         WHERE source_approval_id = #{sourceApprovalId}
     </select>
 
+    <select id="existsPendingHrEventByEmployeeId" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_event
+        WHERE employee_id = #{employeeId}
+          AND event_status = 'PENDING'
+    </select>
+
     <select id="acquireSchedulerLock" resultType="int">
         SELECT GET_LOCK(#{lockName}, 0)
     </select>
