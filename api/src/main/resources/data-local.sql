@@ -1320,7 +1320,6 @@ INSERT INTO role_view (view_id, role_id)
 SELECT av.view_id, r.role_id
 FROM app_view av
          JOIN role r ON r.role_code = 'HR_ADMIN_MASTER'
-WHERE av.view_code <> 'LOGIN'
 ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
                         role_id = VALUES(role_id);
 
