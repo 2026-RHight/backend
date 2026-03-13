@@ -344,7 +344,7 @@
                 AND he.event_status = #{eventStatus}
             </if>
             <if test="eventStatus == null">
-                AND he.event_status = 'APPLIED'
+                AND he.event_status IN ('APPLIED', 'PENDING')
             </if>
             <if test="employeeId != null">
                 AND he.employee_id = #{employeeId}

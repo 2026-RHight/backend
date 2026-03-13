@@ -98,6 +98,10 @@ public interface AdminEmployeeMapper {
             @Param("employeeState") EmployeeState employeeState,
             @Param("employType") EmployType employType);
 
+    long countAllEmployees();
+
+    long countUpcomingHires(@Param("baseDate") LocalDate baseDate);
+
     Optional<AdminEmployeeDetailRow> findEmployeeDetailById(@Param("employeeId") Long employeeId);
 
     List<HrEventItemRow> findHrEventsByEmployeeId(@Param("employeeId") Long employeeId);

@@ -252,6 +252,17 @@
         <include refid="employeeFilter"/>
     </select>
 
+    <select id="countAllEmployees" resultType="long">
+        SELECT COUNT(*)
+        FROM employee
+    </select>
+
+    <select id="countUpcomingHires" resultType="long">
+        SELECT COUNT(*)
+        FROM employee
+        WHERE hire_date <![CDATA[>]]> #{baseDate}
+    </select>
+
     <select id="findEmployeeDetailById" resultType="com.reverse.hr.internal.persistence.row.AdminEmployeeDetailRow">
         SELECT e.employee_id          AS employeeId,
                e.employee_num         AS employeeNum,

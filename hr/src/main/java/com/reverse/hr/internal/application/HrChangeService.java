@@ -173,6 +173,17 @@ public class HrChangeService {
             throw new IllegalArgumentException("변경할 값이 없습니다.");
         }
 
+        validateSingleChange(
+                before,
+                resolvedOrgId,
+                resolvedJobId,
+                resolvedPositionId,
+                resolvedRankId,
+                resolvedEmployeeState,
+                resolvedEmployType,
+                resolvedAreaId,
+                roleChanged);
+
         validateResolvedIds(
                 resolvedOrgId, resolvedJobId, resolvedPositionId, resolvedRankId, resolvedAreaId);
 
@@ -180,6 +191,7 @@ public class HrChangeService {
                 resolveEventType(
                         before,
                         resolvedOrgId,
+                        resolvedAreaId,
                         resolvedPositionId,
                         resolvedRankId,
                         resolvedEmployeeState);
@@ -438,13 +450,15 @@ public class HrChangeService {
     private HrEventType resolveEventType(
             HrChangeCurrentInfoRow before,
             Long resolvedOrgId,
+            Long resolvedAreaId,
             Long resolvedPositionId,
             Long resolvedRankId,
             EmployeeState resolvedEmployeeState) {
         if (!Objects.equals(before.rankId(), resolvedRankId)) {
             return HrEventType.PROMOTION;
         }
-        if (!Objects.equals(before.orgId(), resolvedOrgId)) {
+        if (!Objects.equals(before.orgId(), resolvedOrgId)
+                || !Objects.equals(before.areaId(), resolvedAreaId)) {
             return HrEventType.TRANSFER;
         }
         if (!Objects.equals(before.positionId(), resolvedPositionId)) {
@@ -454,6 +468,31 @@ public class HrChangeService {
             return HrEventType.STATE_CHANGE;
         }
         return HrEventType.ORG_CHANGE;
+    }
+
+    private void validateSingleChange(
+            HrChangeCurrentInfoRow before,
+            Long resolvedOrgId,
+            Long resolvedJobId,
+            Long resolvedPositionId,
+            Long resolvedRankId,
+            EmployeeState resolvedEmployeeState,
+            EmployType resolvedEmployType,
+            Long resolvedAreaId,
+            boolean roleChanged) {
+        int changedCount = 0;
+        if (!Objects.equals(before.orgId(), resolvedOrgId)) changedCount++;
+        if (!Objects.equals(before.jobId(), resolvedJobId)) changedCount++;
+        if (!Objects.equals(before.positionId(), resolvedPositionId)) changedCount++;
+        if (!Objects.equals(before.rankId(), resolvedRankId)) changedCount++;
+        if (!Objects.equals(before.employeeState(), resolvedEmployeeState)) changedCount++;
+        if (!Objects.equals(before.employType(), resolvedEmployType)) changedCount++;
+        if (!Objects.equals(before.areaId(), resolvedAreaId)) changedCount++;
+        if (roleChanged) changedCount++;
+
+        if (changedCount > 1) {
+            throw new IllegalArgumentException("한 번에 하나의 인사 항목만 변경할 수 있습니다.");
+        }
     }
 
     private String buildBeforeChange(HrChangeCurrentInfoRow before) {
