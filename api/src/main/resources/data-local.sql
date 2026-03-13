@@ -230,24 +230,18 @@ FROM (
 WHERE r.role_id IS NULL;
 
 -- ---------------------------------------------------------------------------
--- 100 employees + profile files (bulk insert)
+-- 100 employees (profile_id uses existing basic profile file)
 -- ---------------------------------------------------------------------------
-INSERT INTO hr_file (hr_file_id, file_key, file_url, file_title)
-WITH RECURSIVE seq AS (
-    SELECT 1 AS n
-    UNION ALL
-    SELECT n + 1
-    FROM seq
-    WHERE n < 100
-)
-SELECT
-    800000 + n AS hr_file_id,
-    CONCAT('seed-profile-', LPAD(n, 3, '0')) AS file_key,
-    CONCAT('https://seed.rhight.local/profile/', LPAD(n, 3, '0'), '.png') AS file_url,
-    CONCAT('seed-profile-', LPAD(n, 3, '0')) AS file_title
-FROM seq
-         LEFT JOIN hr_file existing ON existing.hr_file_id = 800000 + seq.n
-WHERE existing.hr_file_id IS NULL;
+INSERT INTO hr_file (file_key, file_url, file_title)
+SELECT 'hr/profile/basicprofile.webp',
+       'http://beyond21.iptime.org:2103/rhight/hr/profile/basicprofile.webp',
+       'basicprofile.webp'
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM hr_file
+    WHERE file_key = 'hr/profile/basicprofile.webp'
+);
 
 INSERT INTO employee (
     employee_num,
@@ -506,8 +500,15 @@ SELECT
         ELSE 'WORK'
         END AS employ_state,
     es.hire_date,
-    800000 + es.n AS profile_id
+    dp.hr_file_id AS profile_id
 FROM employee_seed es
+         JOIN (
+    SELECT hf.hr_file_id
+    FROM hr_file hf
+    WHERE hf.file_key = 'hr/profile/basicprofile.webp'
+    ORDER BY hf.hr_file_id
+    LIMIT 1
+) dp
          JOIN sensitive_seed ss ON ss.n = es.n
          LEFT JOIN employee e
                    ON e.employee_num = CONCAT(DATE_FORMAT(es.hire_date, '%y%m%d'), LPAD(es.day_seq, 4, '0'))
@@ -1255,5 +1256,94 @@ FROM payroll_base pb
                    ON pl.employee_id = pb.employee_id
                        AND pl.target_month = pb.target_month
 WHERE pl.id IS NULL;
+
+
+INSERT INTO app_view (view_code, view_name, view_desc)
+VALUES ('MAIN', '메인 대시보드', '메인 화면'),
+       ('NOTICE_LIST', '공지사항', '공지사항 목록'),
+       ('ADMIN_MAIN', '관리자 메인', '관리자 대시보드'),
+       ('ADMIN_EMPLOYEES', '사원 관리', '관리자 사원 관리 화면'),
+       ('ADMIN_HR_CHANGE', '인사변동 관리', '관리자 인사변동 화면'),
+       ('ADMIN_POLICIES', '규정 관리', '관리자 규정 화면'),
+       ('ADMIN_KMS_PERMISSION_HISTORY', 'KMS 권한 이력(관리자)', '관리자 KMS 권한 이력 화면'),
+       ('ADMIN_NOTICES', '공지 관리', '관리자 공지사항 관리 화면'),
+       ('ADMIN_ATTENDANCE', '근태 관리(관리자)', '관리자 근태 화면'),
+       ('ADMIN_SALARY', '급여 관리(관리자)', '관리자 급여 화면'),
+       ('APPROVAL_MAIN', '전자결재 메인', '전자결재 메인 화면'),
+       ('APPROVAL_DRAFT', '결재 작성', '전자결재 작성 화면'),
+       ('APPROVAL_STATUS', '결재 상태', '전자결재 상태 화면'),
+       ('APPROVAL_BOX', '결재함', '전자결재 결재함 화면'),
+       ('APPROVAL_BOX_LIST', '결재함 목록', '전자결재 결재함 상세 목록 화면'),
+       ('APPROVAL_REVIEW', '결재 검토', '전자결재 검토 화면'),
+       ('HR_MYPAGE', '인사 마이페이지', '인사 개인 정보 화면'),
+       ('HR_ORG', '조직/팀 조회', '인사 조직/팀 화면'),
+       ('HR_ORGCHART', '조직도', '인사 조직도 화면'),
+       ('HR_MEMBER_ATTENDANCE', '팀원 근태', '팀원 근태 조회 화면'),
+       ('HR_MEMBER_GOAL', '팀원 목표', '팀원 목표 조회 화면'),
+       ('PERFORMANCE', '성과관리', '성과관리 화면'),
+       ('ATTENDANCE_MAIN', '근태 메인', '근태 메인 화면'),
+       ('ATTENDANCE_RECORD', '출퇴근 기록', '근태 기록 화면'),
+       ('ATTENDANCE_REQUEST', '근태 신청', '근태 신청 화면'),
+       ('ATTENDANCE_HISTORY', '근태 이력', '근태 이력 화면'),
+       ('ATTENDANCE_SCHEDULE', '근무 일정', '근무 일정 화면'),
+       ('ATTENDANCE_VACATION', '휴가 관리', '휴가 관리 화면'),
+       ('ATTENDANCE_TEAM', '팀 근태', '팀 근태 화면'),
+       ('ATTENDANCE_MANAGE', '근태 승인/관리', '근태 승인/관리 화면'),
+       ('ATTENDANCE_FLEXIBLE', '유연근무', '유연근무 화면')
+ON DUPLICATE KEY UPDATE view_name = VALUES(view_name),
+                        view_desc = VALUES(view_desc);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'EVALUATEE'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'APPROVAL_MAIN', 'APPROVAL_DRAFT', 'APPROVAL_STATUS',
+                       'APPROVAL_BOX', 'APPROVAL_BOX_LIST', 'HR_MYPAGE', 'HR_ORG', 'HR_ORGCHART',
+                       'ATTENDANCE_MAIN', 'ATTENDANCE_RECORD', 'ATTENDANCE_HISTORY',
+                       'ATTENDANCE_SCHEDULE', 'ATTENDANCE_VACATION')
+ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
+                        role_id = VALUES(role_id);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'EVALUATOR'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'APPROVAL_MAIN', 'APPROVAL_DRAFT', 'APPROVAL_STATUS',
+                       'APPROVAL_BOX', 'APPROVAL_BOX_LIST', 'APPROVAL_REVIEW', 'HR_MYPAGE', 'HR_ORG',
+                       'HR_ORGCHART', 'HR_MEMBER_ATTENDANCE', 'HR_MEMBER_GOAL', 'PERFORMANCE',
+                       'ATTENDANCE_MAIN', 'ATTENDANCE_RECORD', 'ATTENDANCE_HISTORY',
+                       'ATTENDANCE_SCHEDULE', 'ATTENDANCE_VACATION', 'ATTENDANCE_TEAM')
+ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
+                        role_id = VALUES(role_id);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_MASTER'
+ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
+                        role_id = VALUES(role_id);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_BASIC'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_EMPLOYEES', 'ADMIN_HR_CHANGE',
+                       'ADMIN_POLICIES', 'ADMIN_NOTICES', 'ADMIN_ATTENDANCE', 'HR_MYPAGE', 'HR_ORG',
+                       'HR_ORGCHART', 'HR_MEMBER_ATTENDANCE', 'HR_MEMBER_GOAL', 'APPROVAL_MAIN',
+                       'APPROVAL_DRAFT', 'APPROVAL_STATUS', 'APPROVAL_BOX', 'APPROVAL_BOX_LIST')
+ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
+                        role_id = VALUES(role_id);
+
+INSERT INTO role_view (view_id, role_id)
+SELECT av.view_id, r.role_id
+FROM app_view av
+         JOIN role r ON r.role_code = 'HR_ADMIN_PAYROLL'
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_SALARY', 'HR_MYPAGE', 'HR_ORG',
+                       'APPROVAL_MAIN', 'APPROVAL_DRAFT', 'APPROVAL_STATUS', 'APPROVAL_BOX',
+                       'APPROVAL_BOX_LIST')
+ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
+                        role_id = VALUES(role_id);
+
+
 
 COMMIT;
