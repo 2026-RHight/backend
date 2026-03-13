@@ -1264,8 +1264,6 @@ VALUES ('MAIN', '메인 대시보드', '메인 화면'),
        ('ADMIN_MAIN', '관리자 메인', '관리자 대시보드'),
        ('ADMIN_EMPLOYEES', '사원 관리', '관리자 사원 관리 화면'),
        ('ADMIN_HR_CHANGE', '인사변동 관리', '관리자 인사변동 화면'),
-       ('ADMIN_POLICIES', '규정 관리', '관리자 규정 화면'),
-       ('ADMIN_KMS_PERMISSION_HISTORY', 'KMS 권한 이력(관리자)', '관리자 KMS 권한 이력 화면'),
        ('ADMIN_NOTICES', '공지 관리', '관리자 공지사항 관리 화면'),
        ('ADMIN_ATTENDANCE', '근태 관리(관리자)', '관리자 근태 화면'),
        ('ADMIN_SALARY', '급여 관리(관리자)', '관리자 급여 화면'),
@@ -1293,12 +1291,26 @@ VALUES ('MAIN', '메인 대시보드', '메인 화면'),
 ON DUPLICATE KEY UPDATE view_name = VALUES(view_name),
                         view_desc = VALUES(view_desc);
 
+DELETE rv
+FROM role_view rv
+         JOIN role r ON r.role_id = rv.role_id
+WHERE r.role_code IN ('EVALUATEE', 'EVALUATOR', 'HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'HR_ADMIN_PAYROLL');
+
+DELETE rv
+FROM role_view rv
+         JOIN app_view av ON av.view_id = rv.view_id
+WHERE av.view_code IN ('ADMIN_POLICIES', 'ADMIN_KMS_PERMISSION_HISTORY');
+
+DELETE FROM app_view
+WHERE view_code IN ('ADMIN_POLICIES', 'ADMIN_KMS_PERMISSION_HISTORY');
+
 INSERT INTO role_view (view_id, role_id)
 SELECT av.view_id, r.role_id
 FROM app_view av
          JOIN role r ON r.role_code = 'EVALUATEE'
 WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'APPROVAL_MAIN', 'APPROVAL_DRAFT', 'APPROVAL_STATUS',
                        'APPROVAL_BOX', 'APPROVAL_BOX_LIST', 'HR_MYPAGE', 'HR_ORG', 'HR_ORGCHART',
+                       'PERFORMANCE',
                        'ATTENDANCE_MAIN', 'ATTENDANCE_RECORD', 'ATTENDANCE_HISTORY',
                        'ATTENDANCE_SCHEDULE', 'ATTENDANCE_VACATION')
 ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
@@ -1327,10 +1339,8 @@ INSERT INTO role_view (view_id, role_id)
 SELECT av.view_id, r.role_id
 FROM app_view av
          JOIN role r ON r.role_code = 'HR_ADMIN_BASIC'
-WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_EMPLOYEES', 'ADMIN_HR_CHANGE',
-                       'ADMIN_POLICIES', 'ADMIN_NOTICES', 'ADMIN_ATTENDANCE', 'HR_MYPAGE', 'HR_ORG',
-                       'HR_ORGCHART', 'HR_MEMBER_ATTENDANCE', 'HR_MEMBER_GOAL', 'APPROVAL_MAIN',
-                       'APPROVAL_DRAFT', 'APPROVAL_STATUS', 'APPROVAL_BOX', 'APPROVAL_BOX_LIST')
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_EMPLOYEES',
+                       'ADMIN_NOTICES', 'ADMIN_ATTENDANCE')
 ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
                         role_id = VALUES(role_id);
 
@@ -1338,9 +1348,8 @@ INSERT INTO role_view (view_id, role_id)
 SELECT av.view_id, r.role_id
 FROM app_view av
          JOIN role r ON r.role_code = 'HR_ADMIN_PAYROLL'
-WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_SALARY', 'HR_MYPAGE', 'HR_ORG',
-                       'APPROVAL_MAIN', 'APPROVAL_DRAFT', 'APPROVAL_STATUS', 'APPROVAL_BOX',
-                       'APPROVAL_BOX_LIST')
+WHERE av.view_code IN ('MAIN', 'NOTICE_LIST', 'ADMIN_MAIN', 'ADMIN_SALARY',
+                       'ADMIN_NOTICES', 'ADMIN_ATTENDANCE')
 ON DUPLICATE KEY UPDATE view_id = VALUES(view_id),
                         role_id = VALUES(role_id);
 

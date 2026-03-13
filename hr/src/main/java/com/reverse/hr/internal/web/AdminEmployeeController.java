@@ -4,6 +4,7 @@ import com.reverse.core.response.ApiResponse;
 import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.AdminEmployeeService;
+import com.reverse.hr.internal.application.HrChangeService;
 import com.reverse.hr.internal.domain.enums.EmployType;
 import com.reverse.hr.internal.domain.enums.EmployeeState;
 import com.reverse.hr.internal.domain.enums.SensitiveFieldType;
@@ -14,6 +15,7 @@ import com.reverse.hr.internal.dto.response.AdminEmployeeDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminEmployeeListItemResponseDTO;
 import com.reverse.hr.internal.dto.response.AdminSensitiveValueResponseDTO;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
+import com.reverse.hr.internal.dto.response.HrChangeOptionsResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminEmployeeController {
 
     private final AdminEmployeeService adminEmployeeService;
+    private final HrChangeService hrChangeService;
 
     @PostMapping
     @Operation(summary = "인사관리자 신규 사원 등록")
@@ -51,6 +54,27 @@ public class AdminEmployeeController {
         return ApiResponse.success(
                 adminEmployeeService.getEmployees(
                         keyword, orgId, employeeState, employType, page, 10));
+    }
+
+    @GetMapping("/total-count")
+    @Operation(summary = "인사관리자 전체 사원 수")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC','HR_ADMIN_PAYROLL')")
+    public ApiResponse<Long> getTotalEmployeeCount() {
+        return ApiResponse.success(adminEmployeeService.countAllEmployees());
+    }
+
+    @GetMapping("/upcoming-hire-count")
+    @Operation(summary = "인사관리자 신규 입사 예정 인원 수")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC','HR_ADMIN_PAYROLL')")
+    public ApiResponse<Long> getUpcomingHireCount() {
+        return ApiResponse.success(adminEmployeeService.countUpcomingHires());
+    }
+
+    @GetMapping("/options")
+    @Operation(summary = "인사관리자 신규 사원 등록 옵션 조회")
+    @PreAuthorize("hasAnyRole('HR_ADMIN_MASTER','HR_ADMIN_BASIC')")
+    public ApiResponse<HrChangeOptionsResponseDTO> getEmployeeCreateOptions() {
+        return ApiResponse.success(hrChangeService.getOptions());
     }
 
     @GetMapping("/{employeeId}")

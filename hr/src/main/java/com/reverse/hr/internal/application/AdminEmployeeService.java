@@ -24,6 +24,7 @@ import com.reverse.hr.internal.persistence.row.HrFileRow;
 import com.reverse.hr.internal.persistence.row.SkillItemRow;
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -49,6 +50,7 @@ public class AdminEmployeeService {
     private static final String EMPLOYEE_NUM_DATE_PATTERN = "%1$ty%1$tm%1$td";
     private static final int EMPLOYEE_NUM_RETRY_ATTEMPTS = 20;
     private static final int TEMP_PASSWORD_LENGTH = 14;
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
     private static final String TEMP_PASSWORD_CHARS =
             "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
 
@@ -228,6 +230,14 @@ public class AdminEmployeeService {
                         .toList();
 
         return PageResponse.of(content, safePage, safeSize, total);
+    }
+
+    public long countAllEmployees() {
+        return adminEmployeeMapper.countAllEmployees();
+    }
+
+    public long countUpcomingHires() {
+        return adminEmployeeMapper.countUpcomingHires(LocalDate.now(SEOUL_ZONE));
     }
 
     public AdminEmployeeDetailResponseDTO getEmployeeDetail(Long employeeId) {

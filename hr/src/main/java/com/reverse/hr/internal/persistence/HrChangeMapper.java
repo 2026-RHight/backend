@@ -104,6 +104,8 @@ public interface HrChangeMapper {
 
     int existsHrEventBySourceApprovalId(@Param("sourceApprovalId") Long sourceApprovalId);
 
+    int existsPendingHrEventByEmployeeId(@Param("employeeId") Long employeeId);
+
     Integer acquireSchedulerLock(@Param("lockName") String lockName);
 
     Integer releaseSchedulerLock(@Param("lockName") String lockName);

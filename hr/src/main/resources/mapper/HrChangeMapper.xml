@@ -279,6 +279,13 @@
         WHERE source_approval_id = #{sourceApprovalId}
     </select>
 
+    <select id="existsPendingHrEventByEmployeeId" resultType="int">
+        SELECT COUNT(*)
+        FROM hr_event
+        WHERE employee_id = #{employeeId}
+          AND event_status = 'PENDING'
+    </select>
+
     <select id="acquireSchedulerLock" resultType="int">
         SELECT GET_LOCK(#{lockName}, 0)
     </select>
@@ -344,7 +351,7 @@
                 AND he.event_status = #{eventStatus}
             </if>
             <if test="eventStatus == null">
-                AND he.event_status = 'APPLIED'
+                AND he.event_status IN ('APPLIED', 'PENDING')
             </if>
             <if test="employeeId != null">
                 AND he.employee_id = #{employeeId}
