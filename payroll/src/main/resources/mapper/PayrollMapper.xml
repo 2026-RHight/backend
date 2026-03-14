@@ -166,6 +166,33 @@
         WHERE insurance_id = #{insuranceId}
     </update>
 
+    <select id="findSeverancePaymentByEmployeeIdAndRetirementDate" resultType="com.reverse.payroll.internal.domain.SeverancePayment">
+        SELECT
+            id, employee_id, retirement_date, service_days, service_years,
+            average_monthly_wage, estimated_severance_amount, paid_amount,
+            payment_date, bank_name_snapshot, account_number_snapshot_enc,
+            account_holder_snapshot, note, paid_by_employee_id, created_at
+        FROM severance_payment
+        WHERE employee_id = #{employeeId}
+          AND retirement_date = #{retirementDate}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertSeverancePayment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO severance_payment (
+            employee_id, retirement_date, service_days, service_years,
+            average_monthly_wage, estimated_severance_amount, paid_amount,
+            payment_date, bank_name_snapshot, account_number_snapshot_enc,
+            account_holder_snapshot, note, paid_by_employee_id
+        ) VALUES (
+            #{employeeId}, #{retirementDate}, #{serviceDays}, #{serviceYears},
+            #{averageMonthlyWage}, #{estimatedSeveranceAmount}, #{paidAmount},
+            #{paymentDate}, #{bankNameSnapshot}, #{accountNumberSnapshotEnc},
+            #{accountHolderSnapshot}, #{note}, #{paidByEmployeeId}
+        )
+    </insert>
+
     <select id="findRecentPayrollLedgersByEmployeeId" resultType="com.reverse.payroll.internal.domain.PayrollLedger">
         SELECT 
             id, employee_id, insurance_id, target_month, salary_amount, overtime_amount,

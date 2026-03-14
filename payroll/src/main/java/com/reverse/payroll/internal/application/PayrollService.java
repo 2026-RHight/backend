@@ -10,6 +10,7 @@ import com.reverse.core.security.FieldCryptoService;
 import com.reverse.payroll.internal.domain.InsuranceRate;
 import com.reverse.payroll.internal.domain.PayrollLedger;
 import com.reverse.payroll.internal.domain.SalarySetting;
+import com.reverse.payroll.internal.domain.SeverancePayment;
 import com.reverse.payroll.internal.dto.request.AdminInsuranceRateUpsertRequest;
 import com.reverse.payroll.internal.dto.request.AdminSalarySettingUpsertRequest;
 import com.reverse.payroll.internal.dto.request.SalaryPasswordCheckRequest;
@@ -22,6 +23,7 @@ import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerSummaryResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
+import com.reverse.payroll.internal.dto.response.AdminSeverancePaymentResponse;
 import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
@@ -503,95 +505,56 @@ public class PayrollService {
             throw new IllegalArgumentException("퇴직일이 필요합니다.");
         }
 
-        PayrollMapper.SeveranceEmployeeInfo employee =
-                payrollMapper
-                        .findEmployeeSeveranceInfo(employeeId)
-                        .orElseThrow(() -> new NotFoundException("존재하지 않는 사원입니다."));
+        return buildSeverancePreview(employeeId, retirementDate);
+    }
 
-        if (retirementDate.isBefore(employee.hireDate())) {
-            throw new IllegalArgumentException("퇴직일은 입사일보다 빠를 수 없습니다.");
+    @Transactional
+    public AdminSeverancePaymentResponse paySeverance(
+            Long employeeId, LocalDate retirementDate, Long paidByEmployeeId) {
+        if (retirementDate == null) {
+            throw new IllegalArgumentException("퇴직일이 필요합니다.");
         }
 
-        long serviceDays = ChronoUnit.DAYS.between(employee.hireDate(), retirementDate) + 1;
-        BigDecimal serviceYears =
-                BigDecimal.valueOf(serviceDays)
-                        .divide(new BigDecimal("365"), 4, RoundingMode.HALF_UP);
-        boolean eligible = serviceDays >= 365;
-
-        LocalDate referenceEndDate = retirementDate.withDayOfMonth(1);
-        LocalDate referenceStartDate = referenceEndDate.minusMonths(2);
-        String referenceStartMonth =
-                String.format(
-                        "%04d-%02d",
-                        referenceStartDate.getYear(), referenceStartDate.getMonthValue());
-        String referenceEndMonth =
-                String.format(
-                        "%04d-%02d", referenceEndDate.getYear(), referenceEndDate.getMonthValue());
-
-        List<PayrollLedger> referenceLedgers =
-                payrollMapper.findPayrollLedgersByEmployeeIdAndMonthRange(
-                        employeeId, referenceStartMonth, referenceEndMonth);
-
-        BigDecimal averageMonthlyWage;
-        String note;
-
-        if (!referenceLedgers.isEmpty()) {
-            BigDecimal totalReferencePayment =
-                    referenceLedgers.stream()
-                            .map(PayrollLedger::getTotalPayment)
-                            .filter(value -> value != null)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-            averageMonthlyWage =
-                    totalReferencePayment.divide(
-                            BigDecimal.valueOf(referenceLedgers.size()), 0, RoundingMode.HALF_UP);
-            note = "최근 급여대장 기준 최근 3개월 평균 지급총액으로 계산한 예상값입니다.";
-        } else {
-            LocalDate referenceDate = retirementDate.withDayOfMonth(1);
-            SalarySetting salarySetting =
-                    payrollMapper
-                            .findSalarySettingByEmployeeId(employeeId, referenceDate)
-                            .orElse(null);
-            averageMonthlyWage =
-                    salarySetting == null
-                            ? BigDecimal.ZERO
-                            : safeAdd(
-                                    salarySetting.getBaseSalary(),
-                                    salarySetting.getMealAllowance());
-            note =
-                    salarySetting == null
-                            ? "최근 급여대장이 없어 예상 급여를 0원으로 계산했습니다."
-                            : "최근 급여대장이 없어 현재 급여 설정 기준으로 예상값을 계산했습니다.";
+        SeverancePreviewAggregate preview =
+                computeSeverancePreviewAggregate(employeeId, retirementDate);
+        if (!preview.eligible()) {
+            throw new IllegalStateException("근속기간이 1년 미만이면 퇴직금을 지급 처리할 수 없습니다.");
         }
 
-        BigDecimal estimatedSeveranceAmount =
-                eligible
-                        ? averageMonthlyWage
-                                .multiply(serviceYears)
-                                .setScale(0, RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
+        payrollMapper
+                .findSeverancePaymentByEmployeeIdAndRetirementDate(employeeId, retirementDate)
+                .ifPresent(
+                        payment -> {
+                            throw new IllegalStateException("이미 지급 처리된 퇴직금입니다.");
+                        });
 
-        return AdminSeverancePreviewResponse.builder()
-                .employeeId(employee.employeeId())
-                .employeeNum(employee.employeeNum())
-                .employeeName(employee.employeeName())
-                .departmentName(employee.departmentName())
-                .positionName(employee.positionName())
-                .employState(employee.employState())
-                .hireDate(employee.hireDate())
+        SeverancePayment severancePayment =
+                SeverancePayment.builder()
+                        .employeeId(preview.employee().employeeId())
+                        .retirementDate(retirementDate)
+                        .serviceDays(preview.serviceDays())
+                        .serviceYears(preview.serviceYears().setScale(4, RoundingMode.HALF_UP))
+                        .averageMonthlyWage(preview.averageMonthlyWage())
+                        .estimatedSeveranceAmount(preview.estimatedSeveranceAmount())
+                        .paidAmount(preview.estimatedSeveranceAmount())
+                        .paymentDate(LocalDate.now())
+                        .bankNameSnapshot(preview.employee().bankName())
+                        .accountNumberSnapshotEnc(preview.employee().accountNumberEnc())
+                        .accountHolderSnapshot(preview.employee().accountHolder())
+                        .note(preview.note())
+                        .paidByEmployeeId(paidByEmployeeId)
+                        .build();
+
+        payrollMapper.insertSeverancePayment(severancePayment);
+
+        return AdminSeverancePaymentResponse.builder()
+                .severancePaymentId(severancePayment.getId())
+                .employeeId(preview.employee().employeeId())
+                .employeeName(preview.employee().employeeName())
                 .retirementDate(retirementDate)
-                .serviceDays(serviceDays)
-                .serviceYears(serviceYears.setScale(2, RoundingMode.HALF_UP))
-                .eligible(eligible)
-                .referenceMonthCount(referenceLedgers.isEmpty() ? 0 : referenceLedgers.size())
-                .referenceStartMonth(referenceStartMonth)
-                .referenceEndMonth(referenceEndMonth)
-                .averageMonthlyWage(averageMonthlyWage)
-                .estimatedSeveranceAmount(estimatedSeveranceAmount)
-                .bankName(employee.bankName())
-                .maskedAccountNumber(
-                        maskPlainAccountNumber(decryptAccountNumber(employee.accountNumberEnc())))
-                .accountHolder(employee.accountHolder())
-                .note(eligible ? note : "근속기간이 1년 미만이면 법정 퇴직금 지급 대상이 아닙니다. " + note)
+                .paymentDate(severancePayment.getPaymentDate())
+                .paidAmount(severancePayment.getPaidAmount())
+                .message("퇴직금 지급 처리를 완료했습니다.")
                 .build();
     }
 
@@ -1151,4 +1114,148 @@ public class PayrollService {
         }
         return sum;
     }
+
+    private AdminSeverancePreviewResponse buildSeverancePreview(
+            Long employeeId, LocalDate retirementDate) {
+        SeverancePreviewAggregate preview =
+                computeSeverancePreviewAggregate(employeeId, retirementDate);
+        return mapToSeverancePreviewResponse(preview);
+    }
+
+    private SeverancePreviewAggregate computeSeverancePreviewAggregate(
+            Long employeeId, LocalDate retirementDate) {
+        PayrollMapper.SeveranceEmployeeInfo employee =
+                payrollMapper
+                        .findEmployeeSeveranceInfo(employeeId)
+                        .orElseThrow(() -> new NotFoundException("존재하지 않는 사원입니다."));
+
+        if (retirementDate.isBefore(employee.hireDate())) {
+            throw new IllegalArgumentException("퇴직일은 입사일보다 빠를 수 없습니다.");
+        }
+
+        long serviceDays = ChronoUnit.DAYS.between(employee.hireDate(), retirementDate) + 1;
+        BigDecimal serviceYears =
+                BigDecimal.valueOf(serviceDays)
+                        .divide(new BigDecimal("365"), 4, RoundingMode.HALF_UP);
+        boolean eligible = serviceDays >= 365;
+
+        LocalDate referenceEndDate = retirementDate.withDayOfMonth(1);
+        LocalDate referenceStartDate = referenceEndDate.minusMonths(2);
+        String referenceStartMonth =
+                String.format(
+                        "%04d-%02d",
+                        referenceStartDate.getYear(), referenceStartDate.getMonthValue());
+        String referenceEndMonth =
+                String.format(
+                        "%04d-%02d", referenceEndDate.getYear(), referenceEndDate.getMonthValue());
+
+        List<PayrollLedger> referenceLedgers =
+                payrollMapper.findPayrollLedgersByEmployeeIdAndMonthRange(
+                        employeeId, referenceStartMonth, referenceEndMonth);
+
+        BigDecimal averageMonthlyWage;
+        String note;
+
+        if (!referenceLedgers.isEmpty()) {
+            BigDecimal totalReferencePayment =
+                    referenceLedgers.stream()
+                            .map(PayrollLedger::getTotalPayment)
+                            .filter(value -> value != null)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            averageMonthlyWage =
+                    totalReferencePayment.divide(
+                            BigDecimal.valueOf(referenceLedgers.size()), 0, RoundingMode.HALF_UP);
+            note = "최근 급여대장 기준 최근 3개월 평균 지급총액으로 계산한 예상값입니다.";
+        } else {
+            LocalDate referenceDate = retirementDate.withDayOfMonth(1);
+            SalarySetting salarySetting =
+                    payrollMapper
+                            .findSalarySettingByEmployeeId(employeeId, referenceDate)
+                            .orElse(null);
+            averageMonthlyWage =
+                    salarySetting == null
+                            ? BigDecimal.ZERO
+                            : safeAdd(
+                                    salarySetting.getBaseSalary(),
+                                    salarySetting.getMealAllowance());
+            note =
+                    salarySetting == null
+                            ? "최근 급여대장이 없어 예상 급여를 0원으로 계산했습니다."
+                            : "최근 급여대장이 없어 현재 급여 설정 기준으로 예상값을 계산했습니다.";
+        }
+
+        BigDecimal estimatedSeveranceAmount =
+                eligible
+                        ? averageMonthlyWage
+                                .multiply(serviceYears)
+                                .setScale(0, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+        SeverancePayment severancePayment =
+                payrollMapper
+                        .findSeverancePaymentByEmployeeIdAndRetirementDate(
+                                employeeId, retirementDate)
+                        .orElse(null);
+
+        return new SeverancePreviewAggregate(
+                employee,
+                retirementDate,
+                serviceDays,
+                serviceYears.setScale(2, RoundingMode.HALF_UP),
+                eligible,
+                referenceLedgers.size(),
+                referenceStartMonth,
+                referenceEndMonth,
+                averageMonthlyWage,
+                estimatedSeveranceAmount,
+                eligible ? note : "근속기간이 1년 미만이면 법정 퇴직금 지급 대상이 아닙니다. " + note,
+                severancePayment);
+    }
+
+    private AdminSeverancePreviewResponse mapToSeverancePreviewResponse(
+            SeverancePreviewAggregate preview) {
+        SeverancePayment severancePayment = preview.severancePayment();
+        return AdminSeverancePreviewResponse.builder()
+                .employeeId(preview.employee().employeeId())
+                .employeeNum(preview.employee().employeeNum())
+                .employeeName(preview.employee().employeeName())
+                .departmentName(preview.employee().departmentName())
+                .positionName(preview.employee().positionName())
+                .employState(preview.employee().employState())
+                .hireDate(preview.employee().hireDate())
+                .retirementDate(preview.retirementDate())
+                .serviceDays(preview.serviceDays())
+                .serviceYears(preview.serviceYears())
+                .eligible(preview.eligible())
+                .referenceMonthCount(preview.referenceMonthCount())
+                .referenceStartMonth(preview.referenceStartMonth())
+                .referenceEndMonth(preview.referenceEndMonth())
+                .averageMonthlyWage(preview.averageMonthlyWage())
+                .estimatedSeveranceAmount(preview.estimatedSeveranceAmount())
+                .bankName(preview.employee().bankName())
+                .maskedAccountNumber(
+                        maskPlainAccountNumber(
+                                decryptAccountNumber(preview.employee().accountNumberEnc())))
+                .accountHolder(preview.employee().accountHolder())
+                .severancePaymentId(severancePayment == null ? null : severancePayment.getId())
+                .paid(severancePayment != null)
+                .paymentDate(severancePayment == null ? null : severancePayment.getPaymentDate())
+                .paidAmount(severancePayment == null ? null : severancePayment.getPaidAmount())
+                .note(preview.note())
+                .build();
+    }
+
+    private record SeverancePreviewAggregate(
+            PayrollMapper.SeveranceEmployeeInfo employee,
+            LocalDate retirementDate,
+            long serviceDays,
+            BigDecimal serviceYears,
+            boolean eligible,
+            int referenceMonthCount,
+            String referenceStartMonth,
+            String referenceEndMonth,
+            BigDecimal averageMonthlyWage,
+            BigDecimal estimatedSeveranceAmount,
+            String note,
+            SeverancePayment severancePayment) {}
 }

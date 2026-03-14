@@ -16,13 +16,16 @@ import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollLedgerSummaryResponse;
 import com.reverse.payroll.internal.dto.response.AdminPayrollSendResponse;
 import com.reverse.payroll.internal.dto.response.AdminSalarySettingDetailResponse;
+import com.reverse.payroll.internal.dto.response.AdminSeverancePaymentResponse;
 import com.reverse.payroll.internal.dto.response.AdminSeverancePreviewResponse;
 import com.reverse.payroll.internal.dto.response.PayrollDetailResponse;
 import com.reverse.payroll.internal.dto.response.PayrollListResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -95,17 +98,20 @@ public class PayrollController {
     @PostMapping("/verify-password")
     public ResponseEntity<Boolean> verifySalaryPassword(
             @AuthenticationPrincipal CustomUser authUser,
+            HttpServletRequest httpRequest,
             @Valid @RequestBody SalaryPasswordCheckRequest request) {
         boolean isVerified = payrollService.verifySalaryPassword(authUser.getEmployeeId(), request);
 
         if (isVerified) {
             String token = jwtTokenProvider.createSalaryDetailTicket(authUser.getEmployeeId());
+            boolean secureCookie = isSecureRequest(httpRequest);
             ResponseCookie cookie =
                     ResponseCookie.from("SALARY_AUTH_TOKEN", token)
                             .httpOnly(true)
                             .path("/api/payroll")
                             .maxAge(300) // 5 minutes
-                            .sameSite("Lax")
+                            .secure(secureCookie)
+                            .sameSite(secureCookie ? "None" : "Lax")
                             .build();
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -113,6 +119,30 @@ public class PayrollController {
         }
 
         return ResponseEntity.ok(isVerified);
+    }
+
+    private boolean isSecureRequest(HttpServletRequest request) {
+        if (request.isSecure()) {
+            return true;
+        }
+
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        if (forwardedProto != null && forwardedProto.equalsIgnoreCase("https")) {
+            return true;
+        }
+
+        String serverName = request.getServerName();
+        if (serverName != null) {
+            String normalizedServerName = serverName.toLowerCase(Locale.ROOT);
+            if (!normalizedServerName.equals("localhost")
+                    && !normalizedServerName.equals("127.0.0.1")
+                    && !normalizedServerName.equals("::1")) {
+                return true;
+            }
+        }
+
+        String origin = request.getHeader("Origin");
+        return origin != null && origin.toLowerCase().startsWith("https://");
     }
 
     // 최근 급여 목록 6개월 조회
@@ -184,6 +214,17 @@ public class PayrollController {
     public ResponseEntity<AdminSeverancePreviewResponse> getSeverancePreview(
             @PathVariable Long employeeId, @RequestParam LocalDate retirementDate) {
         return ResponseEntity.ok(payrollService.getSeverancePreview(employeeId, retirementDate));
+    }
+
+    @Operation(summary = "관리자 퇴직금 지급 처리", description = "예상 퇴직금 계산 결과를 기준으로 퇴직금 지급을 확정 저장합니다.")
+    @PostMapping("/admin/severance/{employeeId}/pay")
+    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    public ResponseEntity<AdminSeverancePaymentResponse> paySeverance(
+            @AuthenticationPrincipal CustomUser authUser,
+            @PathVariable Long employeeId,
+            @RequestParam LocalDate retirementDate) {
+        return ResponseEntity.ok(
+                payrollService.paySeverance(employeeId, retirementDate, authUser.getEmployeeId()));
     }
 
     @Operation(

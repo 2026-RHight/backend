@@ -119,13 +119,13 @@ public class PayrollDetailResponse {
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
                 .yearMonth(ledger.getTargetMonth())
-                .employeeName(empName)
-                .department(deptName)
-                .position(posName)
+                .employeeName(defaultText(empName, "사원명 미등록"))
+                .department(defaultText(deptName, "부서 미등록"))
+                .position(defaultText(posName, "직급 미등록"))
                 .paymentDate(paymentDate)
-                .bankName(bankName)
-                .accountNumber(plainAccountNumber)
-                .accountHolder(accountHolder)
+                .bankName(defaultText(bankName, "은행 미등록"))
+                .accountNumber(defaultText(plainAccountNumber, "계좌번호 미등록"))
+                .accountHolder(defaultText(accountHolder, "예금주 미등록"))
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())
@@ -139,6 +139,10 @@ public class PayrollDetailResponse {
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
                 .build();
+    }
+
+    private static String defaultText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private static String resolvePaymentDate(String targetMonth) {
