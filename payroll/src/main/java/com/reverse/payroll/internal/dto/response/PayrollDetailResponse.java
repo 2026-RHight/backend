@@ -20,6 +20,7 @@ public class PayrollDetailResponse {
     private String paymentDate;
     private String bankName;
     private String accountNumber;
+    private String maskedAccountNumber;
     private String accountHolder;
 
     // 지급 내역
@@ -50,6 +51,7 @@ public class PayrollDetailResponse {
             String paymentDate,
             String bankName,
             String accountNumber,
+            String maskedAccountNumber,
             String accountHolder,
             BigDecimal salaryAmount,
             BigDecimal overtimeAmount,
@@ -71,6 +73,7 @@ public class PayrollDetailResponse {
         this.paymentDate = paymentDate;
         this.bankName = bankName;
         this.accountNumber = accountNumber;
+        this.maskedAccountNumber = maskedAccountNumber;
         this.accountHolder = accountHolder;
         this.salaryAmount = salaryAmount;
         this.overtimeAmount = overtimeAmount;
@@ -119,13 +122,14 @@ public class PayrollDetailResponse {
         return PayrollDetailResponse.builder()
                 .id(ledger.getId())
                 .yearMonth(ledger.getTargetMonth())
-                .employeeName(empName)
-                .department(deptName)
-                .position(posName)
+                .employeeName(defaultText(empName, "사원명 미등록"))
+                .department(defaultText(deptName, "부서 미등록"))
+                .position(defaultText(posName, "직급 미등록"))
                 .paymentDate(paymentDate)
-                .bankName(bankName)
-                .accountNumber(plainAccountNumber)
-                .accountHolder(accountHolder)
+                .bankName(defaultText(bankName, "은행 미등록"))
+                .accountNumber(defaultText(plainAccountNumber, "계좌번호 미등록"))
+                .maskedAccountNumber(maskAccountNumber(plainAccountNumber))
+                .accountHolder(defaultText(accountHolder, "예금주 미등록"))
                 .salaryAmount(ledger.getSalaryAmount())
                 .overtimeAmount(ledger.getOvertimeAmount())
                 .mealAmount(ledger.getMealAmount())
@@ -139,6 +143,35 @@ public class PayrollDetailResponse {
                 .totalDeductionAmount(totalDeduction)
                 .netPay(ledger.getNetPay())
                 .build();
+    }
+
+    private static String defaultText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String maskAccountNumber(String plainAccountNumber) {
+        if (plainAccountNumber == null || plainAccountNumber.isBlank()) {
+            return "계좌번호 미등록";
+        }
+
+        int visibleDigits = 0;
+        StringBuilder builder = new StringBuilder(plainAccountNumber.length());
+
+        for (int i = plainAccountNumber.length() - 1; i >= 0; i--) {
+            char current = plainAccountNumber.charAt(i);
+            if (Character.isDigit(current)) {
+                if (visibleDigits < 4) {
+                    builder.append(current);
+                    visibleDigits++;
+                } else {
+                    builder.append('*');
+                }
+            } else {
+                builder.append(current);
+            }
+        }
+
+        return builder.reverse().toString();
     }
 
     private static String resolvePaymentDate(String targetMonth) {

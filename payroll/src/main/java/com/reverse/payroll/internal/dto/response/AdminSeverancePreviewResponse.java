@@ -27,6 +27,10 @@ public class AdminSeverancePreviewResponse {
     private String bankName;
     private String maskedAccountNumber;
     private String accountHolder;
+    private Long severancePaymentId;
+    private boolean paid;
+    private LocalDate paymentDate;
+    private BigDecimal paidAmount;
     private String note;
 
     @Builder
@@ -50,6 +54,10 @@ public class AdminSeverancePreviewResponse {
             String bankName,
             String maskedAccountNumber,
             String accountHolder,
+            Long severancePaymentId,
+            boolean paid,
+            LocalDate paymentDate,
+            BigDecimal paidAmount,
             String note) {
         this.employeeId = employeeId;
         this.employeeNum = employeeNum;
@@ -70,6 +78,10 @@ public class AdminSeverancePreviewResponse {
         this.bankName = bankName;
         this.maskedAccountNumber = maskedAccountNumber;
         this.accountHolder = accountHolder;
+        this.severancePaymentId = severancePaymentId;
+        this.paid = paid;
+        this.paymentDate = paymentDate;
+        this.paidAmount = paidAmount;
         this.note = note;
     }
 }

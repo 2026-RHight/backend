@@ -3,6 +3,7 @@ package com.reverse.payroll.internal.persistence;
 import com.reverse.payroll.internal.domain.InsuranceRate;
 import com.reverse.payroll.internal.domain.PayrollLedger;
 import com.reverse.payroll.internal.domain.SalarySetting;
+import com.reverse.payroll.internal.domain.SeverancePayment;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -108,6 +109,12 @@ public interface PayrollMapper {
     Optional<EmployeePayslipInfo> findEmployeePayslipInfo(@Param("employeeId") Long employeeId);
 
     Optional<SeveranceEmployeeInfo> findEmployeeSeveranceInfo(@Param("employeeId") Long employeeId);
+
+    Optional<SeverancePayment> findSeverancePaymentByEmployeeIdAndRetirementDate(
+            @Param("employeeId") Long employeeId,
+            @Param("retirementDate") LocalDate retirementDate);
+
+    void insertSeverancePayment(SeverancePayment severancePayment);
 
     record EmployeePayslipInfo(String employeeName, String departmentName, String positionName) {}
 
