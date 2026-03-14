@@ -296,7 +296,7 @@
                 <td class="meta-label">은행</td>
                 <td class="meta-value" th:text="${payroll.bankName}">신한은행</td>
                 <td class="meta-label">계좌</td>
-                <td class="meta-value" th:text="${payroll.accountNumber}">110-******-0012</td>
+                <td class="meta-value" th:text="${payroll.maskedAccountNumber}">110-******-0012</td>
             </tr>
             <tr>
                 <td class="meta-label">예금주</td>
@@ -409,7 +409,7 @@
                 </tr>
                 <tr>
                     <td class="netpay-meta-label">계좌번호</td>
-                    <td colspan="3" th:text="${payroll.accountNumber}">110-******-0012</td>
+                    <td colspan="3" th:text="${payroll.maskedAccountNumber}">110-******-0012</td>
                 </tr>
             </table>
         </div>

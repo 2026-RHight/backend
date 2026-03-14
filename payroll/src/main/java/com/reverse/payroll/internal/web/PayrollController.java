@@ -131,18 +131,8 @@ public class PayrollController {
             return true;
         }
 
-        String serverName = request.getServerName();
-        if (serverName != null) {
-            String normalizedServerName = serverName.toLowerCase(Locale.ROOT);
-            if (!normalizedServerName.equals("localhost")
-                    && !normalizedServerName.equals("127.0.0.1")
-                    && !normalizedServerName.equals("::1")) {
-                return true;
-            }
-        }
-
         String origin = request.getHeader("Origin");
-        return origin != null && origin.toLowerCase().startsWith("https://");
+        return origin != null && origin.toLowerCase(Locale.ROOT).startsWith("https://");
     }
 
     // 최근 급여 목록 6개월 조회

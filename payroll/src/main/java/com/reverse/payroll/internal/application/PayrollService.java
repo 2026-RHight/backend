@@ -545,7 +545,11 @@ public class PayrollService {
                         .paidByEmployeeId(paidByEmployeeId)
                         .build();
 
-        payrollMapper.insertSeverancePayment(severancePayment);
+        try {
+            payrollMapper.insertSeverancePayment(severancePayment);
+        } catch (DuplicateKeyException e) {
+            throw new IllegalStateException("이미 지급 처리된 퇴직금입니다.");
+        }
 
         return AdminSeverancePaymentResponse.builder()
                 .severancePaymentId(severancePayment.getId())
@@ -1156,15 +1160,14 @@ public class PayrollService {
         BigDecimal averageMonthlyWage;
         String note;
 
-        if (!referenceLedgers.isEmpty()) {
+        if (referenceLedgers.size() == 3) {
             BigDecimal totalReferencePayment =
                     referenceLedgers.stream()
                             .map(PayrollLedger::getTotalPayment)
                             .filter(value -> value != null)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
             averageMonthlyWage =
-                    totalReferencePayment.divide(
-                            BigDecimal.valueOf(referenceLedgers.size()), 0, RoundingMode.HALF_UP);
+                    totalReferencePayment.divide(BigDecimal.valueOf(3), 0, RoundingMode.HALF_UP);
             note = "최근 급여대장 기준 최근 3개월 평균 지급총액으로 계산한 예상값입니다.";
         } else {
             LocalDate referenceDate = retirementDate.withDayOfMonth(1);
@@ -1181,7 +1184,9 @@ public class PayrollService {
             note =
                     salarySetting == null
                             ? "최근 급여대장이 없어 예상 급여를 0원으로 계산했습니다."
-                            : "최근 급여대장이 없어 현재 급여 설정 기준으로 예상값을 계산했습니다.";
+                            : referenceLedgers.isEmpty()
+                                    ? "최근 급여대장이 없어 현재 급여 설정 기준으로 예상값을 계산했습니다."
+                                    : "최근 3개월 급여대장이 모두 없어 현재 급여 설정 기준으로 예상값을 계산했습니다.";
         }
 
         BigDecimal estimatedSeveranceAmount =
@@ -1201,7 +1206,7 @@ public class PayrollService {
                 employee,
                 retirementDate,
                 serviceDays,
-                serviceYears.setScale(2, RoundingMode.HALF_UP),
+                serviceYears,
                 eligible,
                 referenceLedgers.size(),
                 referenceStartMonth,
@@ -1225,7 +1230,7 @@ public class PayrollService {
                 .hireDate(preview.employee().hireDate())
                 .retirementDate(preview.retirementDate())
                 .serviceDays(preview.serviceDays())
-                .serviceYears(preview.serviceYears())
+                .serviceYears(preview.serviceYears().setScale(2, RoundingMode.HALF_UP))
                 .eligible(preview.eligible())
                 .referenceMonthCount(preview.referenceMonthCount())
                 .referenceStartMonth(preview.referenceStartMonth())
