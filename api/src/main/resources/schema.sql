@@ -555,6 +555,24 @@ CREATE TABLE IF NOT EXISTS event_publication (
     PRIMARY KEY (id)
 );
 
+-- 공지사항
+CREATE TABLE IF NOT EXISTS notice (
+    notice_id BIGINT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    notice_type ENUM('SYSTEM','POLICY','HR_ANNOUNCEMENT') NOT NULL,
+    author_employee_id BIGINT NOT NULL,
+    author_employee_name VARCHAR(100) NOT NULL,
+    author_org_name VARCHAR(255) NOT NULL,
+    is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    is_published BOOLEAN NOT NULL DEFAULT TRUE,
+    published_at DATETIME NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NULL,
+    PRIMARY KEY (notice_id),
+    CONSTRAINT fk_notice_author_employee FOREIGN KEY (author_employee_id) REFERENCES employee(employee_id)
+);
+
 -- 증명서 정책/발급 관련 테이블
 CREATE TABLE IF NOT EXISTS policy (
     policy_id BIGINT NOT NULL AUTO_INCREMENT,
