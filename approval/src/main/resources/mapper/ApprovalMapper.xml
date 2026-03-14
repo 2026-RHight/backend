@@ -214,6 +214,7 @@
             ea.drafter_name AS drafterName,
             ea.department_name AS departmentName,
             COALESCE(
+                ea.read_dt,
                 (
                     SELECT al.read_dt
                     FROM approval_line al
