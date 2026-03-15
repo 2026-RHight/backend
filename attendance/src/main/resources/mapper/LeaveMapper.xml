@@ -145,7 +145,7 @@
             AND leave_status = 'PENDING'
     </update>
 
-    <select id="findAllLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+    <select id="findTeamLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
         lr.leave_request_id as leaveRequestId,
         lr.approval_id as approvalId,
@@ -158,13 +158,43 @@
         lr.reason as reason,
         lr.reject_reason as rejectReason
         FROM leave_request lr
+        JOIN employee_hr_info h ON h.employee_id = lr.employee_id
         <where>
             <if test="leaveStatus != null and leaveStatus != ''">
                 lr.leave_status = #{leaveStatus}
             </if>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
         </where>
         ORDER BY lr.start_date DESC, lr.leave_request_id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countTeamLeaveRequests" resultType="long">
+        SELECT COUNT(*)
+        FROM leave_request lr
+        JOIN employee_hr_info h ON h.employee_id = lr.employee_id
+        <where>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                lr.leave_status = #{leaveStatus}
+            </if>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
+        </where>
     </select>
 
     <select id="countAll" resultType="long">
@@ -175,6 +205,17 @@
                 leave_status = #{leaveStatus}
             </if>
         </where>
+    </select>
+
+    <select id="isSameTeamLeaveRequest" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM leave_request lr
+            JOIN employee_hr_info target_h ON target_h.employee_id = lr.employee_id
+            JOIN employee_hr_info actor_h ON actor_h.org_id = target_h.org_id
+            WHERE actor_h.employee_id = #{actorEmployeeId}
+              AND lr.leave_request_id = #{leaveRequestId}
+        )
     </select>
 
     <select id="findApprovedLeaveTypeByDate" resultType="com.reverse.attendance.internal.domain.enums.LeaveType">

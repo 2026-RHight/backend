@@ -48,10 +48,19 @@ public interface LeaveMapper {
 
     int updateStatusIfPending(LeaveRequest leaveRequest);
 
-    List<LeaveRequest> findAllLeaveRequests(
+    List<LeaveRequest> findTeamLeaveRequests(
+            @Param("actorEmployeeId") Long actorEmployeeId,
             @Param("leaveStatus") String leaveStatus,
             @Param("limit") int limit,
             @Param("offset") int offset);
+
+    long countTeamLeaveRequests(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("leaveStatus") String leaveStatus);
+
+    boolean isSameTeamLeaveRequest(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("leaveRequestId") Long leaveRequestId);
 
     long countAll(@Param("leaveStatus") String leaveStatus);
 

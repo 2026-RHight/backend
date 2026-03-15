@@ -95,18 +95,21 @@ public class LeaveController {
     @PreAuthorize(LEAVE_APPROVER_AUTH)
     @GetMapping("/admin/requests")
     public ResponseEntity<PageResponse<LeaveRequestResponse>> getAllTeamLeaveRequests(
+            @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(leaveService.getAllTeamLeaveRequests(status, page, size));
+        return ResponseEntity.ok(
+                leaveService.getAllTeamLeaveRequests(user.getEmployeeId(), status, page, size));
     }
 
     // 휴가 승인/반려 결재 처리(관리자)
     @Operation(summary = "휴가 결재 (관리자)", description = "관리자가 직원의 휴가 신청을 승인하거나 반려합니다.")
     @PreAuthorize(LEAVE_APPROVER_AUTH)
     @PutMapping("/admin/process")
-    public ResponseEntity<String> processLeaveRequest(@RequestBody LeaveProcessRequest request) {
-        leaveService.processLeaveRequest(request);
+    public ResponseEntity<String> processLeaveRequest(
+            @RequestBody LeaveProcessRequest request, @AuthenticationPrincipal CustomUser user) {
+        leaveService.processLeaveRequest(request, user.getEmployeeId());
         String message = request.isApprove() ? "휴가가 승인 처리되었습니다." : "휴가가 반려 처리되었습니다.";
         return ResponseEntity.ok(message);
     }
