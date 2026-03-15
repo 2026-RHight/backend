@@ -17,6 +17,7 @@ import com.reverse.hr.internal.dto.response.MyHrEventDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.MyHrEventResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
+import com.reverse.hr.internal.dto.response.TeamBirthdayResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -49,6 +50,13 @@ public class MyPageController {
     @Operation(summary = "마이페이지 전체 조회")
     public ApiResponse<MyPageResponseDTO> mypage(@AuthenticationPrincipal CustomUser user) {
         return ApiResponse.success(myPageService.getMyPage(user.getEmployeeId()));
+    }
+
+    @GetMapping("/team-birthdays")
+    @Operation(summary = "같은 팀 생일 임박자 조회 (7일 이내)")
+    public ApiResponse<List<TeamBirthdayResponseDTO>> teamBirthdays(
+            @AuthenticationPrincipal CustomUser user) {
+        return ApiResponse.success(myPageService.getUpcomingTeamBirthdays(user.getEmployeeId()));
     }
 
     @GetMapping("/hr-events")

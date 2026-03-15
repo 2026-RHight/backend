@@ -20,6 +20,7 @@ import com.reverse.hr.internal.dto.response.MyHrEventDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.MyHrEventResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageHeaderResponseDTO;
 import com.reverse.hr.internal.dto.response.MyPageResponseDTO;
+import com.reverse.hr.internal.dto.response.TeamBirthdayResponseDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.MyPageMapper;
@@ -170,6 +171,18 @@ public class MyPageService {
                         .toList();
 
         return new MyPageResponseDTO(basicInfo, hrInfo, skills, careers);
+    }
+
+    public List<TeamBirthdayResponseDTO> getUpcomingTeamBirthdays(Long employeeId) {
+        return myPageMapper.findUpcomingTeamBirthdays(employeeId).stream()
+                .map(
+                        row ->
+                                new TeamBirthdayResponseDTO(
+                                        row.employeeId(),
+                                        row.employeeName(),
+                                        row.birthday(),
+                                        row.daysRemaining()))
+                .toList();
     }
 
     public List<MyHrEventResponseDTO> getMyHrEvents(Long employeeId) {

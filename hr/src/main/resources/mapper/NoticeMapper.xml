@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.hr.internal.persistence.NoticeMapper">
+
+    <select id="findRecentPublishedNotices"
+            resultType="com.reverse.hr.internal.persistence.row.NoticeItemRow">
+        SELECT n.notice_id             AS noticeId,
+               n.title                 AS title,
+               n.notice_type           AS noticeType,
+               COALESCE(n.published_at, n.created_at) AS baseDateTime,
+               n.is_pinned             AS isPinned,
+               n.author_org_name       AS authorOrgName,
+               n.author_employee_name  AS authorEmployeeName
+        FROM notice n
+        WHERE n.is_published = TRUE
+        ORDER BY n.is_pinned DESC,
+                 COALESCE(n.published_at, n.created_at) DESC,
+                 n.notice_id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findPublishedNotices"
+            resultType="com.reverse.hr.internal.persistence.row.NoticeItemRow">
+        SELECT n.notice_id             AS noticeId,
+               n.title                 AS title,
+               n.notice_type           AS noticeType,
+               COALESCE(n.published_at, n.created_at) AS baseDateTime,
+               n.is_pinned             AS isPinned,
+               n.author_org_name       AS authorOrgName,
+               n.author_employee_name  AS authorEmployeeName
+        FROM notice n
+        WHERE n.is_published = TRUE
+        <if test="noticeType != null">
+          AND n.notice_type = #{noticeType}
+        </if>
+        ORDER BY n.is_pinned DESC,
+                 COALESCE(n.published_at, n.created_at) DESC,
+                 n.notice_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPublishedNotices" resultType="long">
+        SELECT COUNT(*)
+        FROM notice n
+        WHERE n.is_published = TRUE
+        <if test="noticeType != null">
+          AND n.notice_type = #{noticeType}
+        </if>
+    </select>
+
+    <select id="findPublishedNoticeDetailById"
+            resultType="com.reverse.hr.internal.persistence.row.NoticeDetailRow">
+        SELECT n.notice_id             AS noticeId,
+               n.title                 AS title,
+               n.content               AS content,
+               COALESCE(n.published_at, n.created_at) AS baseDateTime,
+               n.author_org_name       AS authorOrgName,
+               n.author_employee_name  AS authorEmployeeName,
+               n.notice_type           AS noticeType
+        FROM notice n
+        WHERE n.notice_id = #{noticeId}
+          AND n.is_published = TRUE
+        LIMIT 1
+    </select>
+
+    <select id="findPublishedNoticesByAuthor"
+            resultType="com.reverse.hr.internal.persistence.row.NoticeItemRow">
+        SELECT n.notice_id             AS noticeId,
+               n.title                 AS title,
+               n.notice_type           AS noticeType,
+               COALESCE(n.published_at, n.created_at) AS baseDateTime,
+               n.is_pinned             AS isPinned,
+               n.author_org_name       AS authorOrgName,
+               n.author_employee_name  AS authorEmployeeName
+        FROM notice n
+        WHERE n.is_published = TRUE
+          AND n.author_employee_id = #{authorEmployeeId}
+        <if test="noticeType != null">
+          AND n.notice_type = #{noticeType}
+        </if>
+        ORDER BY n.is_pinned DESC,
+                 COALESCE(n.published_at, n.created_at) DESC,
+                 n.notice_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPublishedNoticesByAuthor" resultType="long">
+        SELECT COUNT(*)
+        FROM notice n
+        WHERE n.is_published = TRUE
+          AND n.author_employee_id = #{authorEmployeeId}
+        <if test="noticeType != null">
+          AND n.notice_type = #{noticeType}
+        </if>
+    </select>
+
+    <select id="findNoticeAuthorByEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.NoticeAuthorRow">
+        SELECT e.employee_id AS employeeId,
+               e.employee_name AS employeeName,
+               COALESCE(o.org_name, '-') AS orgName
+        FROM employee e
+                 LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+                 LEFT JOIN organization o ON o.org_id = h.org_id
+        WHERE e.employee_id = #{employeeId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertNotice">
+        INSERT INTO notice (
+            title,
+            content,
+            notice_type,
+            author_employee_id,
+            author_employee_name,
+            author_org_name,
+            is_pinned,
+            is_published,
+            published_at,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{title},
+            #{content},
+            #{noticeType},
+            #{authorEmployeeId},
+            #{authorEmployeeName},
+            #{authorOrgName},
+            FALSE,
+            TRUE,
+            NOW(),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="updateNoticePinned">
+        UPDATE notice
+        SET is_pinned = #{isPinned},
+            updated_at = NOW()
+        WHERE notice_id = #{noticeId}
+          AND is_published = TRUE
+    </update>
+
+</mapper>

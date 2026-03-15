@@ -51,7 +51,7 @@ public class OrganizationController {
             @RequestParam(defaultValue = "1") @Min(1) int page) {
         return ApiResponse.success(
                 organizationService.getMyOrganizationMembers(
-                        user.getEmployeeId(), orgId, page, 10));
+                        user.getEmployeeId(), orgId, page, 100));
     }
 
     @GetMapping("/members/{targetEmployeeId}/detail")
