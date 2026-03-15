@@ -29,6 +29,12 @@ public class WeeklyWorkScheduleService {
 
     @Transactional
     public void applySchedule(WeeklyWorkScheduleApplyRequest request, Long employeeId) {
+        applySchedule(request, employeeId, null);
+    }
+
+    @Transactional
+    public void applySchedule(
+            WeeklyWorkScheduleApplyRequest request, Long employeeId, Long approvalId) {
         if (request == null
                 || request.getStartDate() == null
                 || request.getEndDate() == null
@@ -55,6 +61,7 @@ public class WeeklyWorkScheduleService {
 
         WeeklyWorkSchedule schedule =
                 WeeklyWorkSchedule.builder()
+                        .approvalId(approvalId)
                         .employeeId(employeeId)
                         .startDate(request.getStartDate())
                         .endDate(request.getEndDate())
@@ -66,6 +73,14 @@ public class WeeklyWorkScheduleService {
                         .build();
 
         scheduleMapper.insertSchedule(schedule);
+    }
+
+    @Transactional
+    public void deleteLinkedRequestByApprovalId(Long approvalId) {
+        if (approvalId == null) {
+            return;
+        }
+        scheduleMapper.deleteByApprovalId(approvalId);
     }
 
     @Transactional(readOnly = true)
@@ -168,7 +183,7 @@ public class WeeklyWorkScheduleService {
                                                 "결재할 신청 내역을 찾을 수 없습니다."));
 
         if (!scheduleMapper.isSameTeamSchedule(actorEmployeeId, request.getWeeklyId())) {
-            throw new com.reverse.core.exception.BadRequestException(
+            throw new com.reverse.core.exception.ForbiddenException(
                     "같은 부서 팀원의 유연근무 신청만 처리할 수 있습니다.");
         }
 

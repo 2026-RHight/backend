@@ -149,7 +149,7 @@ public class ApprovalService implements ApprovalFacade {
         insertReferenceAndRecipientLines(
                 dto.getReferenceLine(), dto.getReceipientLine(), approval.getApprovalId());
         insertAttachments(files, approval.getApprovalId(), uploadedKeys);
-        syncAttendanceRequestIfNeeded(dto, employeeId, status);
+        syncAttendanceRequestIfNeeded(dto, employeeId, approval.getApprovalId(), status);
         if (ApprovalStatus.PENDING.equals(status)) {
             String docId = numberingService.generateSequence("DOC");
             approvalMapper.updateDocId(approval.getApprovalId(), docId);
@@ -166,23 +166,23 @@ public class ApprovalService implements ApprovalFacade {
     }
 
     private void syncAttendanceRequestIfNeeded(
-            DraftApproval dto, Long employeeId, ApprovalStatus status) {
+            DraftApproval dto, Long employeeId, Long approvalId, ApprovalStatus status) {
         if (!ApprovalStatus.PENDING.equals(status)) {
             return;
         }
 
         switch (dto.getDocType()) {
-            case VACATION -> syncVacationRequest(dto, employeeId);
-            case FLEXIBLE -> syncFlexibleWorkRequest(dto, employeeId);
-            case TRIP -> syncBusinessTripRequest(dto, employeeId);
-            case OVERTIME -> syncOvertimeRequest(dto, employeeId);
+            case VACATION -> syncVacationRequest(dto, employeeId, approvalId);
+            case FLEXIBLE -> syncFlexibleWorkRequest(dto, employeeId, approvalId);
+            case TRIP -> syncBusinessTripRequest(dto, employeeId, approvalId);
+            case OVERTIME -> syncOvertimeRequest(dto, employeeId, approvalId);
             default -> {
                 return;
             }
         }
     }
 
-    private void syncVacationRequest(DraftApproval dto, Long employeeId) {
+    private void syncVacationRequest(DraftApproval dto, Long employeeId, Long approvalId) {
         var vacationRequest = dto.getVacationRequest();
         if (vacationRequest == null) {
             return;
@@ -195,10 +195,11 @@ public class ApprovalService implements ApprovalFacade {
                         .leaveType(mapVacationLeaveType(vacationRequest))
                         .reason(vacationRequest.getReason())
                         .build(),
-                employeeId);
+                employeeId,
+                approvalId);
     }
 
-    private void syncFlexibleWorkRequest(DraftApproval dto, Long employeeId) {
+    private void syncFlexibleWorkRequest(DraftApproval dto, Long employeeId, Long approvalId) {
         var flexibleWorkRequest = dto.getFlexibleWorkRequest();
         if (flexibleWorkRequest == null) {
             return;
@@ -213,10 +214,11 @@ public class ApprovalService implements ApprovalFacade {
                         .scheduleTitle(dto.getTitle())
                         .memo(flexibleWorkRequest.getReason())
                         .build(),
-                employeeId);
+                employeeId,
+                approvalId);
     }
 
-    private void syncBusinessTripRequest(DraftApproval dto, Long employeeId) {
+    private void syncBusinessTripRequest(DraftApproval dto, Long employeeId, Long approvalId) {
         var businessTripRequest = dto.getBusinessTripRequest();
         if (businessTripRequest == null) {
             return;
@@ -230,10 +232,11 @@ public class ApprovalService implements ApprovalFacade {
                         .endDatetime(businessTripRequest.getEndDate())
                         .reason(businessTripRequest.getReason())
                         .build(),
-                employeeId);
+                employeeId,
+                approvalId);
     }
 
-    private void syncOvertimeRequest(DraftApproval dto, Long employeeId) {
+    private void syncOvertimeRequest(DraftApproval dto, Long employeeId, Long approvalId) {
         var overtimeRequest = dto.getOvertimeRequest();
         if (overtimeRequest == null) {
             return;
@@ -252,7 +255,15 @@ public class ApprovalService implements ApprovalFacade {
                                         overtimeRequest.getEndTime()))
                         .reason(overtimeRequest.getReason())
                         .build(),
-                employeeId);
+                employeeId,
+                approvalId);
+    }
+
+    private void cleanupLinkedAttendanceRequests(Long approvalId) {
+        leaveService.deleteLinkedRequestByApprovalId(approvalId);
+        weeklyWorkScheduleService.deleteLinkedRequestByApprovalId(approvalId);
+        businessTripService.deleteLinkedRequestByApprovalId(approvalId);
+        overtimeService.deleteLinkedRequestByApprovalId(approvalId);
     }
 
     private LocalDate toDate(LocalDateTime value) {
@@ -261,6 +272,9 @@ public class ApprovalService implements ApprovalFacade {
 
     private LeaveType mapVacationLeaveType(
             com.reverse.approval.internal.dto.request.VacationRequest request) {
+        if (request.getStartDate() == null) {
+            throw new IllegalArgumentException("휴가 시작일은 필수입니다.");
+        }
         return switch (request.getVacationType()) {
             case ANNUAL -> LeaveType.ANNUAL;
             case HALF ->
@@ -573,6 +587,7 @@ public class ApprovalService implements ApprovalFacade {
         List<ApprovalAttachmentRow> attachments =
                 approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId);
 
+        cleanupLinkedAttendanceRequests(approvalId);
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
             throw new IllegalStateException("기안 삭제에 실패했습니다. approvalId=" + approvalId);
@@ -615,6 +630,7 @@ public class ApprovalService implements ApprovalFacade {
                         .toList();
         registerAfterCommitCleanup(oldAttachmentKeys);
 
+        cleanupLinkedAttendanceRequests(approvalId);
         int deleted = approvalMapper.deleteElectronicApprovalById(approvalId);
         if (deleted != 1) {
             throw new IllegalStateException("재상신을 위한 기존 기안 삭제에 실패했습니다. approvalId=" + approvalId);

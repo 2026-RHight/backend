@@ -7,12 +7,14 @@ import com.reverse.attendance.internal.dto.response.AttendanceCalendarResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceWeeklySummaryResponse;
+import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,13 @@ public class AttendanceController {
                     + "'HR_ADMIN_PAYROLL', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
     private static final String ATTENDANCE_OPERATION_ADMIN_AUTH =
             "hasAnyRole('EVALUATOR', 'HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
+    private static final Set<String> TEAM_CALENDAR_AUTHORITIES =
+            Set.of(
+                    "ROLE_EVALUATOR",
+                    "ROLE_HR_ADMIN_MASTER",
+                    "ROLE_HR_ADMIN_BASIC",
+                    "ROLE_HR_ADMIN_PAYROLL",
+                    "ROLE_SYSTEM_ADMIN");
 
     private final AttendanceService attendanceService;
 
@@ -113,6 +122,9 @@ public class AttendanceController {
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false, defaultValue = "SELF") String scope) {
+        if ("TEAM".equalsIgnoreCase(scope) && !canViewTeamCalendar(user)) {
+            throw new ForbiddenException("팀 일정 조회 권한이 없습니다.");
+        }
         YearMonth targetMonth = resolveYearMonth(year, month);
         return ResponseEntity.ok(
                 attendanceService.getCalendar(
@@ -127,5 +139,11 @@ public class AttendanceController {
         int resolvedYear = year == null ? now.getYear() : year;
         int resolvedMonth = month == null ? now.getMonthValue() : month;
         return YearMonth.of(resolvedYear, resolvedMonth);
+    }
+
+    private boolean canViewTeamCalendar(CustomUser user) {
+        return user.getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .anyMatch(TEAM_CALENDAR_AUTHORITIES::contains);
     }
 }

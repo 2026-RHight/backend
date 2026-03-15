@@ -12,6 +12,8 @@ public interface BusinessTripMapper {
     // 신청
     void insertBusinessTrip(BusinessTrip businessTrip);
 
+    int deleteByApprovalId(@Param("approvalId") Long approvalId);
+
     // 동시성 제어를 위한 직원 락
     void lockEmployee(@Param("employeeId") Long employeeId);
 

@@ -6,13 +6,18 @@
 
     <insert id="insertSchedule" useGeneratedKeys="true" keyProperty="weeklyId">
         INSERT INTO weekly_work_schedule (
-            employee_id, start_date, end_date, approval_status,
+            approval_id, employee_id, start_date, end_date, approval_status,
             plan_date, work_form, schedule_title, memo, created_at
         ) VALUES (
-            #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
+            #{approvalId}, #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
             #{planDate}, #{workForm}, #{scheduleTitle}, #{memo}, NOW()
         )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM weekly_work_schedule
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="lockEmployee" resultType="java.lang.Integer">
         SELECT 1
@@ -24,6 +29,7 @@
     <select id="findById" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -42,6 +48,7 @@
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -62,6 +69,7 @@
     <select id="findByEmployeeIdAndPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -82,6 +90,7 @@
     <select id="findApprovedByEmployeeIdAndPlanDate" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -122,6 +131,7 @@
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,
@@ -153,6 +163,7 @@
     <select id="findTeamSchedules" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,
@@ -193,6 +204,7 @@
     <select id="findTeamSchedulesByPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,
@@ -219,6 +231,7 @@
     <select id="findTeamSchedulesByEmployeeIdAndPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,

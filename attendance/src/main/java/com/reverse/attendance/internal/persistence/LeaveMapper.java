@@ -27,6 +27,8 @@ public interface LeaveMapper {
 
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
+    int deleteByApprovalId(@Param("approvalId") Long approvalId);
+
     List<LeaveRequest> findLeaveRequestsByEmployeeId(
             @Param("employeeId") Long employeeId,
             @Param("limit") int limit,

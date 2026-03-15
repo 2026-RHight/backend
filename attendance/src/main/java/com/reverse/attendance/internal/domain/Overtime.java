@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class Overtime {
 
     private Long overtimeId;
+    private Long approvalId;
     private Long employeeId;
     private LocalDate workDate;
     private LocalDateTime startTime;
@@ -24,6 +25,7 @@ public class Overtime {
     @Builder
     public Overtime(
             Long overtimeId,
+            Long approvalId,
             Long employeeId,
             LocalDate workDate,
             LocalDateTime startTime,
@@ -33,6 +35,7 @@ public class Overtime {
             String rejectReason,
             String employeeName) {
         this.overtimeId = overtimeId;
+        this.approvalId = approvalId;
         this.employeeId = employeeId;
         this.workDate = workDate;
         this.startTime = startTime;

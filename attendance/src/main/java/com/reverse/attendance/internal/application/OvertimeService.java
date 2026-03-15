@@ -22,6 +22,11 @@ public class OvertimeService {
 
     @Transactional
     public void applyOvertime(OvertimeApplyRequest request, Long employeeId) {
+        applyOvertime(request, employeeId, null);
+    }
+
+    @Transactional
+    public void applyOvertime(OvertimeApplyRequest request, Long employeeId, Long approvalId) {
         if (request == null
                 || request.getWorkDate() == null
                 || request.getStartTime() == null
@@ -48,6 +53,7 @@ public class OvertimeService {
 
         Overtime overtime =
                 Overtime.builder()
+                        .approvalId(approvalId)
                         .employeeId(employeeId)
                         .workDate(request.getWorkDate())
                         .startTime(request.getStartTime())
@@ -57,6 +63,14 @@ public class OvertimeService {
                         .build();
 
         overtimeMapper.insertOvertime(overtime);
+    }
+
+    @Transactional
+    public void deleteLinkedRequestByApprovalId(Long approvalId) {
+        if (approvalId == null) {
+            return;
+        }
+        overtimeMapper.deleteByApprovalId(approvalId);
     }
 
     @Transactional(readOnly = true)

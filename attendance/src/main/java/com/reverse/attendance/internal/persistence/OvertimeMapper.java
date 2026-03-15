@@ -12,6 +12,8 @@ public interface OvertimeMapper {
 
     void insertOvertime(Overtime overtime);
 
+    int deleteByApprovalId(@Param("approvalId") Long approvalId);
+
     // 동시성 이슈 방지를 위한 직원 레코드 락
     void lockEmployee(@Param("employeeId") Long employeeId);
 

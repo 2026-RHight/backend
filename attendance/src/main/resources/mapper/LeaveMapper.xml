@@ -45,15 +45,21 @@
 
     <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
         INSERT INTO leave_request (
-            employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
+            approval_id, employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
         ) VALUES (
-                    #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
+                    #{approvalId}, #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
                 )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM leave_request
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="findLeaveRequestsByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -71,6 +77,7 @@
     <select id="findLeaveRequestsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -89,6 +96,7 @@
     <select id="findTeamLeaveRequestsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             lr.leave_request_id as leaveRequestId,
+            lr.approval_id as approvalId,
             lr.employee_id as employeeId,
             lr.start_date as startDate,
             lr.end_date as endDate,
@@ -121,6 +129,7 @@
     <select id="findLeaveRequestById" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -144,6 +153,7 @@
     <select id="findTeamLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
         lr.leave_request_id as leaveRequestId,
+        lr.approval_id as approvalId,
         lr.employee_id as employeeId,
         lr.start_date as startDate,
         lr.end_date as endDate,

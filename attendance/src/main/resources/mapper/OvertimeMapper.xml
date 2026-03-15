@@ -6,11 +6,16 @@
 
     <insert id="insertOvertime" useGeneratedKeys="true" keyProperty="overtimeId">
         INSERT INTO overtime_request (
-            employee_id, work_date, start_time, end_time, reason, approval_status
+            approval_id, employee_id, work_date, start_time, end_time, reason, approval_status
         ) VALUES (
-                     #{employeeId}, #{workDate}, #{startTime}, #{endTime}, #{reason}, #{approvalStatus}
+                     #{approvalId}, #{employeeId}, #{workDate}, #{startTime}, #{endTime}, #{reason}, #{approvalStatus}
                  )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM overtime_request
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="lockEmployee" resultType="java.lang.Integer">
         SELECT 1
@@ -21,7 +26,7 @@
 
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
-            overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
+            overtime_id as overtimeId, approval_id as approvalId, employee_id as employeeId, work_date as workDate,
             start_time as startTime, end_time as endTime, reason as reason,
             approval_status as approvalStatus, reject_reason as rejectReason
         FROM overtime_request
@@ -32,7 +37,7 @@
 
     <select id="findByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
-            overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
+            overtime_id as overtimeId, approval_id as approvalId, employee_id as employeeId, work_date as workDate,
             start_time as startTime, end_time as endTime, reason as reason,
             approval_status as approvalStatus, reject_reason as rejectReason
         FROM overtime_request
@@ -44,6 +49,7 @@
     <select id="findTeamOvertimesByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
             o.overtime_id as overtimeId,
+            o.approval_id as approvalId,
             o.employee_id as employeeId,
             o.work_date as workDate,
             o.start_time as startTime,
@@ -73,7 +79,7 @@
 
     <select id="findById" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
-            overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
+            overtime_id as overtimeId, approval_id as approvalId, employee_id as employeeId, work_date as workDate,
             start_time as startTime, end_time as endTime, reason as reason,
             approval_status as approvalStatus, reject_reason as rejectReason
         FROM overtime_request
@@ -90,7 +96,7 @@
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.Overtime">
         SELECT
-        overtime_id as overtimeId, employee_id as employeeId, work_date as workDate,
+        overtime_id as overtimeId, approval_id as approvalId, employee_id as employeeId, work_date as workDate,
         start_time as startTime, end_time as endTime, reason as reason,
         approval_status as approvalStatus, reject_reason as rejectReason
         FROM overtime_request
