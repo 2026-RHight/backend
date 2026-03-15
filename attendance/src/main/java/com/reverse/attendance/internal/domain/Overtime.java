@@ -19,6 +19,7 @@ public class Overtime {
     private String reason;
     private ApprovalStatus approvalStatus;
     private String rejectReason;
+    private String employeeName;
 
     @Builder
     public Overtime(
@@ -29,7 +30,8 @@ public class Overtime {
             LocalDateTime endTime,
             String reason,
             ApprovalStatus approvalStatus,
-            String rejectReason) {
+            String rejectReason,
+            String employeeName) {
         this.overtimeId = overtimeId;
         this.employeeId = employeeId;
         this.workDate = workDate;
@@ -38,5 +40,6 @@ public class Overtime {
         this.reason = reason;
         this.approvalStatus = approvalStatus;
         this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
     }
 }

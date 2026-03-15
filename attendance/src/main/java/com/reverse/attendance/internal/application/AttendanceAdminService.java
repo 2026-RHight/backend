@@ -115,7 +115,7 @@ public class AttendanceAdminService {
     }
 
     public List<AdminDailyAttendanceResponse> getDailyRecords(
-            LocalDate startDate, LocalDate endDate, String status) {
+            Long actorEmployeeId, LocalDate startDate, LocalDate endDate, String status) {
         LocalDate resolvedStartDate = startDate;
         LocalDate resolvedEndDate = endDate;
 
@@ -133,7 +133,10 @@ public class AttendanceAdminService {
         }
 
         return attendanceMapper.findDailyEmployeeRecords(
-                resolvedStartDate, resolvedEndDate, normalizeAttendanceStatus(status));
+                actorEmployeeId,
+                resolvedStartDate,
+                resolvedEndDate,
+                normalizeAttendanceStatus(status));
     }
 
     public PageResponse<AttendanceHistoryResponse> getHistory(

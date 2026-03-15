@@ -5,6 +5,7 @@ import com.reverse.attendance.internal.domain.enums.LeaveStatus;
 import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
+import com.reverse.attendance.internal.dto.response.LeaveGrantHistoryResponse;
 import com.reverse.attendance.internal.dto.response.LeaveRequestResponse;
 import com.reverse.attendance.internal.persistence.LeaveMapper;
 import com.reverse.core.response.PageResponse;
@@ -45,6 +46,13 @@ public class LeaveService {
     public LeaveBalanceResponse getLeaveBalance(Long employeeId) {
         int currentYear = java.time.LocalDate.now().getYear();
         return getLeaveBalance(employeeId, currentYear);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LeaveGrantHistoryResponse> getLeaveGrantHistory(Long employeeId, Integer year) {
+        return leaveMapper.findLeaveGrantHistoryByEmployeeId(employeeId, year).stream()
+                .map(LeaveGrantHistoryResponse::from)
+                .collect(Collectors.toList());
     }
 
     // 휴가 신청
@@ -187,7 +195,7 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public PageResponse<LeaveRequestResponse> getAllTeamLeaveRequests(
-            String status, int page, int size) {
+            Long actorEmployeeId, String status, int page, int size) {
         if (status != null) {
             status = status.trim();
             if (status.isEmpty()) {
@@ -208,8 +216,9 @@ public class LeaveService {
             throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
         }
         int offset = (int) offsetLong;
-        List<LeaveRequest> content = leaveMapper.findAllLeaveRequests(status, limit, offset);
-        long totalElements = leaveMapper.countAll(status);
+        List<LeaveRequest> content =
+                leaveMapper.findTeamLeaveRequests(actorEmployeeId, status, limit, offset);
+        long totalElements = leaveMapper.countTeamLeaveRequests(actorEmployeeId, status);
         return PageResponse.of(
                 content.stream().map(LeaveRequestResponse::from).collect(Collectors.toList()),
                 page,
@@ -219,11 +228,17 @@ public class LeaveService {
 
     // 관리자용 휴가 승인/반려
     @Transactional
-    public void processLeaveRequest(LeaveProcessRequest request) {
+    public void processLeaveRequest(LeaveProcessRequest request, Long actorEmployeeId) {
         LeaveRequest leaveRequest =
                 leaveMapper
                         .findLeaveRequestById(request.getLeaveRequestId())
                         .orElseThrow(() -> new IllegalArgumentException("결재할 휴가 내역을 찾을 수 없습니다."));
+
+        if (!leaveMapper.isSameTeamLeaveRequest(
+                actorEmployeeId, leaveRequest.getLeaveRequestId())) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "같은 부서 팀원의 휴가 신청만 처리할 수 있습니다.");
+        }
 
         if (leaveRequest.getLeaveStatus() != LeaveStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("대기 상태인 휴가 신청 건만 결재할 수 있습니다.");

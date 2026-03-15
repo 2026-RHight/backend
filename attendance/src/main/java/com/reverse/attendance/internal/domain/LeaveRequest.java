@@ -19,6 +19,7 @@ public class LeaveRequest {
     private double usedDays;
     private String reason;
     private String rejectReason;
+    private String employeeName;
 
     @Builder
     public LeaveRequest(
@@ -30,7 +31,8 @@ public class LeaveRequest {
             LeaveStatus leaveStatus,
             double usedDays,
             String reason,
-            String rejectReason) {
+            String rejectReason,
+            String employeeName) {
         this.leaveRequestId = leaveRequestId;
         this.employeeId = employeeId;
         this.startDate = startDate;
@@ -40,5 +42,6 @@ public class LeaveRequest {
         this.usedDays = usedDays;
         this.reason = reason;
         this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
     }
 }

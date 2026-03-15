@@ -42,6 +42,32 @@
         ORDER BY start_datetime ASC, trip_id ASC
     </select>
 
+    <select id="findTeamTripsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
+        SELECT
+            b.trip_id as tripId,
+            b.employee_id as employeeId,
+            b.trip_type as tripType,
+            b.destination as destination,
+            b.start_datetime as startDatetime,
+            b.end_datetime as endDatetime,
+            b.reason as reason,
+            b.approval_status as approvalStatus,
+            b.reject_reason as rejectReason,
+            e.employee_name as employeeName
+        FROM business_trip_request b
+        JOIN employee_hr_info h ON h.employee_id = b.employee_id
+        JOIN employee e ON e.employee_id = b.employee_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND b.start_datetime &lt;= #{endDate}
+          AND b.end_datetime &gt;= #{startDate}
+        ORDER BY b.start_datetime ASC, e.employee_name ASC, b.trip_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM business_trip_request

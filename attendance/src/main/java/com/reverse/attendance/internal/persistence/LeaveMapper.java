@@ -1,5 +1,6 @@
 package com.reverse.attendance.internal.persistence;
 
+import com.reverse.attendance.internal.domain.LeaveGrantHistory;
 import com.reverse.attendance.internal.domain.LeaveRequest;
 import com.reverse.attendance.internal.dto.response.RequestStatusCountResponse;
 import java.util.List;
@@ -12,6 +13,9 @@ public interface LeaveMapper {
 
     Optional<Double> findTotalAnnualLeaveByEmployeeId(
             @Param("employeeId") Long employeeId, @Param("baseYear") int baseYear);
+
+    List<LeaveGrantHistory> findLeaveGrantHistoryByEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("baseYear") Integer baseYear);
 
     void lockVacationBalanceByEmployeeId(
             @Param("employeeId") Long employeeId, @Param("baseYear") int baseYear);
@@ -33,16 +37,30 @@ public interface LeaveMapper {
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate);
 
+    List<LeaveRequest> findTeamLeaveRequestsByEmployeeIdAndDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
+
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     Optional<LeaveRequest> findLeaveRequestById(@Param("leaveRequestId") Long leaveRequestId);
 
     int updateStatusIfPending(LeaveRequest leaveRequest);
 
-    List<LeaveRequest> findAllLeaveRequests(
+    List<LeaveRequest> findTeamLeaveRequests(
+            @Param("actorEmployeeId") Long actorEmployeeId,
             @Param("leaveStatus") String leaveStatus,
             @Param("limit") int limit,
             @Param("offset") int offset);
+
+    long countTeamLeaveRequests(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("leaveStatus") String leaveStatus);
+
+    boolean isSameTeamLeaveRequest(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("leaveRequestId") Long leaveRequestId);
 
     long countAll(@Param("leaveStatus") String leaveStatus);
 

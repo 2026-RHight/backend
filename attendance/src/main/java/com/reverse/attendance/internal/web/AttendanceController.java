@@ -28,7 +28,7 @@ public class AttendanceController {
             "hasAnyRole('EVALUATOR', 'EVALUATEE', 'HR_ADMIN_MASTER', "
                     + "'HR_ADMIN_PAYROLL', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
     private static final String ATTENDANCE_OPERATION_ADMIN_AUTH =
-            "hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
+            "hasAnyRole('EVALUATOR', 'HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
 
     private final AttendanceService attendanceService;
 
@@ -111,11 +111,15 @@ public class AttendanceController {
     public ResponseEntity<AttendanceCalendarResponse> getCalendar(
             @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month) {
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false, defaultValue = "SELF") String scope) {
         YearMonth targetMonth = resolveYearMonth(year, month);
         return ResponseEntity.ok(
                 attendanceService.getCalendar(
-                        user.getEmployeeId(), targetMonth.getYear(), targetMonth.getMonthValue()));
+                        user.getEmployeeId(),
+                        targetMonth.getYear(),
+                        targetMonth.getMonthValue(),
+                        scope));
     }
 
     private YearMonth resolveYearMonth(Integer year, Integer month) {

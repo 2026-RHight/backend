@@ -41,6 +41,30 @@
         ORDER BY start_time ASC, overtime_id ASC
     </select>
 
+    <select id="findTeamOvertimesByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.Overtime">
+        SELECT
+            o.overtime_id as overtimeId,
+            o.employee_id as employeeId,
+            o.work_date as workDate,
+            o.start_time as startTime,
+            o.end_time as endTime,
+            o.reason as reason,
+            o.approval_status as approvalStatus,
+            o.reject_reason as rejectReason,
+            e.employee_name as employeeName
+        FROM overtime_request o
+        JOIN employee_hr_info h ON h.employee_id = o.employee_id
+        JOIN employee e ON e.employee_id = o.employee_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND o.work_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY o.start_time ASC, e.employee_name ASC, o.overtime_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM overtime_request

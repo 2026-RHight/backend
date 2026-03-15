@@ -10,6 +10,7 @@ import com.reverse.attendance.internal.dto.response.AttendanceHistoryResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceMonthlyCloseResponse;
 import com.reverse.attendance.internal.dto.response.AttendancePolicyResponse;
 import com.reverse.core.response.PageResponse;
+import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +38,8 @@ public class AttendanceAdminController {
             "hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'SYSTEM_ADMIN')";
     private static final String ATTENDANCE_REPORT_VIEW_AUTH =
             "hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'HR_ADMIN_PAYROLL', 'SYSTEM_ADMIN')";
+    private static final String ATTENDANCE_TEAM_VIEW_AUTH =
+            "hasAnyRole('EVALUATOR', 'HR_ADMIN_MASTER', 'HR_ADMIN_BASIC', 'HR_ADMIN_PAYROLL', 'SYSTEM_ADMIN')";
     private static final String ATTENDANCE_CLOSING_ADMIN_AUTH =
             "hasAnyRole('HR_ADMIN_MASTER', 'HR_ADMIN_PAYROLL', 'SYSTEM_ADMIN')";
 
@@ -85,13 +89,15 @@ public class AttendanceAdminController {
 
     @Operation(summary = "관리자 일별 근태 목록 조회", description = "관리자가 기간별 직원 근태 기록 목록을 조회합니다.")
     @GetMapping("/daily-records")
-    @PreAuthorize(ATTENDANCE_REPORT_VIEW_AUTH)
+    @PreAuthorize(ATTENDANCE_TEAM_VIEW_AUTH)
     public ResponseEntity<List<AdminDailyAttendanceResponse>> getDailyRecords(
+            @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String status) {
         return ResponseEntity.ok(
-                attendanceAdminService.getDailyRecords(startDate, endDate, status));
+                attendanceAdminService.getDailyRecords(
+                        user.getEmployeeId(), startDate, endDate, status));
     }
 
     @Operation(summary = "근태 이력 조회", description = "월 기준 근태 변경/승인/마감 이력을 조회합니다.")

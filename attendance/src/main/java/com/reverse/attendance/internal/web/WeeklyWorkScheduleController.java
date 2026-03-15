@@ -75,10 +75,12 @@ public class WeeklyWorkScheduleController {
     @PreAuthorize(WEEKLY_SCHEDULE_APPROVER_AUTH)
     @GetMapping("/team")
     public ResponseEntity<PageResponse<WeeklyWorkScheduleResponse>> getTeamSchedules(
+            @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(scheduleService.getAllSchedules(status, page, size));
+        return ResponseEntity.ok(
+                scheduleService.getTeamSchedules(user.getEmployeeId(), status, page, size));
     }
 
     @Operation(
@@ -87,8 +89,9 @@ public class WeeklyWorkScheduleController {
     @PreAuthorize(WEEKLY_SCHEDULE_APPROVER_AUTH)
     @GetMapping("/team-overview")
     public ResponseEntity<TeamWeeklyScheduleOverviewResponse> getTeamWeeklyOverview(
+            @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) LocalDate date) {
-        return ResponseEntity.ok(scheduleService.getTeamWeeklyOverview(date));
+        return ResponseEntity.ok(scheduleService.getTeamWeeklyOverview(user.getEmployeeId(), date));
     }
 
     // 결재 처리 (승인/반려 - 팀장/관리자용)
@@ -96,8 +99,9 @@ public class WeeklyWorkScheduleController {
     @PreAuthorize(WEEKLY_SCHEDULE_APPROVER_AUTH)
     @PutMapping("/process")
     public ResponseEntity<String> processSchedule(
-            @RequestBody WeeklyWorkScheduleProcessRequest request) {
-        scheduleService.processSchedule(request);
+            @RequestBody WeeklyWorkScheduleProcessRequest request,
+            @AuthenticationPrincipal CustomUser user) {
+        scheduleService.processSchedule(request, user.getEmployeeId());
         String result = request.isApprove() ? "승인" : "반려";
         return ResponseEntity.ok("유연근무 신청이 " + result + " 처리되었습니다.");
     }

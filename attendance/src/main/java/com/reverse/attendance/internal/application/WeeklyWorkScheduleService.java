@@ -125,8 +125,8 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<WeeklyWorkScheduleResponse> getAllSchedules(
-            String status, int page, int size) {
+    public PageResponse<WeeklyWorkScheduleResponse> getTeamSchedules(
+            Long actorEmployeeId, String status, int page, int size) {
         if (status != null) {
             status = status.trim();
             if (status.isEmpty()) {
@@ -147,8 +147,9 @@ public class WeeklyWorkScheduleService {
             throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
         }
         int offset = (int) offsetLong;
-        List<WeeklyWorkSchedule> content = scheduleMapper.findAll(status, limit, offset);
-        long totalElements = scheduleMapper.countAll(status);
+        List<WeeklyWorkSchedule> content =
+                scheduleMapper.findTeamSchedules(actorEmployeeId, status, limit, offset);
+        long totalElements = scheduleMapper.countTeamSchedules(actorEmployeeId, status);
         return PageResponse.of(
                 content.stream().map(WeeklyWorkScheduleResponse::from).collect(Collectors.toList()),
                 page,
@@ -157,7 +158,7 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional
-    public void processSchedule(WeeklyWorkScheduleProcessRequest request) {
+    public void processSchedule(WeeklyWorkScheduleProcessRequest request, Long actorEmployeeId) {
         WeeklyWorkSchedule schedule =
                 scheduleMapper
                         .findById(request.getWeeklyId())
@@ -165,6 +166,11 @@ public class WeeklyWorkScheduleService {
                                 () ->
                                         new com.reverse.core.exception.NotFoundException(
                                                 "결재할 신청 내역을 찾을 수 없습니다."));
+
+        if (!scheduleMapper.isSameTeamSchedule(actorEmployeeId, request.getWeeklyId())) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "같은 부서 팀원의 유연근무 신청만 처리할 수 있습니다.");
+        }
 
         if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
@@ -196,13 +202,17 @@ public class WeeklyWorkScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public TeamWeeklyScheduleOverviewResponse getTeamWeeklyOverview(LocalDate date) {
+    public TeamWeeklyScheduleOverviewResponse getTeamWeeklyOverview(
+            Long actorEmployeeId, LocalDate date) {
         LocalDate targetDate = date == null ? LocalDate.now() : date;
         LocalDate weekStart = targetDate.with(DayOfWeek.MONDAY);
         LocalDate weekEnd = weekStart.plusDays(4);
 
         Map<LocalDate, List<WeeklyWorkSchedule>> schedulesByDate =
-                scheduleMapper.findTeamSchedulesByPlanDateRange(weekStart, weekEnd).stream()
+                scheduleMapper
+                        .findTeamSchedulesByEmployeeIdAndPlanDateRange(
+                                actorEmployeeId, weekStart, weekEnd)
+                        .stream()
                         .filter(schedule -> schedule.getApprovalStatus() != ApprovalStatus.CANCELED)
                         .collect(Collectors.groupingBy(WeeklyWorkSchedule::getPlanDate));
 

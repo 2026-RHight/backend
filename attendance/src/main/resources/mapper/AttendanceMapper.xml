@@ -208,6 +208,35 @@
         ORDER BY work_date DESC
     </select>
 
+    <select id="findTeamMonthlyRecordsByEmployeeId" resultType="com.reverse.attendance.internal.domain.Attendance">
+        SELECT
+            ar.attendance_id as attendanceId,
+            ar.employee_id as employeeId,
+            ar.work_date as workDate,
+            ar.check_in_time as checkInTime,
+            ar.check_out_time as checkOutTime,
+            ar.status as status,
+            ar.tardy_reason as tardyReason,
+            ar.modify_reason as modifyReason,
+            e.employee_name as employeeName,
+            ar.is_closed as closed,
+            ar.overtime_hours as overtimeHours,
+            ar.night_work_hours as nightWorkHours,
+            ar.holiday_work_hours as holidayWorkHours,
+            ar.is_unpaid_leave as unpaidLeave
+        FROM attendance_record ar
+        JOIN employee_hr_info h ON h.employee_id = ar.employee_id
+        JOIN employee e ON e.employee_id = ar.employee_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND <include refid="monthRangeCondition"/>
+        ORDER BY ar.work_date ASC, e.employee_name ASC, ar.attendance_id ASC
+    </select>
+
     <select id="findRecordsByDateRange" resultType="com.reverse.attendance.internal.domain.Attendance">
         SELECT
             attendance_id as attendanceId,
@@ -340,10 +369,26 @@
         LEFT JOIN organization o ON o.org_id = h.org_id
         LEFT JOIN hr_position p ON p.position_id = h.position_id
         WHERE ar.work_date BETWEEN #{startDate} AND #{endDate}
+          AND EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{actorEmployeeId}
+              AND target_h.org_id = h.org_id
+          )
         <if test="status != null and status != ''">
             AND ar.status = #{status}
         </if>
         ORDER BY ar.work_date DESC, e.employee_name ASC, ar.attendance_id DESC
+    </select>
+
+    <select id="isSameTeamEmployee" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM employee_hr_info actor_h
+            JOIN employee_hr_info target_h ON target_h.org_id = actor_h.org_id
+            WHERE actor_h.employee_id = #{actorEmployeeId}
+              AND target_h.employee_id = #{targetEmployeeId}
+        )
     </select>
 
     <select id="countMonthlyEmployeeReports" resultType="long">

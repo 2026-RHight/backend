@@ -25,6 +25,11 @@ public interface OvertimeMapper {
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate);
 
+    List<Overtime> findTeamOvertimesByEmployeeIdAndDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
+
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     Optional<Overtime> findById(@Param("overtimeId") Long overtimeId);

@@ -26,6 +26,11 @@ public interface BusinessTripMapper {
             @Param("startDate") java.time.LocalDateTime startDate,
             @Param("endDate") java.time.LocalDateTime endDate);
 
+    List<BusinessTrip> findTeamTripsByEmployeeIdAndDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
+
     long countByEmployeeId(@Param("employeeId") Long employeeId);
 
     int countOverlappingTrips(

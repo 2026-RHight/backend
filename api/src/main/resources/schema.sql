@@ -277,6 +277,21 @@ ALTER TABLE leave_balance
     ADD COLUMN IF NOT EXISTS base_year INT NOT NULL DEFAULT 2026 AFTER employee_id,
     ADD COLUMN IF NOT EXISTS used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 AFTER total_annual_leave;
 
+CREATE TABLE IF NOT EXISTS leave_grant_history (
+    grant_history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    base_year INT NOT NULL COMMENT '부여 기준 연도',
+    grant_date DATE NOT NULL COMMENT '연차 부여일',
+    grant_days DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '부여 일수',
+    grant_type VARCHAR(30) NOT NULL DEFAULT 'ANNUAL_BASE' COMMENT 'ANNUAL_BASE(기본부여), MANUAL_ADJUSTMENT(수동조정)',
+    reason VARCHAR(100) NOT NULL COMMENT '부여 사유',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_leave_grant_history_days CHECK (grant_days >= 0.0),
+    CONSTRAINT fk_leave_grant_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    KEY idx_leave_grant_history_employee_year (employee_id, base_year, grant_date),
+    UNIQUE KEY uk_leave_grant_history_employee_type_date (employee_id, grant_type, grant_date)
+);
+
 ALTER TABLE attendance_policy
     ADD COLUMN IF NOT EXISTS employee_id BIGINT NULL AFTER policy_id,
     ADD COLUMN IF NOT EXISTS policy_name VARCHAR(100) NULL AFTER employee_id,

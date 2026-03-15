@@ -20,6 +20,7 @@ public class BusinessTrip {
     private String reason;
     private ApprovalStatus approvalStatus;
     private String rejectReason;
+    private String employeeName;
 
     @Builder
     public BusinessTrip(
@@ -31,7 +32,8 @@ public class BusinessTrip {
             LocalDateTime endDatetime,
             String reason,
             ApprovalStatus approvalStatus,
-            String rejectReason) {
+            String rejectReason,
+            String employeeName) {
         this.tripId = tripId;
         this.employeeId = employeeId;
         this.tripType = tripType;
@@ -41,5 +43,6 @@ public class BusinessTrip {
         this.reason = reason;
         this.approvalStatus = approvalStatus;
         this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
     }
 }

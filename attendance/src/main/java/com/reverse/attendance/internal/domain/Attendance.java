@@ -20,6 +20,7 @@ public class Attendance {
     private AttendanceStatus status;
     private String tardyReason;
     private String modifyReason;
+    private String employeeName;
     private Boolean closed;
     private BigDecimal overtimeHours;
     private BigDecimal nightWorkHours;
@@ -36,6 +37,7 @@ public class Attendance {
             AttendanceStatus status,
             String tardyReason,
             String modifyReason,
+            String employeeName,
             Boolean closed,
             BigDecimal overtimeHours,
             BigDecimal nightWorkHours,
@@ -49,6 +51,7 @@ public class Attendance {
         this.status = status;
         this.tardyReason = tardyReason;
         this.modifyReason = modifyReason;
+        this.employeeName = employeeName;
         this.closed = closed;
         this.overtimeHours = overtimeHours;
         this.nightWorkHours = nightWorkHours;

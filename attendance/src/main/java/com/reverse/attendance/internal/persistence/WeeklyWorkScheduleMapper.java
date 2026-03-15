@@ -35,11 +35,28 @@ public interface WeeklyWorkScheduleMapper {
     List<WeeklyWorkSchedule> findAll(
             @Param("status") String status, @Param("limit") int limit, @Param("offset") int offset);
 
+    List<WeeklyWorkSchedule> findTeamSchedules(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("status") String status,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
     List<WeeklyWorkSchedule> findTeamSchedulesByPlanDateRange(
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate);
 
+    List<WeeklyWorkSchedule> findTeamSchedulesByEmployeeIdAndPlanDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate);
+
     long countAll(@Param("status") String status);
+
+    long countTeamSchedules(
+            @Param("actorEmployeeId") Long actorEmployeeId, @Param("status") String status);
+
+    boolean isSameTeamSchedule(
+            @Param("actorEmployeeId") Long actorEmployeeId, @Param("weeklyId") Long weeklyId);
 
     int updateStatusIfPending(WeeklyWorkSchedule schedule);
 

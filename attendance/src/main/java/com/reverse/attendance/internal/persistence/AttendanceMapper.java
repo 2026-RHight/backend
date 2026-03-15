@@ -44,6 +44,9 @@ public interface AttendanceMapper {
             @Param("targetMonth") String targetMonth,
             @Param("status") String status);
 
+    List<Attendance> findTeamMonthlyRecordsByEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("targetMonth") String targetMonth);
+
     List<Attendance> findRecordsByDateRange(
             @Param("employeeId") Long employeeId,
             @Param("startDate") LocalDate startDate,
@@ -58,9 +61,14 @@ public interface AttendanceMapper {
             @Param("offset") int offset);
 
     List<AdminDailyAttendanceResponse> findDailyEmployeeRecords(
+            @Param("actorEmployeeId") Long actorEmployeeId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("status") String status);
+
+    boolean isSameTeamEmployee(
+            @Param("actorEmployeeId") Long actorEmployeeId,
+            @Param("targetEmployeeId") Long targetEmployeeId);
 
     long countMonthlyEmployeeReports(@Param("targetMonth") String targetMonth);
 
