@@ -2,7 +2,6 @@ package com.reverse.hr.internal.application;
 
 import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.exception.UnauthorizedException;
-import com.reverse.core.response.PageResponse;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberDetailResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
@@ -55,11 +54,8 @@ public class OrganizationService {
         return rows.stream().map(this::toOrganizationMemberResponse).toList();
     }
 
-    public PageResponse<OrganizationMemberResponseDTO> getMyOrganizationMembers(
-            Long employeeId, Long filterOrgId, int page, int size) {
-        int safePage = Math.max(1, page);
-        int safeSize = Math.min(100, Math.max(1, size));
-
+    public List<OrganizationMemberResponseDTO> getMyOrganizationMembers(
+            Long employeeId, Long filterOrgId) {
         Long myOrgId = organizationMapper.findMyOrgIdByEmployeeId(employeeId);
         if (myOrgId == null) {
             throw new NotFoundException("ORG_NOT_FOUND", "소속 조직 정보가 없습니다.");
@@ -71,22 +67,9 @@ public class OrganizationService {
                     "ORG_MEMBER_ACCESS_DENIED", "하위 조직 범위 내에서만 구성원을 조회할 수 있습니다.");
         }
 
-        int limit = safeSize;
-        long offsetLong = (long) (safePage - 1) * safeSize;
-        if (offsetLong > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("조회 범위를 초과했습니다.");
-        }
-        int offset = (int) offsetLong;
-
-        long total = organizationMapper.countMembersInSubtree(myOrgId, filterOrgId);
-        List<OrganizationMemberResponseDTO> content =
-                organizationMapper
-                        .findMembersInSubtree(myOrgId, filterOrgId, limit, offset)
-                        .stream()
-                        .map(this::toOrganizationMemberResponse)
-                        .toList();
-
-        return PageResponse.of(content, safePage, safeSize, total);
+        return organizationMapper.findMembersInSubtree(myOrgId, filterOrgId).stream()
+                .map(this::toOrganizationMemberResponse)
+                .toList();
     }
 
     public OrganizationMemberDetailResponseDTO getOrganizationMemberDetail(
