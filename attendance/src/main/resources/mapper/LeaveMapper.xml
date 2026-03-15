@@ -51,11 +51,6 @@
                 )
     </insert>
 
-    <delete id="deleteByApprovalId">
-        DELETE FROM leave_request
-        WHERE approval_id = #{approvalId}
-    </delete>
-
     <select id="findLeaveRequestsByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,

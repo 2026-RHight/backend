@@ -58,11 +58,6 @@ public class LeaveService {
     // 휴가 신청
     @Transactional
     public void applyLeave(LeaveApplyRequest request, Long employeeId) {
-        applyLeave(request, employeeId, null);
-    }
-
-    @Transactional
-    public void applyLeave(LeaveApplyRequest request, Long employeeId, Long approvalId) {
         if (request == null) {
             throw new IllegalArgumentException("휴가 신청 정보는 필수입니다.");
         }
@@ -128,7 +123,6 @@ public class LeaveService {
 
         LeaveRequest leaveRequest =
                 LeaveRequest.builder()
-                        .approvalId(approvalId)
                         .employeeId(employeeId)
                         .startDate(request.getStartDate())
                         .endDate(request.getEndDate())
@@ -139,14 +133,6 @@ public class LeaveService {
                         .build();
 
         leaveMapper.insertLeaveRequest(leaveRequest);
-    }
-
-    @Transactional
-    public void deleteLinkedRequestByApprovalId(Long approvalId) {
-        if (approvalId == null) {
-            return;
-        }
-        leaveMapper.deleteByApprovalId(approvalId);
     }
 
     // 나의 휴가 내역 리스트 조회
@@ -250,8 +236,7 @@ public class LeaveService {
 
         if (!leaveMapper.isSameTeamLeaveRequest(
                 actorEmployeeId, leaveRequest.getLeaveRequestId())) {
-            throw new com.reverse.core.exception.BadRequestException(
-                    "같은 부서 팀원의 휴가 신청만 처리할 수 있습니다.");
+            throw new com.reverse.core.exception.ForbiddenException("같은 부서 팀원의 휴가 신청만 처리할 수 있습니다.");
         }
 
         if (leaveRequest.getLeaveStatus() != LeaveStatus.PENDING) {

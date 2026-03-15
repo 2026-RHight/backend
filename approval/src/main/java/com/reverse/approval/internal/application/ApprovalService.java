@@ -62,13 +62,10 @@ import com.reverse.approval.internal.persistence.row.RecipientLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ReferenceLineDetailRow;
 import com.reverse.approval.internal.persistence.row.VacationDetailRow;
 import com.reverse.attendance.internal.application.BusinessTripService;
-import com.reverse.attendance.internal.application.LeaveService;
 import com.reverse.attendance.internal.application.OvertimeService;
 import com.reverse.attendance.internal.application.WeeklyWorkScheduleService;
-import com.reverse.attendance.internal.domain.enums.LeaveType;
 import com.reverse.attendance.internal.domain.enums.TripType;
 import com.reverse.attendance.internal.dto.request.BusinessTripApplyRequest;
-import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.OvertimeApplyRequest;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
 import com.reverse.core.event.ApprovalFlexibleEvent;
@@ -85,7 +82,6 @@ import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -122,7 +118,6 @@ public class ApprovalService implements ApprovalFacade {
     private final ApprovalAttachmentMapper approvalAttachmentMapper;
     private final NumberingService numberingService;
     private final ApplicationEventPublisher eventPublisher;
-    private final LeaveService leaveService;
     private final WeeklyWorkScheduleService weeklyWorkScheduleService;
     private final BusinessTripService businessTripService;
     private final OvertimeService overtimeService;
@@ -172,7 +167,6 @@ public class ApprovalService implements ApprovalFacade {
         }
 
         switch (dto.getDocType()) {
-            case VACATION -> syncVacationRequest(dto, employeeId, approvalId);
             case FLEXIBLE -> syncFlexibleWorkRequest(dto, employeeId, approvalId);
             case TRIP -> syncBusinessTripRequest(dto, employeeId, approvalId);
             case OVERTIME -> syncOvertimeRequest(dto, employeeId, approvalId);
@@ -180,23 +174,6 @@ public class ApprovalService implements ApprovalFacade {
                 return;
             }
         }
-    }
-
-    private void syncVacationRequest(DraftApproval dto, Long employeeId, Long approvalId) {
-        var vacationRequest = dto.getVacationRequest();
-        if (vacationRequest == null) {
-            return;
-        }
-
-        leaveService.applyLeave(
-                LeaveApplyRequest.builder()
-                        .startDate(toDate(vacationRequest.getStartDate()))
-                        .endDate(toDate(vacationRequest.getEndDate()))
-                        .leaveType(mapVacationLeaveType(vacationRequest))
-                        .reason(vacationRequest.getReason())
-                        .build(),
-                employeeId,
-                approvalId);
     }
 
     private void syncFlexibleWorkRequest(DraftApproval dto, Long employeeId, Long approvalId) {
@@ -260,7 +237,6 @@ public class ApprovalService implements ApprovalFacade {
     }
 
     private void cleanupLinkedAttendanceRequests(Long approvalId) {
-        leaveService.deleteLinkedRequestByApprovalId(approvalId);
         weeklyWorkScheduleService.deleteLinkedRequestByApprovalId(approvalId);
         businessTripService.deleteLinkedRequestByApprovalId(approvalId);
         overtimeService.deleteLinkedRequestByApprovalId(approvalId);
@@ -268,21 +244,6 @@ public class ApprovalService implements ApprovalFacade {
 
     private LocalDate toDate(LocalDateTime value) {
         return value == null ? null : value.toLocalDate();
-    }
-
-    private LeaveType mapVacationLeaveType(
-            com.reverse.approval.internal.dto.request.VacationRequest request) {
-        if (request.getStartDate() == null) {
-            throw new IllegalArgumentException("휴가 시작일은 필수입니다.");
-        }
-        return switch (request.getVacationType()) {
-            case ANNUAL -> LeaveType.ANNUAL;
-            case HALF ->
-                    request.getStartDate().toLocalTime().isBefore(LocalTime.NOON)
-                            ? LeaveType.HALF_AM
-                            : LeaveType.HALF_PM;
-            case SICK, ETC -> LeaveType.SPECIAL;
-        };
     }
 
     private TripType mapTripType(String tripType) {
