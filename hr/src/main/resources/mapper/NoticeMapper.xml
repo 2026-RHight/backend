@@ -33,7 +33,7 @@
                n.author_employee_name  AS authorEmployeeName
         FROM notice n
         WHERE n.is_published = TRUE
-        <if test="noticeType != null and noticeType != ''">
+        <if test="noticeType != null">
           AND n.notice_type = #{noticeType}
         </if>
         ORDER BY n.is_pinned DESC,
@@ -46,7 +46,7 @@
         SELECT COUNT(*)
         FROM notice n
         WHERE n.is_published = TRUE
-        <if test="noticeType != null and noticeType != ''">
+        <if test="noticeType != null">
           AND n.notice_type = #{noticeType}
         </if>
     </select>
@@ -78,7 +78,7 @@
         FROM notice n
         WHERE n.is_published = TRUE
           AND n.author_employee_id = #{authorEmployeeId}
-        <if test="noticeType != null and noticeType != ''">
+        <if test="noticeType != null">
           AND n.notice_type = #{noticeType}
         </if>
         ORDER BY n.is_pinned DESC,
@@ -92,7 +92,7 @@
         FROM notice n
         WHERE n.is_published = TRUE
           AND n.author_employee_id = #{authorEmployeeId}
-        <if test="noticeType != null and noticeType != ''">
+        <if test="noticeType != null">
           AND n.notice_type = #{noticeType}
         </if>
     </select>
