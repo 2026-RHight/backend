@@ -4,11 +4,13 @@ import com.reverse.attendance.internal.application.LeaveService;
 import com.reverse.attendance.internal.dto.request.LeaveApplyRequest;
 import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
+import com.reverse.attendance.internal.dto.response.LeaveGrantHistoryResponse;
 import com.reverse.attendance.internal.dto.response.LeaveRequestResponse;
 import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,6 +37,15 @@ public class LeaveController {
     public ResponseEntity<LeaveBalanceResponse> getMyLeaveBalance(
             @AuthenticationPrincipal CustomUser user) {
         return ResponseEntity.ok(leaveService.getLeaveBalance(user.getEmployeeId()));
+    }
+
+    @Operation(summary = "나의 연차 부여 내역 조회", description = "사용자 본인의 연차 부여 이력을 조회합니다.")
+    @GetMapping("/grants")
+    @PreAuthorize(LEAVE_SELF_SERVICE_AUTH)
+    public ResponseEntity<List<LeaveGrantHistoryResponse>> getMyLeaveGrantHistory(
+            @AuthenticationPrincipal CustomUser user,
+            @RequestParam(required = false) Integer year) {
+        return ResponseEntity.ok(leaveService.getLeaveGrantHistory(user.getEmployeeId(), year));
     }
 
     // 내 휴가 신청 내역 리스트 조회
@@ -84,18 +95,21 @@ public class LeaveController {
     @PreAuthorize(LEAVE_APPROVER_AUTH)
     @GetMapping("/admin/requests")
     public ResponseEntity<PageResponse<LeaveRequestResponse>> getAllTeamLeaveRequests(
+            @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(leaveService.getAllTeamLeaveRequests(status, page, size));
+        return ResponseEntity.ok(
+                leaveService.getAllTeamLeaveRequests(user.getEmployeeId(), status, page, size));
     }
 
     // 휴가 승인/반려 결재 처리(관리자)
     @Operation(summary = "휴가 결재 (관리자)", description = "관리자가 직원의 휴가 신청을 승인하거나 반려합니다.")
     @PreAuthorize(LEAVE_APPROVER_AUTH)
     @PutMapping("/admin/process")
-    public ResponseEntity<String> processLeaveRequest(@RequestBody LeaveProcessRequest request) {
-        leaveService.processLeaveRequest(request);
+    public ResponseEntity<String> processLeaveRequest(
+            @RequestBody LeaveProcessRequest request, @AuthenticationPrincipal CustomUser user) {
+        leaveService.processLeaveRequest(request, user.getEmployeeId());
         String message = request.isApprove() ? "휴가가 승인 처리되었습니다." : "휴가가 반려 처리되었습니다.";
         return ResponseEntity.ok(message);
     }

@@ -23,6 +23,12 @@ public class BusinessTripService {
     // 외근/출장 신청
     @Transactional
     public void applyBusinessTrip(BusinessTripApplyRequest request, Long employeeId) {
+        applyBusinessTrip(request, employeeId, null);
+    }
+
+    @Transactional
+    public void applyBusinessTrip(
+            BusinessTripApplyRequest request, Long employeeId, Long approvalId) {
         if (request.getStartDatetime() == null || request.getEndDatetime() == null) {
             throw new IllegalArgumentException("시작/종료 일시는 필수입니다.");
         }
@@ -43,6 +49,7 @@ public class BusinessTripService {
 
         BusinessTrip trip =
                 BusinessTrip.builder()
+                        .approvalId(approvalId)
                         .employeeId(employeeId)
                         .tripType(request.getTripType())
                         .destination(request.getDestination())
@@ -53,6 +60,14 @@ public class BusinessTripService {
                         .build();
 
         businessTripMapper.insertBusinessTrip(trip);
+    }
+
+    @Transactional
+    public void deleteLinkedRequestByApprovalId(Long approvalId) {
+        if (approvalId == null) {
+            return;
+        }
+        businessTripMapper.deleteByApprovalId(approvalId);
     }
 
     // 내 신청 내역 조회

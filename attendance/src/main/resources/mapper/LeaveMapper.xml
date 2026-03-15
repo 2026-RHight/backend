@@ -10,6 +10,24 @@
         WHERE employee_id = #{employeeId} AND base_year = #{baseYear}
     </select>
 
+    <select id="findLeaveGrantHistoryByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveGrantHistory">
+        SELECT
+            grant_history_id as grantHistoryId,
+            employee_id as employeeId,
+            base_year as baseYear,
+            grant_date as grantDate,
+            grant_days as grantDays,
+            grant_type as grantType,
+            reason,
+            created_at as createdAt
+        FROM leave_grant_history
+        WHERE employee_id = #{employeeId}
+        <if test="baseYear != null">
+            AND base_year = #{baseYear}
+        </if>
+        ORDER BY grant_date DESC, grant_history_id DESC
+    </select>
+
     <select id="lockVacationBalanceByEmployeeId" resultType="java.lang.Double">
         SELECT total_annual_leave
         FROM leave_balance
@@ -27,15 +45,21 @@
 
     <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
         INSERT INTO leave_request (
-            employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
+            approval_id, employee_id, start_date, end_date, leave_type, leave_status, used_days, reason
         ) VALUES (
-                    #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
+                    #{approvalId}, #{employeeId}, #{startDate}, #{endDate}, #{leaveType}, #{leaveStatus}, #{usedDays}, #{reason}
                 )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM leave_request
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="findLeaveRequestsByEmployeeId" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -53,6 +77,7 @@
     <select id="findLeaveRequestsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -68,6 +93,33 @@
         ORDER BY start_date ASC, leave_request_id ASC
     </select>
 
+    <select id="findTeamLeaveRequestsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+        SELECT
+            lr.leave_request_id as leaveRequestId,
+            lr.approval_id as approvalId,
+            lr.employee_id as employeeId,
+            lr.start_date as startDate,
+            lr.end_date as endDate,
+            lr.leave_type as leaveType,
+            lr.leave_status as leaveStatus,
+            lr.used_days as usedDays,
+            lr.reason as reason,
+            lr.reject_reason as rejectReason,
+            e.employee_name as employeeName
+        FROM leave_request lr
+        JOIN employee_hr_info h ON h.employee_id = lr.employee_id
+        JOIN employee e ON e.employee_id = lr.employee_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND lr.start_date &lt;= #{endDate}
+          AND lr.end_date &gt;= #{startDate}
+        ORDER BY lr.start_date ASC, e.employee_name ASC, lr.leave_request_id ASC
+    </select>
+
     <select id="countByEmployeeId" resultType="long">
         SELECT COUNT(*)
         FROM leave_request
@@ -77,6 +129,7 @@
     <select id="findLeaveRequestById" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
             leave_request_id as leaveRequestId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -97,25 +150,56 @@
             AND leave_status = 'PENDING'
     </update>
 
-    <select id="findAllLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
+    <select id="findTeamLeaveRequests" resultType="com.reverse.attendance.internal.domain.LeaveRequest">
         SELECT
-        leave_request_id as leaveRequestId,
-        employee_id as employeeId,
-        start_date as startDate,
-        end_date as endDate,
-        leave_type as leaveType,
-        leave_status as leaveStatus,
-        used_days as usedDays,
-        reason as reason,
-        reject_reason as rejectReason
-        FROM leave_request
+        lr.leave_request_id as leaveRequestId,
+        lr.approval_id as approvalId,
+        lr.employee_id as employeeId,
+        lr.start_date as startDate,
+        lr.end_date as endDate,
+        lr.leave_type as leaveType,
+        lr.leave_status as leaveStatus,
+        lr.used_days as usedDays,
+        lr.reason as reason,
+        lr.reject_reason as rejectReason
+        FROM leave_request lr
+        JOIN employee_hr_info h ON h.employee_id = lr.employee_id
         <where>
             <if test="leaveStatus != null and leaveStatus != ''">
-                leave_status = #{leaveStatus}
+                lr.leave_status = #{leaveStatus}
             </if>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
         </where>
-        ORDER BY start_date DESC, leave_request_id DESC
+        ORDER BY lr.start_date DESC, lr.leave_request_id DESC
         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countTeamLeaveRequests" resultType="long">
+        SELECT COUNT(*)
+        FROM leave_request lr
+        JOIN employee_hr_info h ON h.employee_id = lr.employee_id
+        <where>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                lr.leave_status = #{leaveStatus}
+            </if>
+            <if test="leaveStatus != null and leaveStatus != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
+        </where>
     </select>
 
     <select id="countAll" resultType="long">
@@ -126,6 +210,17 @@
                 leave_status = #{leaveStatus}
             </if>
         </where>
+    </select>
+
+    <select id="isSameTeamLeaveRequest" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM leave_request lr
+            JOIN employee_hr_info target_h ON target_h.employee_id = lr.employee_id
+            JOIN employee_hr_info actor_h ON actor_h.org_id = target_h.org_id
+            WHERE actor_h.employee_id = #{actorEmployeeId}
+              AND lr.leave_request_id = #{leaveRequestId}
+        )
     </select>
 
     <select id="findApprovedLeaveTypeByDate" resultType="com.reverse.attendance.internal.domain.enums.LeaveType">

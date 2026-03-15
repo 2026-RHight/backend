@@ -6,13 +6,18 @@
 
     <insert id="insertSchedule" useGeneratedKeys="true" keyProperty="weeklyId">
         INSERT INTO weekly_work_schedule (
-            employee_id, start_date, end_date, approval_status,
+            approval_id, employee_id, start_date, end_date, approval_status,
             plan_date, work_form, schedule_title, memo, created_at
         ) VALUES (
-            #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
+            #{approvalId}, #{employeeId}, #{startDate}, #{endDate}, #{approvalStatus},
             #{planDate}, #{workForm}, #{scheduleTitle}, #{memo}, NOW()
         )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM weekly_work_schedule
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="lockEmployee" resultType="java.lang.Integer">
         SELECT 1
@@ -24,6 +29,7 @@
     <select id="findById" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -42,6 +48,7 @@
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -62,6 +69,7 @@
     <select id="findByEmployeeIdAndPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -82,6 +90,7 @@
     <select id="findApprovedByEmployeeIdAndPlanDate" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
+            approval_id as approvalId,
             employee_id as employeeId,
             start_date as startDate,
             end_date as endDate,
@@ -122,6 +131,7 @@
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,
@@ -150,9 +160,51 @@
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="findTeamSchedules" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
+            w.employee_id as employeeId,
+            w.start_date as startDate,
+            w.end_date as endDate,
+            w.approval_status as approvalStatus,
+            w.plan_date as planDate,
+            w.work_form as workForm,
+            w.schedule_title as scheduleTitle,
+            w.memo as memo,
+            w.reject_reason as rejectReason,
+            e.employee_name as employeeName,
+            COALESCE(o.org_name, '미소속') as departmentName,
+            COALESCE(p.position_name, '직원') as positionName,
+            w.created_at as createdAt,
+            w.updated_at as updatedAt
+        FROM weekly_work_schedule w
+        JOIN employee e ON e.employee_id = w.employee_id
+        LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        <where>
+            <if test="status != null and status != ''">
+                w.approval_status = #{status}
+            </if>
+            <if test="status != null and status != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
+        </where>
+        ORDER BY w.start_date DESC, w.weekly_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
     <select id="findTeamSchedulesByPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
             w.employee_id as employeeId,
             w.start_date as startDate,
             w.end_date as endDate,
@@ -176,6 +228,39 @@
         ORDER BY w.plan_date ASC, e.employee_name ASC, w.weekly_id ASC
     </select>
 
+    <select id="findTeamSchedulesByEmployeeIdAndPlanDateRange" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            w.weekly_id as weeklyId,
+            w.approval_id as approvalId,
+            w.employee_id as employeeId,
+            w.start_date as startDate,
+            w.end_date as endDate,
+            w.approval_status as approvalStatus,
+            w.plan_date as planDate,
+            w.work_form as workForm,
+            w.schedule_title as scheduleTitle,
+            w.memo as memo,
+            w.reject_reason as rejectReason,
+            e.employee_name as employeeName,
+            COALESCE(o.org_name, '미소속') as departmentName,
+            COALESCE(p.position_name, '직원') as positionName,
+            w.created_at as createdAt,
+            w.updated_at as updatedAt
+        FROM weekly_work_schedule w
+        JOIN employee e ON e.employee_id = w.employee_id
+        LEFT JOIN employee_hr_info h ON h.employee_id = e.employee_id
+        LEFT JOIN organization o ON o.org_id = h.org_id
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND w.plan_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY w.plan_date ASC, e.employee_name ASC, w.weekly_id ASC
+    </select>
+
     <select id="countAll" resultType="long">
         SELECT COUNT(*)
         FROM weekly_work_schedule
@@ -184,6 +269,37 @@
                 approval_status = #{status}
             </if>
         </where>
+    </select>
+
+    <select id="countTeamSchedules" resultType="long">
+        SELECT COUNT(*)
+        FROM weekly_work_schedule w
+        LEFT JOIN employee_hr_info h ON h.employee_id = w.employee_id
+        <where>
+            <if test="status != null and status != ''">
+                w.approval_status = #{status}
+            </if>
+            <if test="status != null and status != ''">
+                AND
+            </if>
+            EXISTS (
+                SELECT 1
+                FROM employee_hr_info actor_h
+                WHERE actor_h.employee_id = #{actorEmployeeId}
+                  AND actor_h.org_id = h.org_id
+            )
+        </where>
+    </select>
+
+    <select id="isSameTeamSchedule" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM weekly_work_schedule w
+            JOIN employee_hr_info target_h ON target_h.employee_id = w.employee_id
+            JOIN employee_hr_info actor_h ON actor_h.org_id = target_h.org_id
+            WHERE actor_h.employee_id = #{actorEmployeeId}
+              AND w.weekly_id = #{weeklyId}
+        )
     </select>
 
     <select id="countOverlappingSchedules" resultType="int">

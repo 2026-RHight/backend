@@ -277,6 +277,21 @@ ALTER TABLE leave_balance
     ADD COLUMN IF NOT EXISTS base_year INT NOT NULL DEFAULT 2026 AFTER employee_id,
     ADD COLUMN IF NOT EXISTS used_annual_leave DECIMAL(5,1) NOT NULL DEFAULT 0.0 AFTER total_annual_leave;
 
+CREATE TABLE IF NOT EXISTS leave_grant_history (
+    grant_history_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    base_year INT NOT NULL COMMENT '부여 기준 연도',
+    grant_date DATE NOT NULL COMMENT '연차 부여일',
+    grant_days DECIMAL(5,1) NOT NULL DEFAULT 0.0 COMMENT '부여 일수',
+    grant_type VARCHAR(30) NOT NULL DEFAULT 'ANNUAL_BASE' COMMENT 'ANNUAL_BASE(기본부여), MANUAL_ADJUSTMENT(수동조정)',
+    reason VARCHAR(100) NOT NULL COMMENT '부여 사유',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_leave_grant_history_days CHECK (grant_days >= 0.0),
+    CONSTRAINT fk_leave_grant_history_employee FOREIGN KEY (employee_id) REFERENCES employee(employee_id),
+    KEY idx_leave_grant_history_employee_year (employee_id, base_year, grant_date),
+    UNIQUE KEY uk_leave_grant_history_employee_type_date (employee_id, grant_type, grant_date)
+);
+
 ALTER TABLE attendance_policy
     ADD COLUMN IF NOT EXISTS employee_id BIGINT NULL AFTER policy_id,
     ADD COLUMN IF NOT EXISTS policy_name VARCHAR(100) NULL AFTER employee_id,
@@ -312,6 +327,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_attendance_policy_employee
 -- 휴가 신청 내역
 CREATE TABLE IF NOT EXISTS leave_request (
                                             leave_request_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                            approval_id BIGINT NULL,
                                             employee_id BIGINT NOT NULL,
                                             start_date DATE NOT NULL,
                                             end_date DATE NOT NULL,
@@ -326,6 +342,7 @@ CREATE TABLE IF NOT EXISTS leave_request (
 -- 외근/출장 신청 내역
 CREATE TABLE IF NOT EXISTS business_trip_request (
                                                     trip_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                    approval_id BIGINT NULL,
                                                     employee_id BIGINT NOT NULL,
                                                     trip_type VARCHAR(20) NOT NULL COMMENT 'OUTSIDE_WORK(외근), BUSINESS_TRIP(출장)',
     destination VARCHAR(255) NOT NULL COMMENT '목적지',
@@ -340,6 +357,7 @@ CREATE TABLE IF NOT EXISTS business_trip_request (
 -- 연장근무 신청 내역
 CREATE TABLE IF NOT EXISTS overtime_request (
                                                 overtime_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                approval_id BIGINT NULL,
                                                 employee_id BIGINT NOT NULL,
                                                 work_date DATE NOT NULL COMMENT '근무 일자',
                                                 start_time DATETIME NOT NULL COMMENT '연장근무 시작 시간',
@@ -353,6 +371,7 @@ CREATE TABLE IF NOT EXISTS overtime_request (
 -- 유연근무 신청 내역
 CREATE TABLE IF NOT EXISTS weekly_work_schedule (
     weekly_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    approval_id BIGINT NULL,
     employee_id BIGINT NOT NULL,
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
@@ -369,6 +388,30 @@ CREATE TABLE IF NOT EXISTS weekly_work_schedule (
 
 ALTER TABLE weekly_work_schedule
     ADD COLUMN IF NOT EXISTS reject_reason VARCHAR(255) COMMENT '관리자 반려 사유' AFTER memo;
+
+ALTER TABLE leave_request
+    ADD COLUMN IF NOT EXISTS approval_id BIGINT NULL AFTER leave_request_id;
+
+ALTER TABLE business_trip_request
+    ADD COLUMN IF NOT EXISTS approval_id BIGINT NULL AFTER trip_id;
+
+ALTER TABLE overtime_request
+    ADD COLUMN IF NOT EXISTS approval_id BIGINT NULL AFTER overtime_id;
+
+ALTER TABLE weekly_work_schedule
+    ADD COLUMN IF NOT EXISTS approval_id BIGINT NULL AFTER weekly_id;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_leave_request_approval_id
+    ON leave_request (approval_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_business_trip_request_approval_id
+    ON business_trip_request (approval_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_overtime_request_approval_id
+    ON overtime_request (approval_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_weekly_work_schedule_approval_id
+    ON weekly_work_schedule (approval_id);
 
 
 -- 팀원이 작성한 자격증/경력 관련 테이블

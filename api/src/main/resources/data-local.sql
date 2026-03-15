@@ -784,6 +784,29 @@ FROM employee e
 WHERE e.email LIKE '%@seed.rhight.local'
   AND lb.vacation_id IS NULL;
 
+INSERT INTO leave_grant_history (
+    employee_id,
+    base_year,
+    grant_date,
+    grant_days,
+    grant_type,
+    reason
+)
+SELECT
+    lb.employee_id,
+    lb.base_year,
+    STR_TO_DATE(CONCAT(lb.base_year, '-01-01'), '%Y-%m-%d') AS grant_date,
+    lb.total_annual_leave,
+    'ANNUAL_BASE',
+    CONCAT(lb.base_year, '년 연차 기본 부여')
+FROM leave_balance lb
+LEFT JOIN leave_grant_history lgh
+    ON lgh.employee_id = lb.employee_id
+   AND lgh.base_year = lb.base_year
+   AND lgh.grant_type = 'ANNUAL_BASE'
+   AND lgh.grant_date = STR_TO_DATE(CONCAT(lb.base_year, '-01-01'), '%Y-%m-%d')
+WHERE lgh.grant_history_id IS NULL;
+
 INSERT INTO attendance_record (
     employee_id,
     work_date,

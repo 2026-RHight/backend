@@ -12,6 +12,8 @@ public interface BusinessTripMapper {
     // 신청
     void insertBusinessTrip(BusinessTrip businessTrip);
 
+    int deleteByApprovalId(@Param("approvalId") Long approvalId);
+
     // 동시성 제어를 위한 직원 락
     void lockEmployee(@Param("employeeId") Long employeeId);
 
@@ -22,6 +24,11 @@ public interface BusinessTripMapper {
             @Param("offset") int offset);
 
     List<BusinessTrip> findByEmployeeIdAndDateRange(
+            @Param("employeeId") Long employeeId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate);
+
+    List<BusinessTrip> findTeamTripsByEmployeeIdAndDateRange(
             @Param("employeeId") Long employeeId,
             @Param("startDate") java.time.LocalDateTime startDate,
             @Param("endDate") java.time.LocalDateTime endDate);

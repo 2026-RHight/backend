@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class BusinessTrip {
 
     private Long tripId;
+    private Long approvalId;
     private Long employeeId;
     private TripType tripType;
     private String destination;
@@ -20,10 +21,12 @@ public class BusinessTrip {
     private String reason;
     private ApprovalStatus approvalStatus;
     private String rejectReason;
+    private String employeeName;
 
     @Builder
     public BusinessTrip(
             Long tripId,
+            Long approvalId,
             Long employeeId,
             TripType tripType,
             String destination,
@@ -31,8 +34,10 @@ public class BusinessTrip {
             LocalDateTime endDatetime,
             String reason,
             ApprovalStatus approvalStatus,
-            String rejectReason) {
+            String rejectReason,
+            String employeeName) {
         this.tripId = tripId;
+        this.approvalId = approvalId;
         this.employeeId = employeeId;
         this.tripType = tripType;
         this.destination = destination;
@@ -41,5 +46,6 @@ public class BusinessTrip {
         this.reason = reason;
         this.approvalStatus = approvalStatus;
         this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
     }
 }

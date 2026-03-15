@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LeaveRequest {
     private Long leaveRequestId;
+    private Long approvalId;
     private Long employeeId;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -19,10 +20,12 @@ public class LeaveRequest {
     private double usedDays;
     private String reason;
     private String rejectReason;
+    private String employeeName;
 
     @Builder
     public LeaveRequest(
             Long leaveRequestId,
+            Long approvalId,
             Long employeeId,
             LocalDate startDate,
             LocalDate endDate,
@@ -30,8 +33,10 @@ public class LeaveRequest {
             LeaveStatus leaveStatus,
             double usedDays,
             String reason,
-            String rejectReason) {
+            String rejectReason,
+            String employeeName) {
         this.leaveRequestId = leaveRequestId;
+        this.approvalId = approvalId;
         this.employeeId = employeeId;
         this.startDate = startDate;
         this.endDate = endDate;
@@ -40,5 +45,6 @@ public class LeaveRequest {
         this.usedDays = usedDays;
         this.reason = reason;
         this.rejectReason = rejectReason;
+        this.employeeName = employeeName;
     }
 }

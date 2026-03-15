@@ -149,6 +149,11 @@ public class AttendanceService {
                                         new com.reverse.core.exception.BadRequestException(
                                                 "해당 날짜의 근태 기록이 존재하지 않습니다."));
 
+        if (!attendanceMapper.isSameTeamEmployee(actorEmployeeId, request.getTargetEmployeeId())) {
+            throw new com.reverse.core.exception.BadRequestException(
+                    "자기 부서 팀원의 근태 기록만 수정할 수 있습니다.");
+        }
+
         if (Boolean.TRUE.equals(attendance.getClosed())) {
             throw new com.reverse.core.exception.BadRequestException("월 마감된 근태 기록은 수정할 수 없습니다.");
         }
@@ -284,39 +289,75 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
-    public AttendanceCalendarResponse getCalendar(Long employeeId, int year, int month) {
+    public AttendanceCalendarResponse getCalendar(
+            Long employeeId, int year, int month, String scope) {
         String targetMonth = String.format("%04d-%02d", year, month);
         LocalDate monthStart = LocalDate.of(year, month, 1);
         LocalDate monthEnd = monthStart.withDayOfMonth(monthStart.lengthOfMonth());
         List<AttendanceCalendarEventResponse> events = new ArrayList<>();
+        boolean teamScope = "TEAM".equalsIgnoreCase(scope);
 
-        attendanceMapper.findMonthlyRecords(employeeId, targetMonth, null).stream()
-                .filter(record -> record.getWorkDate() != null)
-                .map(this::toAttendanceEvent)
-                .forEach(events::add);
+        if (teamScope) {
+            attendanceMapper.findTeamMonthlyRecordsByEmployeeId(employeeId, targetMonth).stream()
+                    .filter(record -> record.getWorkDate() != null)
+                    .map(this::toAttendanceEvent)
+                    .forEach(events::add);
 
-        leaveMapper
-                .findLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
-                .stream()
-                .map(this::toLeaveEvent)
-                .forEach(events::add);
+            leaveMapper
+                    .findTeamLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
+                    .stream()
+                    .map(this::toLeaveEvent)
+                    .forEach(events::add);
 
-        overtimeMapper.findByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd).stream()
-                .map(this::toOvertimeEvent)
-                .forEach(events::add);
+            overtimeMapper
+                    .findTeamOvertimesByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
+                    .stream()
+                    .map(this::toOvertimeEvent)
+                    .forEach(events::add);
 
-        businessTripMapper
-                .findByEmployeeIdAndDateRange(
-                        employeeId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59))
-                .stream()
-                .map(this::toBusinessTripEvent)
-                .forEach(events::add);
+            businessTripMapper
+                    .findTeamTripsByEmployeeIdAndDateRange(
+                            employeeId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59))
+                    .stream()
+                    .map(this::toBusinessTripEvent)
+                    .forEach(events::add);
 
-        weeklyWorkScheduleMapper
-                .findByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
-                .stream()
-                .map(this::toWeeklyScheduleEvent)
-                .forEach(events::add);
+            weeklyWorkScheduleMapper
+                    .findTeamSchedulesByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
+                    .stream()
+                    .map(this::toWeeklyScheduleEvent)
+                    .forEach(events::add);
+        }
+
+        if (!teamScope) {
+            attendanceMapper.findMonthlyRecords(employeeId, targetMonth, null).stream()
+                    .filter(record -> record.getWorkDate() != null)
+                    .map(this::toAttendanceEvent)
+                    .forEach(events::add);
+
+            leaveMapper
+                    .findLeaveRequestsByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd)
+                    .stream()
+                    .map(this::toLeaveEvent)
+                    .forEach(events::add);
+
+            overtimeMapper.findByEmployeeIdAndDateRange(employeeId, monthStart, monthEnd).stream()
+                    .map(this::toOvertimeEvent)
+                    .forEach(events::add);
+
+            businessTripMapper
+                    .findByEmployeeIdAndDateRange(
+                            employeeId, monthStart.atStartOfDay(), monthEnd.atTime(23, 59, 59))
+                    .stream()
+                    .map(this::toBusinessTripEvent)
+                    .forEach(events::add);
+
+            weeklyWorkScheduleMapper
+                    .findByEmployeeIdAndPlanDateRange(employeeId, monthStart, monthEnd)
+                    .stream()
+                    .map(this::toWeeklyScheduleEvent)
+                    .forEach(events::add);
+        }
 
         events.sort(
                 Comparator.comparing(AttendanceCalendarEventResponse::getTargetDate)
@@ -414,9 +455,11 @@ public class AttendanceService {
                 .eventId("attendance-" + attendance.getAttendanceId())
                 .category("ATTENDANCE")
                 .title(
-                        attendance.getStatus() != null
-                                ? attendance.getStatus().getDescription()
-                                : "근태 기록")
+                        formatCalendarTitle(
+                                attendance.getEmployeeName(),
+                                attendance.getStatus() != null
+                                        ? attendance.getStatus().getDescription()
+                                        : "근태 기록"))
                 .status(attendance.getStatus() != null ? attendance.getStatus().name() : null)
                 .targetDate(attendance.getWorkDate())
                 .startDateTime(
@@ -433,18 +476,6 @@ public class AttendanceService {
                         attendance.getModifyReason() != null
                                 ? attendance.getModifyReason()
                                 : attendance.getTardyReason())
-                .title(attendance.getStatus().getDescription())
-                .status(attendance.getStatus().name())
-                .targetDate(attendance.getWorkDate())
-                .startDateTime(
-                        attendance.getCheckInTime() == null
-                                ? null
-                                : attendance.getWorkDate().atTime(attendance.getCheckInTime()))
-                .endDateTime(
-                        attendance.getCheckOutTime() == null
-                                ? null
-                                : attendance.getWorkDate().atTime(attendance.getCheckOutTime()))
-                .memo(attendance.getModifyReason())
                 .build();
     }
 
@@ -452,7 +483,10 @@ public class AttendanceService {
         return AttendanceCalendarEventResponse.builder()
                 .eventId("leave-" + item.getLeaveRequestId())
                 .category("LEAVE")
-                .title(item.getLeaveType() != null ? item.getLeaveType().name() : "휴가")
+                .title(
+                        formatCalendarTitle(
+                                item.getEmployeeName(),
+                                item.getLeaveType() != null ? item.getLeaveType().name() : "휴가"))
                 .status(item.getLeaveStatus() != null ? item.getLeaveStatus().name() : null)
                 .targetDate(item.getStartDate())
                 .startDateTime(
@@ -467,9 +501,11 @@ public class AttendanceService {
                 .eventId("weekly-" + item.getWeeklyId())
                 .category("WEEKLY_SCHEDULE")
                 .title(
-                        item.getScheduleTitle() != null
-                                ? item.getScheduleTitle()
-                                : item.getWorkForm())
+                        formatCalendarTitle(
+                                item.getEmployeeName(),
+                                item.getScheduleTitle() != null
+                                        ? item.getScheduleTitle()
+                                        : item.getWorkForm()))
                 .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
                 .targetDate(item.getPlanDate())
                 .startDateTime(item.getStartDate())
@@ -482,7 +518,7 @@ public class AttendanceService {
         return AttendanceCalendarEventResponse.builder()
                 .eventId("overtime-" + item.getOvertimeId())
                 .category("OVERTIME")
-                .title("연장근무")
+                .title(formatCalendarTitle(item.getEmployeeName(), "연장근무"))
                 .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
                 .targetDate(item.getWorkDate())
                 .startDateTime(item.getStartTime())
@@ -495,13 +531,23 @@ public class AttendanceService {
         return AttendanceCalendarEventResponse.builder()
                 .eventId("trip-" + item.getTripId())
                 .category("BUSINESS_TRIP")
-                .title(item.getTripType() != null ? item.getTripType().name() : "출장")
+                .title(
+                        formatCalendarTitle(
+                                item.getEmployeeName(),
+                                item.getTripType() != null ? item.getTripType().name() : "출장"))
                 .status(item.getApprovalStatus() != null ? item.getApprovalStatus().name() : null)
                 .targetDate(toDate(item.getStartDatetime()))
                 .startDateTime(item.getStartDatetime())
                 .endDateTime(item.getEndDatetime())
                 .memo(item.getReason())
                 .build();
+    }
+
+    private String formatCalendarTitle(String employeeName, String title) {
+        if (employeeName == null || employeeName.isBlank()) {
+            return title;
+        }
+        return employeeName + " · " + title;
     }
 
     private LocalDate toDate(LocalDateTime value) {

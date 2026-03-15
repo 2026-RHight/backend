@@ -6,11 +6,16 @@
 
     <insert id="insertBusinessTrip" useGeneratedKeys="true" keyProperty="tripId">
         INSERT INTO business_trip_request (
-            employee_id, trip_type, destination, start_datetime, end_datetime, reason, approval_status
+            approval_id, employee_id, trip_type, destination, start_datetime, end_datetime, reason, approval_status
         ) VALUES (
-                     #{employeeId}, #{tripType}, #{destination}, #{startDatetime}, #{endDatetime}, #{reason}, #{approvalStatus}
+                     #{approvalId}, #{employeeId}, #{tripType}, #{destination}, #{startDatetime}, #{endDatetime}, #{reason}, #{approvalStatus}
                  )
     </insert>
+
+    <delete id="deleteByApprovalId">
+        DELETE FROM business_trip_request
+        WHERE approval_id = #{approvalId}
+    </delete>
 
     <select id="lockEmployee" resultType="java.lang.Integer">
         SELECT 1
@@ -21,7 +26,7 @@
 
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
-            trip_id as tripId, employee_id as employeeId, trip_type as tripType,
+            trip_id as tripId, approval_id as approvalId, employee_id as employeeId, trip_type as tripType,
             destination as destination, start_datetime as startDatetime, end_datetime as endDatetime,
             reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
         FROM business_trip_request
@@ -32,7 +37,7 @@
 
     <select id="findByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
-            trip_id as tripId, employee_id as employeeId, trip_type as tripType,
+            trip_id as tripId, approval_id as approvalId, employee_id as employeeId, trip_type as tripType,
             destination as destination, start_datetime as startDatetime, end_datetime as endDatetime,
             reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
         FROM business_trip_request
@@ -40,6 +45,33 @@
           AND start_datetime &lt;= #{endDate}
           AND end_datetime &gt;= #{startDate}
         ORDER BY start_datetime ASC, trip_id ASC
+    </select>
+
+    <select id="findTeamTripsByEmployeeIdAndDateRange" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
+        SELECT
+            b.trip_id as tripId,
+            b.approval_id as approvalId,
+            b.employee_id as employeeId,
+            b.trip_type as tripType,
+            b.destination as destination,
+            b.start_datetime as startDatetime,
+            b.end_datetime as endDatetime,
+            b.reason as reason,
+            b.approval_status as approvalStatus,
+            b.reject_reason as rejectReason,
+            e.employee_name as employeeName
+        FROM business_trip_request b
+        JOIN employee_hr_info h ON h.employee_id = b.employee_id
+        JOIN employee e ON e.employee_id = b.employee_id
+        WHERE EXISTS (
+            SELECT 1
+            FROM employee_hr_info target_h
+            WHERE target_h.employee_id = #{employeeId}
+              AND target_h.org_id = h.org_id
+        )
+          AND b.start_datetime &lt;= #{endDate}
+          AND b.end_datetime &gt;= #{startDate}
+        ORDER BY b.start_datetime ASC, e.employee_name ASC, b.trip_id ASC
     </select>
 
     <select id="countByEmployeeId" resultType="long">
@@ -59,7 +91,7 @@
 
     <select id="findById" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
-            trip_id as tripId, employee_id as employeeId, trip_type as tripType,
+            trip_id as tripId, approval_id as approvalId, employee_id as employeeId, trip_type as tripType,
             destination as destination, start_datetime as startDatetime, end_datetime as endDatetime,
             reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
         FROM business_trip_request
@@ -76,7 +108,7 @@
 
     <select id="findAll" resultType="com.reverse.attendance.internal.domain.BusinessTrip">
         SELECT
-        trip_id as tripId, employee_id as employeeId, trip_type as tripType,
+        trip_id as tripId, approval_id as approvalId, employee_id as employeeId, trip_type as tripType,
         destination as destination, start_datetime as startDatetime, end_datetime as endDatetime,
         reason as reason, approval_status as approvalStatus, reject_reason as rejectReason
         FROM business_trip_request

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class WeeklyWorkSchedule {
     private Long weeklyId;
+    private Long approvalId;
     private Long employeeId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
@@ -29,6 +30,7 @@ public class WeeklyWorkSchedule {
     @Builder
     public WeeklyWorkSchedule(
             Long weeklyId,
+            Long approvalId,
             Long employeeId,
             LocalDateTime startDate,
             LocalDateTime endDate,
@@ -45,6 +47,7 @@ public class WeeklyWorkSchedule {
             LocalDateTime updatedAt) {
 
         this.weeklyId = weeklyId;
+        this.approvalId = approvalId;
         this.employeeId = employeeId;
         this.startDate = startDate;
         this.endDate = endDate;
