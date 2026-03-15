@@ -16,12 +16,6 @@ public interface OrganizationMapper {
     Long findMyOrgIdByEmployeeId(@Param("employeeId") Long employeeId);
 
     List<OrgMemberRow> findMembersInSubtree(
-            @Param("ancestorOrgId") Long ancestorOrgId,
-            @Param("filterOrgId") Long filterOrgId,
-            @Param("limit") int limit,
-            @Param("offset") int offset);
-
-    long countMembersInSubtree(
             @Param("ancestorOrgId") Long ancestorOrgId, @Param("filterOrgId") Long filterOrgId);
 
     int existsSubtreeAccess(

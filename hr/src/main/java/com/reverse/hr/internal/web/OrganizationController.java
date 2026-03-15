@@ -1,7 +1,6 @@
 package com.reverse.hr.internal.web;
 
 import com.reverse.core.response.ApiResponse;
-import com.reverse.core.response.PageResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.hr.internal.application.OrganizationService;
 import com.reverse.hr.internal.dto.response.EvidenceFileResponseDTO;
@@ -10,7 +9,6 @@ import com.reverse.hr.internal.dto.response.OrganizationMemberResponseDTO;
 import com.reverse.hr.internal.dto.response.OrganizationTreeNodeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,13 +43,10 @@ public class OrganizationController {
 
     @GetMapping("/my/members")
     @Operation(summary = "내 조직 구성원 목록 조회")
-    public ApiResponse<PageResponse<OrganizationMemberResponseDTO>> getMyOrganizationMembers(
-            @AuthenticationPrincipal CustomUser user,
-            @RequestParam(required = false) Long orgId,
-            @RequestParam(defaultValue = "1") @Min(1) int page) {
+    public ApiResponse<List<OrganizationMemberResponseDTO>> getMyOrganizationMembers(
+            @AuthenticationPrincipal CustomUser user, @RequestParam(required = false) Long orgId) {
         return ApiResponse.success(
-                organizationService.getMyOrganizationMembers(
-                        user.getEmployeeId(), orgId, page, 100));
+                organizationService.getMyOrganizationMembers(user.getEmployeeId(), orgId));
     }
 
     @GetMapping("/members/{targetEmployeeId}/detail")

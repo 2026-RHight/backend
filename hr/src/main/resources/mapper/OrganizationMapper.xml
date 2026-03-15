@@ -109,17 +109,6 @@
           AND e.employ_state IN ('WORK', 'LEAVE')
           AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
         ORDER BY rankNo DESC, e.employee_name ASC
-        LIMIT #{limit} OFFSET #{offset}
-    </select>
-
-    <select id="countMembersInSubtree" resultType="long">
-        SELECT COUNT(*)
-        FROM org_closure c
-        JOIN employee_hr_info h ON h.org_id = c.descendant_org_id
-        JOIN employee e ON e.employee_id = h.employee_id
-        WHERE c.ancestor_org_id = #{ancestorOrgId}
-          AND e.employ_state IN ('WORK', 'LEAVE')
-          AND (#{filterOrgId} IS NULL OR h.org_id = #{filterOrgId})
     </select>
 
     <select id="existsSubtreeAccess" resultType="int">
