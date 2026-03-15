@@ -27,8 +27,6 @@ public interface LeaveMapper {
 
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
-    int deleteByApprovalId(@Param("approvalId") Long approvalId);
-
     List<LeaveRequest> findLeaveRequestsByEmployeeId(
             @Param("employeeId") Long employeeId,
             @Param("limit") int limit,
@@ -50,19 +48,10 @@ public interface LeaveMapper {
 
     int updateStatusIfPending(LeaveRequest leaveRequest);
 
-    List<LeaveRequest> findTeamLeaveRequests(
-            @Param("actorEmployeeId") Long actorEmployeeId,
+    List<LeaveRequest> findAllLeaveRequests(
             @Param("leaveStatus") String leaveStatus,
             @Param("limit") int limit,
             @Param("offset") int offset);
-
-    long countTeamLeaveRequests(
-            @Param("actorEmployeeId") Long actorEmployeeId,
-            @Param("leaveStatus") String leaveStatus);
-
-    boolean isSameTeamLeaveRequest(
-            @Param("actorEmployeeId") Long actorEmployeeId,
-            @Param("leaveRequestId") Long leaveRequestId);
 
     long countAll(@Param("leaveStatus") String leaveStatus);
 
