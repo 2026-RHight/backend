@@ -62,6 +62,7 @@ cloud:
     endpoint: ${DEV_S3_ENDPOINT}
     region: ${DEV_S3_REGION}
     bucket: ${DEV_S3_BUCKET}
+    public-url: ${DEV_S3_PUBLIC_URL:}
     credentials:
       access-key: ${DEV_S3_KEY}
       secret-key: ${DEV_S3_SECRET}

@@ -52,6 +52,7 @@ cloud:
     endpoint: ${PROD_S3_ENDPOINT}
     region: ${PROD_S3_REGION}
     bucket: ${PROD_S3_BUCKET}
+    public-url: ${PROD_S3_PUBLIC_URL:}
     credentials:
       access-key: ${PROD_S3_KEY}
       secret-key: ${PROD_S3_SECRET}
