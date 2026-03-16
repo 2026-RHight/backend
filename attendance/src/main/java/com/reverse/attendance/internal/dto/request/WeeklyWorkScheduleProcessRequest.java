@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class WeeklyWorkScheduleProcessRequest {
 
-    private Long weeklyId;
+    private Long approvalId;
     private boolean approve;
 
     @Size(max = 255)

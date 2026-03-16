@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.ApprovalVacationHistoryMapper">
+
+    <select id="findMyVacationHistory"
+            resultType="com.reverse.attendance.internal.dto.response.AttendanceVacationHistoryItemResponse">
+        SELECT
+            ea.approval_id AS id,
+            vd.vacation_type AS leaveType,
+            DATE_FORMAT(vd.start_dt, '%Y-%m-%d') AS startDate,
+            DATE_FORMAT(vd.end_dt, '%Y-%m-%d') AS endDate,
+            CASE
+                WHEN UPPER(vd.vacation_type) = 'HALF' THEN 0.5
+                ELSE TIMESTAMPDIFF(DAY, DATE(vd.start_dt), DATE(vd.end_dt)) + 1
+            END AS usedDays,
+            CASE
+                WHEN ea.approval_status = 'COMPLETE' THEN 'approved'
+                WHEN ea.approval_status = 'REJECTED' THEN 'rejected'
+                WHEN ea.approval_status IN ('WITHDRAWN', 'CANCELED', 'CANCELLED') THEN 'cancelled'
+                ELSE 'pending'
+            END AS status,
+            DATE_FORMAT(ea.draft_dt, '%Y-%m-%d') AS applyDate,
+            (
+                SELECT al.reason
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+                  AND al.approval_status IN ('REJECTED', 'HOLD')
+                  AND al.reason IS NOT NULL
+                  AND al.reason != ''
+                ORDER BY al.approved_dt DESC, al.approval_seq DESC
+                LIMIT 1
+            ) AS rejectReason
+        FROM electronic_approval ea
+        JOIN vacation_detail vd
+          ON vd.approval_id = ea.approval_id
+        WHERE ea.drafter_id = #{employeeId}
+          AND ea.doc_type = 'VACATION'
+          AND ea.approval_status != 'TEMP'
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+    </select>
+
+    <select id="findVacationBalanceItems"
+            resultType="com.reverse.attendance.internal.persistence.row.ApprovalVacationBalanceRow">
+        SELECT
+            vd.vacation_type AS vacationType,
+            vd.start_dt AS startDate,
+            vd.end_dt AS endDate,
+            ea.approval_status AS approvalStatus
+        FROM electronic_approval ea
+        JOIN vacation_detail vd
+          ON vd.approval_id = ea.approval_id
+        WHERE ea.drafter_id = #{employeeId}
+          AND ea.doc_type = 'VACATION'
+          AND ea.approval_status != 'TEMP'
+          AND YEAR(vd.start_dt) = #{year}
+    </select>
+
+</mapper>

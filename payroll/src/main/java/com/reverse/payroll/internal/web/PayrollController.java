@@ -40,12 +40,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class PayrollController {
 
+    private static final String PAYROLL_ADMIN_AUTH =
+            "hasAnyRole('HR_ADMIN_PAYROLL', 'HR_ADMIN_MASTER')";
+
     private final PayrollService payrollService;
     private final JwtTokenProvider jwtTokenProvider;
 
     @Operation(summary = "관리자 급여 기본 설정 이력 조회", description = "특정 사원의 급여 기본 설정 이력과 현재 계좌 정보를 조회합니다.")
     @GetMapping("/admin/salary-settings/{employeeId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<List<AdminSalarySettingDetailResponse>> getSalarySettingHistory(
             @PathVariable Long employeeId) {
         return ResponseEntity.ok(payrollService.getSalarySettingHistory(employeeId));
@@ -53,7 +56,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 급여 기본 설정 등록", description = "특정 사원의 급여 기본 설정을 적용기간과 함께 등록합니다.")
     @PostMapping("/admin/salary-settings/{employeeId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminSalarySettingDetailResponse> createSalarySetting(
             @PathVariable Long employeeId,
             @Valid @RequestBody AdminSalarySettingUpsertRequest request) {
@@ -62,7 +65,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 급여 기본 설정 수정", description = "등록된 급여 기본 설정의 금액 및 적용기간을 수정합니다.")
     @PutMapping("/admin/salary-settings/{settingId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminSalarySettingDetailResponse> updateSalarySetting(
             @PathVariable Long settingId,
             @Valid @RequestBody AdminSalarySettingUpsertRequest request) {
@@ -71,14 +74,14 @@ public class PayrollController {
 
     @Operation(summary = "관리자 4대보험 요율 조회", description = "연도별 4대보험 및 세율 계산용 요율 목록을 조회합니다.")
     @GetMapping("/admin/insurance-rates")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<List<AdminInsuranceRateResponse>> getInsuranceRates() {
         return ResponseEntity.ok(payrollService.getInsuranceRates());
     }
 
     @Operation(summary = "관리자 4대보험 요율 등록", description = "급여 계산에 사용할 연도별 4대보험 요율을 등록합니다.")
     @PostMapping("/admin/insurance-rates")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminInsuranceRateResponse> createInsuranceRate(
             @Valid @RequestBody AdminInsuranceRateUpsertRequest request) {
         return ResponseEntity.ok(payrollService.createInsuranceRate(request));
@@ -86,7 +89,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 4대보험 요율 수정", description = "등록된 연도별 4대보험 요율을 수정합니다.")
     @PutMapping("/admin/insurance-rates/{insuranceId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminInsuranceRateResponse> updateInsuranceRate(
             @PathVariable Long insuranceId,
             @Valid @RequestBody AdminInsuranceRateUpsertRequest request) {
@@ -179,7 +182,7 @@ public class PayrollController {
     // 급여 대장 생성 (Admin)
     @Operation(summary = "급여 대장 생성 (Admin)", description = "특정 사원의 지정된 연월 급여 대장을 생성 및 계산합니다.")
     @PostMapping("/calculate/{employeeId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<Long> calculateAndSavePayroll(
             @PathVariable Long employeeId, @RequestParam int year, @RequestParam int month) {
         var ledger = payrollService.calculateAndSavePayroll(employeeId, year, month);
@@ -190,7 +193,7 @@ public class PayrollController {
             summary = "관리자 급여 대상 사원 검색",
             description = "급여 설정/퇴직금 계산에 사용할 사원을 이름, 사번, 부서, ID 기준으로 검색합니다.")
     @GetMapping("/admin/employees/search")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<PageResponse<AdminPayrollEmployeeSearchResponse>> searchPayrollEmployees(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
@@ -200,7 +203,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 퇴직금 미리 계산", description = "사원과 퇴직일을 기준으로 예상 퇴직금을 계산합니다.")
     @GetMapping("/admin/severance/{employeeId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminSeverancePreviewResponse> getSeverancePreview(
             @PathVariable Long employeeId, @RequestParam LocalDate retirementDate) {
         return ResponseEntity.ok(payrollService.getSeverancePreview(employeeId, retirementDate));
@@ -208,7 +211,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 퇴직금 지급 처리", description = "예상 퇴직금 계산 결과를 기준으로 퇴직금 지급을 확정 저장합니다.")
     @PostMapping("/admin/severance/{employeeId}/pay")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminSeverancePaymentResponse> paySeverance(
             @AuthenticationPrincipal CustomUser authUser,
             @PathVariable Long employeeId,
@@ -221,7 +224,7 @@ public class PayrollController {
             summary = "월 급여 일괄 계산 (Admin)",
             description = "지정한 귀속월에 대해 급여 설정이 있는 사원들의 급여를 일괄 계산합니다.")
     @PostMapping("/admin/calculate")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminPayrollBatchCalculateResponse> calculateMonthlyPayrolls(
             @RequestParam int year, @RequestParam int month) {
         return ResponseEntity.ok(payrollService.calculateMonthlyPayrolls(year, month));
@@ -229,7 +232,7 @@ public class PayrollController {
 
     @Operation(summary = "월 급여 마감 (Admin)", description = "지정한 귀속월의 급여 대장을 최종 마감 처리합니다.")
     @PostMapping("/admin/finalize")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminPayrollFinalizeResponse> finalizeMonthlyPayrolls(
             @RequestParam int year, @RequestParam int month) {
         return ResponseEntity.ok(payrollService.finalizeMonthlyPayrolls(year, month));
@@ -237,7 +240,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 급여대장 조회", description = "귀속월 기준으로 급여대장 목록을 페이징 조회합니다.")
     @GetMapping("/admin/ledgers")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<PageResponse<AdminPayrollLedgerResponse>> getAdminPayrollLedgers(
             @RequestParam int year,
             @RequestParam int month,
@@ -255,7 +258,7 @@ public class PayrollController {
             summary = "관리자 급여대장 월 집계 조회",
             description = "귀속월 기준 급여대장 전체 건수, 마감 건수, 발송 건수를 조회합니다.")
     @GetMapping("/admin/ledgers/summary")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminPayrollLedgerSummaryResponse> getAdminPayrollLedgerSummary(
             @RequestParam int year, @RequestParam int month) {
         return ResponseEntity.ok(payrollService.getAdminPayrollLedgerSummary(year, month));
@@ -263,7 +266,7 @@ public class PayrollController {
 
     @Operation(summary = "관리자 급여대장 CSV 다운로드", description = "귀속월 기준 급여대장 데이터를 CSV로 다운로드합니다.")
     @GetMapping("/admin/ledgers/export")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<byte[]> exportAdminPayrollLedgers(
             @RequestParam int year,
             @RequestParam int month,
@@ -287,7 +290,7 @@ public class PayrollController {
             summary = "관리자 은행이체용 CSV 다운로드",
             description = "귀속월 기준 은행이체 작업용 급여대장 데이터를 평문 계좌번호로 CSV 다운로드합니다.")
     @GetMapping("/admin/ledgers/export-transfer")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<byte[]> exportBankTransferPayrollLedgers(
             @RequestParam int year,
             @RequestParam int month,
@@ -312,7 +315,7 @@ public class PayrollController {
             summary = "개별 명세서 발송 처리 (Admin)",
             description = "마감된 급여 대장에 대해 메일 발송 요청을 등록하고 발송 요청 상태를 반영합니다.")
     @PostMapping("/admin/send/{ledgerId}")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminPayrollSendResponse> markPayrollLedgerSent(
             @PathVariable Long ledgerId) {
         return ResponseEntity.ok(payrollService.markPayrollLedgerSent(ledgerId));
@@ -322,7 +325,7 @@ public class PayrollController {
             summary = "월별 명세서 일괄 발송 처리 (Admin)",
             description = "지정한 귀속월의 마감된 급여 대장에 대해 메일 발송 요청을 일괄 등록하고 발송 요청 상태를 반영합니다.")
     @PostMapping("/admin/send")
-    @PreAuthorize("hasRole('HR_ADMIN_PAYROLL')")
+    @PreAuthorize(PAYROLL_ADMIN_AUTH)
     public ResponseEntity<AdminPayrollSendResponse> markMonthlyPayrollsSent(
             @RequestParam int year, @RequestParam int month) {
         return ResponseEntity.ok(payrollService.markMonthlyPayrollsSent(year, month));

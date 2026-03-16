@@ -12,12 +12,16 @@ public interface WeeklyWorkScheduleMapper {
 
     void insertSchedule(WeeklyWorkSchedule schedule);
 
+    int updateApprovedScheduleByApprovalId(WeeklyWorkSchedule schedule);
+
     int deleteByApprovalId(@Param("approvalId") Long approvalId);
 
     // 동시성 제어를 위한 직원 락
     void lockEmployee(@Param("employeeId") Long employeeId);
 
     Optional<WeeklyWorkSchedule> findById(@Param("weeklyId") Long weeklyId);
+
+    Optional<WeeklyWorkSchedule> findByApprovalId(@Param("approvalId") Long approvalId);
 
     Optional<WeeklyWorkSchedule> findApprovedByEmployeeIdAndPlanDate(
             @Param("employeeId") Long employeeId, @Param("planDate") java.time.LocalDate planDate);

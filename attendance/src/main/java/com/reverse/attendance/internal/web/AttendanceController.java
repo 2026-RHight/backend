@@ -1,12 +1,17 @@
 package com.reverse.attendance.internal.web;
 
+import com.reverse.attendance.internal.application.AttendanceRequestHistoryService;
 import com.reverse.attendance.internal.application.AttendanceService;
+import com.reverse.attendance.internal.application.AttendanceVacationHistoryService;
 import com.reverse.attendance.internal.dto.request.AttendanceModifyRequest;
 import com.reverse.attendance.internal.dto.request.ClockInRequest;
 import com.reverse.attendance.internal.dto.response.AttendanceCalendarResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceRecordResponse;
+import com.reverse.attendance.internal.dto.response.AttendanceRequestHistoryItemResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceSummaryResponse;
+import com.reverse.attendance.internal.dto.response.AttendanceVacationHistoryItemResponse;
 import com.reverse.attendance.internal.dto.response.AttendanceWeeklySummaryResponse;
+import com.reverse.attendance.internal.dto.response.RequestStatusCountResponse;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.security.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +45,8 @@ public class AttendanceController {
                     "ROLE_SYSTEM_ADMIN");
 
     private final AttendanceService attendanceService;
+    private final AttendanceRequestHistoryService attendanceRequestHistoryService;
+    private final AttendanceVacationHistoryService attendanceVacationHistoryService;
 
     @Operation(summary = "출근 처리", description = "사용자의 출근 기록을 생성합니다.")
     @PostMapping("/clock-in")
@@ -132,6 +139,33 @@ public class AttendanceController {
                         targetMonth.getYear(),
                         targetMonth.getMonthValue(),
                         scope));
+    }
+
+    @Operation(summary = "신청 내역 통합 조회", description = "전자결재 원본 기준으로 나의 신청 내역을 통합 조회합니다.")
+    @GetMapping("/request-history")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
+    public ResponseEntity<List<AttendanceRequestHistoryItemResponse>> getRequestHistory(
+            @AuthenticationPrincipal CustomUser user) {
+        return ResponseEntity.ok(
+                attendanceRequestHistoryService.getMyRequestHistory(user.getEmployeeId()));
+    }
+
+    @Operation(summary = "신청 내역 상태별 집계", description = "전자결재 원본 기준으로 나의 신청 상태 건수를 조회합니다.")
+    @GetMapping("/request-history/counts")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
+    public ResponseEntity<RequestStatusCountResponse> getRequestHistoryCounts(
+            @AuthenticationPrincipal CustomUser user) {
+        return ResponseEntity.ok(
+                attendanceRequestHistoryService.getMyRequestHistoryCounts(user.getEmployeeId()));
+    }
+
+    @Operation(summary = "나의 휴가 이력 조회", description = "전자결재 원본 기준으로 나의 휴가 신청 이력을 조회합니다.")
+    @GetMapping("/vacation-history")
+    @PreAuthorize(ATTENDANCE_SELF_SERVICE_AUTH)
+    public ResponseEntity<List<AttendanceVacationHistoryItemResponse>> getVacationHistory(
+            @AuthenticationPrincipal CustomUser user) {
+        return ResponseEntity.ok(
+                attendanceVacationHistoryService.getMyVacationHistory(user.getEmployeeId()));
     }
 
     private YearMonth resolveYearMonth(Integer year, Integer month) {

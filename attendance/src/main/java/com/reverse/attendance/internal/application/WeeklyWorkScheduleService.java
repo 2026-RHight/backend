@@ -1,5 +1,7 @@
 package com.reverse.attendance.internal.application;
 
+import com.reverse.approval.internal.application.ApprovalService;
+import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
@@ -8,12 +10,15 @@ import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleDayRespons
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleEntryResponse;
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleOverviewResponse;
 import com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse;
+import com.reverse.attendance.internal.persistence.ApprovalFlexibleQueryMapper;
 import com.reverse.attendance.internal.persistence.WeeklyWorkScheduleMapper;
 import com.reverse.core.response.PageResponse;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class WeeklyWorkScheduleService {
 
     private final WeeklyWorkScheduleMapper scheduleMapper;
+    private final ApprovalFlexibleQueryMapper approvalFlexibleQueryMapper;
+    private final ApprovalService approvalService;
     private final AttendanceSyncService attendanceSyncService;
 
     @Transactional
@@ -81,6 +88,62 @@ public class WeeklyWorkScheduleService {
             return;
         }
         scheduleMapper.deleteByApprovalId(approvalId);
+    }
+
+    @Transactional
+    public void syncApprovedScheduleFromApproval(
+            Long approvalId,
+            Long employeeId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String reason,
+            String title) {
+        if (approvalId == null || employeeId == null || startDate == null || endDate == null) {
+            throw new com.reverse.core.exception.BadRequestException("유연근무 승인 반영에 필요한 값이 누락되었습니다.");
+        }
+
+        WeeklyWorkSchedule schedule =
+                WeeklyWorkSchedule.builder()
+                        .approvalId(approvalId)
+                        .employeeId(employeeId)
+                        .startDate(startDate)
+                        .endDate(endDate)
+                        .planDate(startDate.toLocalDate())
+                        .workForm("FLEXIBLE")
+                        .scheduleTitle(title == null || title.isBlank() ? "유연근무 신청" : title.trim())
+                        .memo(reason)
+                        .approvalStatus(ApprovalStatus.APPROVED)
+                        .build();
+
+        // Serialize per employee so duplicate/replayed approval events don't create multiple rows.
+        scheduleMapper.lockEmployee(employeeId);
+
+        WeeklyWorkSchedule existing = scheduleMapper.findByApprovalId(approvalId).orElse(null);
+        if (isSameApprovedSchedule(existing, schedule)) {
+            return;
+        }
+
+        if (existing == null) {
+            scheduleMapper.insertSchedule(schedule);
+        } else {
+            scheduleMapper.updateApprovedScheduleByApprovalId(schedule);
+        }
+
+        attendanceSyncService.recordApprovedWeeklySchedule(schedule);
+    }
+
+    private boolean isSameApprovedSchedule(WeeklyWorkSchedule existing, WeeklyWorkSchedule target) {
+        if (existing == null || target == null) {
+            return false;
+        }
+        return existing.getApprovalStatus() == ApprovalStatus.APPROVED
+                && Objects.equals(existing.getEmployeeId(), target.getEmployeeId())
+                && Objects.equals(existing.getStartDate(), target.getStartDate())
+                && Objects.equals(existing.getEndDate(), target.getEndDate())
+                && Objects.equals(existing.getPlanDate(), target.getPlanDate())
+                && Objects.equals(existing.getWorkForm(), target.getWorkForm())
+                && Objects.equals(existing.getScheduleTitle(), target.getScheduleTitle())
+                && Objects.equals(existing.getMemo(), target.getMemo());
     }
 
     @Transactional(readOnly = true)
@@ -162,58 +225,28 @@ public class WeeklyWorkScheduleService {
             throw new com.reverse.core.exception.BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
         }
         int offset = (int) offsetLong;
-        List<WeeklyWorkSchedule> content =
-                scheduleMapper.findTeamSchedules(actorEmployeeId, status, limit, offset);
-        long totalElements = scheduleMapper.countTeamSchedules(actorEmployeeId, status);
-        return PageResponse.of(
-                content.stream().map(WeeklyWorkScheduleResponse::from).collect(Collectors.toList()),
-                page,
-                size,
-                totalElements);
+        List<WeeklyWorkSchedule> content = List.of();
+        List<WeeklyWorkScheduleResponse> contentResponses =
+                approvalFlexibleQueryMapper.findTeamFlexibleApprovalSchedules(
+                        actorEmployeeId, status, limit, offset);
+        long totalElements =
+                approvalFlexibleQueryMapper.countTeamFlexibleApprovalSchedules(
+                        actorEmployeeId, status);
+        return PageResponse.of(contentResponses, page, size, totalElements);
     }
 
     @Transactional
     public void processSchedule(WeeklyWorkScheduleProcessRequest request, Long actorEmployeeId) {
-        WeeklyWorkSchedule schedule =
-                scheduleMapper
-                        .findById(request.getWeeklyId())
-                        .orElseThrow(
-                                () ->
-                                        new com.reverse.core.exception.NotFoundException(
-                                                "결재할 신청 내역을 찾을 수 없습니다."));
-
-        if (!scheduleMapper.isSameTeamSchedule(actorEmployeeId, request.getWeeklyId())) {
-            throw new com.reverse.core.exception.ForbiddenException(
-                    "같은 부서 팀원의 유연근무 신청만 처리할 수 있습니다.");
-        }
-
-        if (schedule.getApprovalStatus() != ApprovalStatus.PENDING) {
-            throw new com.reverse.core.exception.BadRequestException("대기 상태인 신청 건만 결재할 수 있습니다.");
-        }
-
-        ApprovalStatus newStatus =
-                request.isApprove() ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED;
-
-        if (!request.isApprove()
-                && (request.getRejectReason() == null
-                        || request.getRejectReason().trim().isEmpty())) {
-            throw new com.reverse.core.exception.BadRequestException("반려 시 사유를 반드시 입력해야 합니다.");
-        }
-
-        WeeklyWorkSchedule processedSchedule =
-                WeeklyWorkSchedule.builder()
-                        .weeklyId(schedule.getWeeklyId())
-                        .approvalStatus(newStatus)
-                        .rejectReason(request.isApprove() ? null : request.getRejectReason().trim())
-                        .build();
-
-        int updatedRows = scheduleMapper.updateStatusIfPending(processedSchedule);
-        if (updatedRows == 0) {
-            throw new com.reverse.core.exception.BadRequestException("이미 처리된 신청 건입니다.");
-        }
-        if (request.isApprove()) {
-            attendanceSyncService.recordApprovedWeeklySchedule(schedule);
-        }
+        String reason =
+                request.isApprove()
+                        ? null
+                        : request.getRejectReason() == null
+                                ? null
+                                : request.getRejectReason().trim();
+        approvalService.processApproval(
+                request.getApprovalId(),
+                new ApprovalProcessRequest(request.isApprove(), reason),
+                actorEmployeeId);
     }
 
     @Transactional(readOnly = true)

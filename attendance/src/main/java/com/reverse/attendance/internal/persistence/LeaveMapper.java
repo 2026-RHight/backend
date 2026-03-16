@@ -25,6 +25,11 @@ public interface LeaveMapper {
             @Param("status") String status,
             @Param("year") int year);
 
+    Double sumLegacyUsedDaysByStatus(
+            @Param("employeeId") Long employeeId,
+            @Param("status") String status,
+            @Param("year") int year);
+
     void insertLeaveRequest(LeaveRequest leaveRequest);
 
     List<LeaveRequest> findLeaveRequestsByEmployeeId(

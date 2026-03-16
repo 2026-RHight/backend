@@ -7,8 +7,12 @@ import com.reverse.attendance.internal.dto.request.LeaveProcessRequest;
 import com.reverse.attendance.internal.dto.response.LeaveBalanceResponse;
 import com.reverse.attendance.internal.dto.response.LeaveGrantHistoryResponse;
 import com.reverse.attendance.internal.dto.response.LeaveRequestResponse;
+import com.reverse.attendance.internal.persistence.ApprovalVacationHistoryMapper;
 import com.reverse.attendance.internal.persistence.LeaveMapper;
+import com.reverse.attendance.internal.persistence.row.ApprovalVacationBalanceRow;
 import com.reverse.core.response.PageResponse;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LeaveService {
 
     private final LeaveMapper leaveMapper;
+    private final ApprovalVacationHistoryMapper approvalVacationHistoryMapper;
     private final AttendanceSyncService attendanceSyncService;
 
     // 연차 현황 조회 (지정 연도)
@@ -28,9 +33,15 @@ public class LeaveService {
         double total = leaveMapper.findTotalAnnualLeaveByEmployeeId(employeeId, year).orElse(0.0);
 
         double used =
-                leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.APPROVED.name(), year);
+                safeDouble(
+                                leaveMapper.sumLegacyUsedDaysByStatus(
+                                        employeeId, LeaveStatus.APPROVED.name(), year))
+                        + sumApprovalVacationDays(employeeId, year, true);
         double pending =
-                leaveMapper.sumUsedDaysByStatus(employeeId, LeaveStatus.PENDING.name(), year);
+                safeDouble(
+                                leaveMapper.sumLegacyUsedDaysByStatus(
+                                        employeeId, LeaveStatus.PENDING.name(), year))
+                        + sumApprovalVacationDays(employeeId, year, false);
         double remaining = total - used - pending;
 
         return LeaveBalanceResponse.builder()
@@ -39,6 +50,57 @@ public class LeaveService {
                 .pendingAnnualLeave(pending)
                 .remainingAnnualLeave(remaining)
                 .build();
+    }
+
+    private double sumApprovalVacationDays(Long employeeId, int year, boolean approved) {
+        List<ApprovalVacationBalanceRow> rows =
+                approvalVacationHistoryMapper.findVacationBalanceItems(employeeId, year);
+        return rows.stream()
+                .filter(row -> matchesBalanceStatus(row.approvalStatus(), approved))
+                .mapToDouble(this::calculateApprovalVacationDays)
+                .sum();
+    }
+
+    private boolean matchesBalanceStatus(String approvalStatus, boolean approved) {
+        if (approvalStatus == null) {
+            return false;
+        }
+        if (approved) {
+            return "COMPLETE".equalsIgnoreCase(approvalStatus)
+                    || "DELEGATED".equalsIgnoreCase(approvalStatus);
+        }
+        return "PENDING".equalsIgnoreCase(approvalStatus)
+                || "HOLD".equalsIgnoreCase(approvalStatus);
+    }
+
+    private double calculateApprovalVacationDays(ApprovalVacationBalanceRow row) {
+        if (row == null || row.startDate() == null || row.endDate() == null) {
+            return 0;
+        }
+
+        String type = row.vacationType() == null ? "" : row.vacationType().toUpperCase();
+        if ("HALF".equals(type)) {
+            return 0.5;
+        }
+        if (!"ANNUAL".equals(type)) {
+            return 0;
+        }
+
+        double days = 0;
+        LocalDate cursor = row.startDate().toLocalDate();
+        LocalDate end = row.endDate().toLocalDate();
+        while (!cursor.isAfter(end)) {
+            DayOfWeek dayOfWeek = cursor.getDayOfWeek();
+            if (dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY) {
+                days += 1;
+            }
+            cursor = cursor.plusDays(1);
+        }
+        return days;
+    }
+
+    private double safeDouble(Double value) {
+        return value == null ? 0 : value;
     }
 
     // 연차 현황 조회 (올해 기본)

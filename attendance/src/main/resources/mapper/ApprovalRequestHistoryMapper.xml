@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.ApprovalRequestHistoryMapper">
+
+    <sql id="requestHistoryStatusExpr">
+        CASE
+            WHEN ea.approval_status IN ('COMPLETE', 'DELEGATED') THEN 'approved'
+            WHEN ea.approval_status = 'REJECTED' THEN 'rejected'
+            WHEN ea.approval_status = 'WITHDRAWN' THEN 'cancelled'
+            ELSE 'pending'
+        END
+    </sql>
+
+    <select id="findMyRequestHistory"
+            resultType="com.reverse.attendance.internal.dto.response.AttendanceRequestHistoryItemResponse">
+        SELECT
+            ea.approval_id AS id,
+            CASE
+                WHEN ea.doc_type = 'VACATION' THEN '휴가'
+                WHEN ea.doc_type = 'OVERTIME' THEN '연장근무'
+                WHEN ea.doc_type = 'FLEXIBLE' THEN '재택근무'
+                WHEN ea.doc_type = 'TRIP' THEN CASE
+                    WHEN bd.trip_type = 'BUSINESS_TRIP' THEN '출장'
+                    ELSE '외근'
+                END
+            END AS type,
+            CASE
+                WHEN ea.doc_type = 'VACATION' THEN CONCAT(COALESCE(vd.vacation_type, '휴가'), ' 신청')
+                WHEN ea.doc_type = 'OVERTIME' THEN '연장근무 신청'
+                WHEN ea.doc_type = 'FLEXIBLE' THEN COALESCE(ea.title, '재택근무 신청')
+                WHEN ea.doc_type = 'TRIP' THEN CONCAT(
+                    CASE WHEN bd.trip_type = 'BUSINESS_TRIP' THEN '출장' ELSE '외근' END,
+                    ' 신청')
+            END AS title,
+            CASE
+                WHEN ea.doc_type = 'VACATION' THEN
+                    CASE
+                        WHEN DATE(vd.start_dt) = DATE(vd.end_dt)
+                            THEN DATE_FORMAT(vd.start_dt, '%Y-%m-%d')
+                        ELSE CONCAT(
+                            DATE_FORMAT(vd.start_dt, '%Y-%m-%d'),
+                            ' ~ ',
+                            DATE_FORMAT(vd.end_dt, '%Y-%m-%d'))
+                    END
+                WHEN ea.doc_type = 'OVERTIME' THEN CONCAT(
+                    DATE_FORMAT(od.start_tm, '%Y-%m-%d %H:%i'),
+                    ' ~ ',
+                    DATE_FORMAT(od.end_tm, '%Y-%m-%d %H:%i'))
+                WHEN ea.doc_type = 'FLEXIBLE' THEN CONCAT(
+                    DATE_FORMAT(fd.start_dt, '%Y-%m-%d %H:%i'),
+                    ' ~ ',
+                    DATE_FORMAT(fd.end_dt, '%Y-%m-%d %H:%i'))
+                WHEN ea.doc_type = 'TRIP' THEN CONCAT(
+                    DATE_FORMAT(bd.start_dt, '%Y-%m-%d %H:%i'),
+                    ' ~ ',
+                    DATE_FORMAT(bd.end_dt, '%Y-%m-%d %H:%i'))
+            END AS period,
+            CASE
+                WHEN ea.doc_type = 'VACATION' THEN vd.reason
+                WHEN ea.doc_type = 'OVERTIME' THEN od.reason
+                WHEN ea.doc_type = 'FLEXIBLE' THEN fd.reason
+                WHEN ea.doc_type = 'TRIP' THEN bd.reason
+            END AS reason,
+            <include refid="requestHistoryStatusExpr"/> AS status,
+            DATE_FORMAT(ea.draft_dt, '%Y-%m-%dT%H:%i:%s') AS appliedAt,
+            CASE
+                WHEN ea.doc_type = 'VACATION' THEN DATE_FORMAT(vd.start_dt, '%Y-%m-%d')
+                WHEN ea.doc_type = 'OVERTIME' THEN DATE_FORMAT(od.work_dt, '%Y-%m-%d')
+                ELSE NULL
+            END AS targetDate,
+            COALESCE(
+                (
+                    SELECT al.approver_name
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approval_status = 'PENDING'
+                    ORDER BY al.approval_seq ASC
+                    LIMIT 1
+                ),
+                (
+                    SELECT al.approver_name
+                    FROM approval_line al
+                    WHERE al.approval_id = ea.approval_id
+                      AND al.approval_status IN ('COMPLETE', 'REJECTED', 'HOLD')
+                    ORDER BY al.approved_dt DESC, al.approval_seq DESC
+                    LIMIT 1
+                ),
+                '-'
+            ) AS approver,
+            (
+                SELECT al.reason
+                FROM approval_line al
+                WHERE al.approval_id = ea.approval_id
+                  AND al.approval_status IN ('REJECTED', 'HOLD')
+                  AND al.reason IS NOT NULL
+                  AND al.reason != ''
+                ORDER BY al.approved_dt DESC, al.approval_seq DESC
+                LIMIT 1
+            ) AS rejectReason
+        FROM electronic_approval ea
+        LEFT JOIN vacation_detail vd
+          ON vd.approval_id = ea.approval_id
+        LEFT JOIN overtime_detail od
+          ON od.approval_id = ea.approval_id
+        LEFT JOIN flexible_work_detail fd
+          ON fd.approval_id = ea.approval_id
+        LEFT JOIN business_trip_detail bd
+          ON bd.approval_id = ea.approval_id
+        WHERE ea.drafter_id = #{employeeId}
+          AND ea.doc_type IN ('VACATION', 'OVERTIME', 'FLEXIBLE', 'TRIP')
+          AND ea.approval_status != 'TEMP'
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+    </select>
+
+    <select id="countMyRequestHistory"
+            resultType="com.reverse.attendance.internal.dto.response.RequestStatusCountResponse">
+        SELECT
+            SUM(CASE WHEN ea.approval_status IN ('PENDING', 'HOLD') THEN 1 ELSE 0 END) AS pendingCount,
+            SUM(CASE WHEN ea.approval_status IN ('COMPLETE', 'DELEGATED') THEN 1 ELSE 0 END) AS approvedCount,
+            SUM(CASE WHEN ea.approval_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejectedCount
+        FROM electronic_approval ea
+        WHERE ea.drafter_id = #{employeeId}
+          AND ea.doc_type IN ('VACATION', 'OVERTIME', 'FLEXIBLE', 'TRIP')
+          AND ea.approval_status != 'TEMP'
+    </select>
+
+</mapper>
