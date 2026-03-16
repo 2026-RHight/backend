@@ -1,5 +1,6 @@
 package com.reverse.core.service;
 
+import com.reverse.core.exception.BadRequestException;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
@@ -82,8 +83,10 @@ public class S3StorageService {
     }
 
     public byte[] download(String key) {
+        String normalizedKey = normalizeKey(key);
         try {
-            GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
+            GetObjectRequest request =
+                    GetObjectRequest.builder().bucket(bucket).key(normalizedKey).build();
             ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObjectAsBytes(request);
             return objectBytes.asByteArray();
         } catch (RuntimeException e) {
@@ -92,10 +95,7 @@ public class S3StorageService {
     }
 
     public byte[] downloadByKey(String fileKey) {
-        if (!hasText(fileKey)) {
-            throw new IllegalStateException("Missing file_key");
-        }
-        return download(fileKey.trim());
+        return download(fileKey);
     }
 
     public void delete(String key) {
@@ -108,10 +108,7 @@ public class S3StorageService {
     }
 
     public void deleteByKey(String fileKey) {
-        if (!hasText(fileKey)) {
-            throw new IllegalStateException("Missing file_key");
-        }
-        delete(fileKey.trim());
+        delete(normalizeKey(fileKey));
     }
 
     public String generatePresignedUrl(String key, long expireSeconds) {
@@ -155,6 +152,13 @@ public class S3StorageService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String normalizeKey(String key) {
+        if (!hasText(key)) {
+            throw new BadRequestException("첨부 파일 키가 없습니다.");
+        }
+        return key.trim();
     }
 
     private String getExt(String name) {
