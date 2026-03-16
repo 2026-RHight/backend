@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -101,8 +102,6 @@ public class WeeklyWorkScheduleService {
             throw new com.reverse.core.exception.BadRequestException("유연근무 승인 반영에 필요한 값이 누락되었습니다.");
         }
 
-        scheduleMapper.deleteByApprovalId(approvalId);
-
         WeeklyWorkSchedule schedule =
                 WeeklyWorkSchedule.builder()
                         .approvalId(approvalId)
@@ -116,8 +115,35 @@ public class WeeklyWorkScheduleService {
                         .approvalStatus(ApprovalStatus.APPROVED)
                         .build();
 
-        scheduleMapper.insertSchedule(schedule);
+        // Serialize per employee so duplicate/replayed approval events don't create multiple rows.
+        scheduleMapper.lockEmployee(employeeId);
+
+        WeeklyWorkSchedule existing = scheduleMapper.findByApprovalId(approvalId).orElse(null);
+        if (isSameApprovedSchedule(existing, schedule)) {
+            return;
+        }
+
+        if (existing == null) {
+            scheduleMapper.insertSchedule(schedule);
+        } else {
+            scheduleMapper.updateApprovedScheduleByApprovalId(schedule);
+        }
+
         attendanceSyncService.recordApprovedWeeklySchedule(schedule);
+    }
+
+    private boolean isSameApprovedSchedule(WeeklyWorkSchedule existing, WeeklyWorkSchedule target) {
+        if (existing == null || target == null) {
+            return false;
+        }
+        return existing.getApprovalStatus() == ApprovalStatus.APPROVED
+                && Objects.equals(existing.getEmployeeId(), target.getEmployeeId())
+                && Objects.equals(existing.getStartDate(), target.getStartDate())
+                && Objects.equals(existing.getEndDate(), target.getEndDate())
+                && Objects.equals(existing.getPlanDate(), target.getPlanDate())
+                && Objects.equals(existing.getWorkForm(), target.getWorkForm())
+                && Objects.equals(existing.getScheduleTitle(), target.getScheduleTitle())
+                && Objects.equals(existing.getMemo(), target.getMemo());
     }
 
     @Transactional(readOnly = true)
@@ -218,7 +244,7 @@ public class WeeklyWorkScheduleService {
                                 ? null
                                 : request.getRejectReason().trim();
         approvalService.processApproval(
-                request.getWeeklyId(),
+                request.getApprovalId(),
                 new ApprovalProcessRequest(request.isApprove(), reason),
                 actorEmployeeId);
     }

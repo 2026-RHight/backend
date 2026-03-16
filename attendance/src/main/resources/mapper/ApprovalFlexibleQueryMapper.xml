@@ -24,6 +24,9 @@
                 <when test="status == 'CANCELED'">
                     AND 1 = 0
                 </when>
+                <otherwise>
+                    AND 1 = 0
+                </otherwise>
             </choose>
         </if>
     </sql>

@@ -14,6 +14,21 @@
         )
     </insert>
 
+    <update id="updateApprovedScheduleByApprovalId">
+        UPDATE weekly_work_schedule
+        SET employee_id = #{employeeId},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            approval_status = #{approvalStatus},
+            plan_date = #{planDate},
+            work_form = #{workForm},
+            schedule_title = #{scheduleTitle},
+            memo = #{memo},
+            reject_reason = NULL,
+            updated_at = NOW()
+        WHERE approval_id = #{approvalId}
+    </update>
+
     <delete id="deleteByApprovalId">
         DELETE FROM weekly_work_schedule
         WHERE approval_id = #{approvalId}

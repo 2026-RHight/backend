@@ -12,6 +12,8 @@ public interface WeeklyWorkScheduleMapper {
 
     void insertSchedule(WeeklyWorkSchedule schedule);
 
+    int updateApprovedScheduleByApprovalId(WeeklyWorkSchedule schedule);
+
     int deleteByApprovalId(@Param("approvalId") Long approvalId);
 
     // 동시성 제어를 위한 직원 락

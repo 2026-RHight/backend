@@ -7,8 +7,9 @@
 
     <sql id="requestHistoryStatusExpr">
         CASE
-            WHEN ea.approval_status = 'COMPLETE' THEN 'approved'
+            WHEN ea.approval_status IN ('COMPLETE', 'DELEGATED') THEN 'approved'
             WHEN ea.approval_status = 'REJECTED' THEN 'rejected'
+            WHEN ea.approval_status = 'WITHDRAWN' THEN 'cancelled'
             ELSE 'pending'
         END
     </sql>
@@ -118,7 +119,7 @@
             resultType="com.reverse.attendance.internal.dto.response.RequestStatusCountResponse">
         SELECT
             SUM(CASE WHEN ea.approval_status IN ('PENDING', 'HOLD') THEN 1 ELSE 0 END) AS pendingCount,
-            SUM(CASE WHEN ea.approval_status = 'COMPLETE' THEN 1 ELSE 0 END) AS approvedCount,
+            SUM(CASE WHEN ea.approval_status IN ('COMPLETE', 'DELEGATED') THEN 1 ELSE 0 END) AS approvedCount,
             SUM(CASE WHEN ea.approval_status = 'REJECTED' THEN 1 ELSE 0 END) AS rejectedCount
         FROM electronic_approval ea
         WHERE ea.drafter_id = #{employeeId}

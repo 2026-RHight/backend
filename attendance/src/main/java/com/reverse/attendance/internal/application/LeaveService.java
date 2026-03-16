@@ -66,7 +66,8 @@ public class LeaveService {
             return false;
         }
         if (approved) {
-            return "COMPLETE".equalsIgnoreCase(approvalStatus);
+            return "COMPLETE".equalsIgnoreCase(approvalStatus)
+                    || "DELEGATED".equalsIgnoreCase(approvalStatus);
         }
         return "PENDING".equalsIgnoreCase(approvalStatus)
                 || "HOLD".equalsIgnoreCase(approvalStatus);
