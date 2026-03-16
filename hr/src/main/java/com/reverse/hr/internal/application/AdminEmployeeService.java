@@ -68,6 +68,9 @@ public class AdminEmployeeService {
     @Value("${cloud.s3.bucket}")
     private String s3Bucket;
 
+    @Value("${cloud.s3.public-url:}")
+    private String s3PublicUrl;
+
     @Transactional
     public AdminEmployeeCreateResponseDTO createEmployee(AdminEmployeeCreateRequestDTO request) {
         validateReferenceIds(
@@ -532,8 +535,16 @@ public class AdminEmployeeService {
     }
 
     private String buildDefaultProfileFileUrl() {
+        String key = "hr/profile/" + DEFAULT_PROFILE_FILE_NAME;
+        if (s3PublicUrl != null && !s3PublicUrl.isBlank()) {
+            return trimTrailingSlash(s3PublicUrl) + "/" + key;
+        }
         String normalizedEndpoint = trimTrailingSlash(s3Endpoint);
-        return normalizedEndpoint + "/" + s3Bucket + "/hr/profile/" + DEFAULT_PROFILE_FILE_NAME;
+        String normalizedBucket = trimTrailingSlash(s3Bucket);
+        if (!normalizedBucket.isBlank() && normalizedEndpoint.endsWith("/" + normalizedBucket)) {
+            return normalizedEndpoint + "/" + key;
+        }
+        return normalizedEndpoint + "/" + normalizedBucket + "/" + key;
     }
 
     private String trimTrailingSlash(String value) {

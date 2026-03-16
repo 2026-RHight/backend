@@ -74,6 +74,7 @@ import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.service.NumberingService;
+import com.reverse.core.service.S3StorageService;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
 import com.reverse.hr.dto.OrganizationMemberInfo;
@@ -111,7 +112,7 @@ public class ApprovalService implements ApprovalFacade {
     private final RTWDetailMapper rtwMapper;
     private final ReferenceLineMapper referenceLineMapper;
     private final RecipientLineMapper recipientLineMapper;
-    private final ApprovalFileService approvalFileService;
+    private final S3StorageService s3StorageService;
     private final ApprovalAttachmentMapper approvalAttachmentMapper;
     private final NumberingService numberingService;
     private final ApplicationEventPublisher eventPublisher;
@@ -169,7 +170,7 @@ public class ApprovalService implements ApprovalFacade {
                                                         + ", fileId="
                                                         + fileId));
 
-        byte[] content = approvalFileService.downloadByKey(attachment.fileKey());
+        byte[] content = s3StorageService.downloadByKey(attachment.fileKey());
         return new DownloadedApprovalFile(attachment.originalName(), content);
     }
 
@@ -493,7 +494,7 @@ public class ApprovalService implements ApprovalFacade {
                         return;
                     }
                     try {
-                        approvalFileService.deleteByKey(attachment.fileKey());
+                        s3StorageService.deleteByKey(attachment.fileKey());
                     } catch (RuntimeException e) {
                         log.warn("첨부파일 후처리 삭제 실패. key={}", attachment.fileKey(), e);
                     }
@@ -691,7 +692,7 @@ public class ApprovalService implements ApprovalFacade {
                 continue;
             }
 
-            ApprovalFileService.UploadResult uploaded = approvalFileService.upload(file, dir);
+            S3StorageService.UploadResult uploaded = s3StorageService.upload(file, dir);
             uploadedKeys.add(uploaded.key());
 
             approvalAttachmentMapper.insertApprovalAttachment(
@@ -720,7 +721,7 @@ public class ApprovalService implements ApprovalFacade {
                         uploadedKeys.forEach(
                                 key -> {
                                     try {
-                                        approvalFileService.delete(key);
+                                        s3StorageService.delete(key);
                                     } catch (RuntimeException e) {
                                         log.warn("롤백 보상 삭제 실패. key={}", key, e);
                                     }
@@ -738,7 +739,7 @@ public class ApprovalService implements ApprovalFacade {
             fileKeys.forEach(
                     key -> {
                         try {
-                            approvalFileService.deleteByKey(key);
+                            s3StorageService.deleteByKey(key);
                         } catch (RuntimeException e) {
                             log.warn("커밋 후 첨부파일 삭제 실패. key={}", key, e);
                         }
@@ -753,7 +754,7 @@ public class ApprovalService implements ApprovalFacade {
                         fileKeys.forEach(
                                 key -> {
                                     try {
-                                        approvalFileService.deleteByKey(key);
+                                        s3StorageService.deleteByKey(key);
                                     } catch (RuntimeException e) {
                                         log.warn("커밋 후 첨부파일 삭제 실패. key={}", key, e);
                                     }
