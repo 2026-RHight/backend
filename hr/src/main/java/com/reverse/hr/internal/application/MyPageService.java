@@ -4,6 +4,7 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.reverse.core.exception.NotFoundException;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.FieldCryptoService;
+import com.reverse.core.service.S3StorageService;
 import com.reverse.hr.internal.domain.enums.CertificateRequestStatus;
 import com.reverse.hr.internal.domain.enums.HrEventStatus;
 import com.reverse.hr.internal.dto.request.ChangeMyPasswordRequestDTO;
@@ -57,7 +58,7 @@ public class MyPageService {
     private final AuthMapper authMapper;
     private final PasswordEncoder passwordEncoder;
     private final FieldCryptoService fieldCryptoService;
-    private final S3FileService s3FileService;
+    private final S3StorageService s3StorageService;
 
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy.MM.dd");
@@ -313,8 +314,8 @@ public class MyPageService {
                         + now.format(FILE_DATE_TIME_FORMATTER)
                         + ".pdf";
 
-        S3FileService.UploadResult uploaded =
-                s3FileService.uploadBytes(
+        S3StorageService.UploadResult uploaded =
+                s3StorageService.uploadBytes(
                         pdfBytes, fileName, "application/pdf", "hr/certificate/" + employeeId);
         registerRollbackDelete(uploaded.key());
 
@@ -389,8 +390,8 @@ public class MyPageService {
         }
 
         validateProfileImageFile(profileImage);
-        S3FileService.UploadResult uploaded =
-                s3FileService.upload(profileImage, "hr/profile/" + employeeId);
+        S3StorageService.UploadResult uploaded =
+                s3StorageService.upload(profileImage, "hr/profile/" + employeeId);
         registerRollbackDelete(uploaded.key());
 
         try {
@@ -507,14 +508,14 @@ public class MyPageService {
         if (fileRow.getFileKey() == null || fileRow.getFileKey().isBlank()) {
             throw new NotFoundException("증명서 파일을 찾을 수 없습니다.");
         }
-        return s3FileService.generatePresignedUrl(
+        return s3StorageService.generatePresignedUrl(
                 fileRow.getFileKey(), CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS);
     }
 
     private EvidenceUploadResult uploadEvidenceFile(
             Long employeeId, MultipartFile file, String baseDir) {
-        S3FileService.UploadResult uploaded =
-                s3FileService.upload(file, baseDir + "/" + employeeId);
+        S3StorageService.UploadResult uploaded =
+                s3StorageService.upload(file, baseDir + "/" + employeeId);
         registerRollbackDelete(uploaded.key());
 
         HrFileRow hrFile =
@@ -653,7 +654,7 @@ public class MyPageService {
 
     private void deleteQuietly(String key) {
         try {
-            s3FileService.delete(key);
+            s3StorageService.delete(key);
         } catch (RuntimeException ignored) {
             // 보상 삭제 실패는 원본 예외를 우선한다.
         }
@@ -686,11 +687,11 @@ public class MyPageService {
                                     .TransactionSynchronization() {
                                 @Override
                                 public void afterCommit() {
-                                    s3FileService.delete(fileKey);
+                                    s3StorageService.delete(fileKey);
                                 }
                             });
         } else {
-            s3FileService.delete(fileKey);
+            s3StorageService.delete(fileKey);
         }
     }
 

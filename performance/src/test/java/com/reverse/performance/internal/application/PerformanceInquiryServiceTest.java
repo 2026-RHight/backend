@@ -5,6 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.reverse.core.service.S3StorageService;
 import com.reverse.performance.internal.dto.request.PerformanceResultUpdateRequest;
 import com.reverse.performance.internal.exception.PerformanceActionNotAllowedException;
 import com.reverse.performance.internal.exception.PerformanceNotFoundException;
@@ -26,7 +27,7 @@ class PerformanceInquiryServiceTest {
 
     @Mock private AttachmentMapper attachmentMapper;
 
-    @Mock private PerformanceFileService performanceFileService;
+    @Mock private S3StorageService s3StorageService;
 
     @InjectMocks private PerformanceInquiryService performanceInquiryService;
 

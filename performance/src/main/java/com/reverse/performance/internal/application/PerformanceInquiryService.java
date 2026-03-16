@@ -2,6 +2,7 @@ package com.reverse.performance.internal.application;
 
 import com.reverse.core.exception.BadRequestException;
 import com.reverse.core.exception.ForbiddenException;
+import com.reverse.core.service.S3StorageService;
 import com.reverse.performance.internal.dto.request.AttachmentRequest;
 import com.reverse.performance.internal.dto.request.PerformanceResultUpdateRequest;
 import com.reverse.performance.internal.dto.response.PerformanceInquiryItemResponse;
@@ -28,7 +29,7 @@ public class PerformanceInquiryService {
     private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceViewMapper performanceViewMapper;
     private final AttachmentMapper attachmentMapper;
-    private final PerformanceFileService performanceFileService;
+    private final S3StorageService s3StorageService;
 
     public List<PerformanceInquiryItemResponse> getInquiryItems(
             Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
@@ -161,8 +162,8 @@ public class PerformanceInquiryService {
                 continue;
             }
 
-            PerformanceFileService.UploadResult uploaded =
-                    performanceFileService.upload(file, "performance/result/" + performanceId);
+            S3StorageService.UploadResult uploaded =
+                    s3StorageService.upload(file, "performance/result/" + performanceId);
             uploadedKeys.add(uploaded.key());
 
             attachmentMapper.saveAttachment(
@@ -194,7 +195,7 @@ public class PerformanceInquiryService {
 
     private void deleteQuietly(String key) {
         try {
-            performanceFileService.delete(key);
+            s3StorageService.delete(key);
         } catch (RuntimeException ignored) {
         }
     }
