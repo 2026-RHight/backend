@@ -46,9 +46,11 @@
                             DATE_FORMAT(vd.end_dt, '%Y-%m-%d'))
                     END
                 WHEN ea.doc_type = 'OVERTIME' THEN CONCAT(
-                    DATE_FORMAT(od.start_tm, '%Y-%m-%d %H:%i'),
+                    DATE_FORMAT(od.work_date, '%Y-%m-%d'),
+                    ' ',
+                    TIME_FORMAT(od.start_time, '%H:%i'),
                     ' ~ ',
-                    DATE_FORMAT(od.end_tm, '%Y-%m-%d %H:%i'))
+                    TIME_FORMAT(od.end_time, '%H:%i'))
                 WHEN ea.doc_type = 'FLEXIBLE' THEN CONCAT(
                     DATE_FORMAT(fd.start_dt, '%Y-%m-%d %H:%i'),
                     ' ~ ',
@@ -68,7 +70,7 @@
             DATE_FORMAT(ea.draft_dt, '%Y-%m-%dT%H:%i:%s') AS appliedAt,
             CASE
                 WHEN ea.doc_type = 'VACATION' THEN DATE_FORMAT(vd.start_dt, '%Y-%m-%d')
-                WHEN ea.doc_type = 'OVERTIME' THEN DATE_FORMAT(od.work_dt, '%Y-%m-%d')
+                WHEN ea.doc_type = 'OVERTIME' THEN DATE_FORMAT(od.work_date, '%Y-%m-%d')
                 ELSE NULL
             END AS targetDate,
             COALESCE(
