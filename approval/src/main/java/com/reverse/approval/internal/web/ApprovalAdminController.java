@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ public class ApprovalAdminController {
     @Operation(summary = "휴가 신청 목록 조회 (관리자)")
     @GetMapping("/vacation-list")
     @SecurityRequirement(name = "JWT")
+    @PreAuthorize("hasAnyRole('EVALUATOR','HR_ADMIN_MASTER','HR_ADMIN_BASIC','SYSTEM_ADMIN')")
     public ResponseEntity<ApiResponse<ApprovalVacationPageResponse>> getVacationList(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "10") int size,
