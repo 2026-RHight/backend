@@ -10,6 +10,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalMainItemRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
 import com.reverse.approval.internal.persistence.row.ApprovalReviewRow;
+import com.reverse.approval.internal.persistence.row.ApprovalVacationRow;
 import java.util.List;
 import java.util.Optional;
 import org.apache.ibatis.annotations.Mapper;
@@ -95,6 +96,13 @@ public interface ApprovalMapper {
 
     List<ApprovalMainItemRow> findMainInProgressApprovals(
             @Param("employeeId") Long employeeId, @Param("size") int size);
+
+    Integer countAdminVacationApprovals(@Param("employeeIds") List<Long> employeeIds);
+
+    List<ApprovalVacationRow> findAdminVacationApprovals(
+            @Param("employeeIds") List<Long> employeeIds,
+            @Param("offset") int offset,
+            @Param("size") int size);
 
     Optional<ApprovalHeaderRow> findApprovalHeaderByApprovalId(
             @Param("approvalId") Long approvalId);
