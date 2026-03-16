@@ -101,6 +101,7 @@ jobs:
               -e DEV_S3_ENDPOINT="${{ secrets.DEV_S3_ENDPOINT }}" \
               -e DEV_S3_REGION="${{ secrets.DEV_S3_REGION }}" \
               -e DEV_S3_BUCKET="${{ secrets.DEV_S3_BUCKET }}" \
+              -e DEV_S3_PUBLIC_URL="${{ secrets.DEV_S3_PUBLIC_URL }}" \
               -e DEV_S3_KEY="${{ secrets.DEV_S3_KEY }}" \
               -e DEV_S3_SECRET="${{ secrets.DEV_S3_SECRET }}" \
               -e AWS_MAIL_HOST="${{ secrets.AWS_MAIL_HOST }}" \
