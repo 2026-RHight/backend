@@ -4,6 +4,7 @@ import com.reverse.approval.ApprovalFacade;
 import com.reverse.approval.internal.domain.enums.ApprovalStatus;
 import com.reverse.approval.internal.domain.enums.DocumentBoxType;
 import com.reverse.approval.internal.domain.enums.ProgressTabType;
+import com.reverse.approval.internal.domain.enums.VacationType;
 import com.reverse.approval.internal.dto.request.ApprovalLineRequest;
 import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.approval.internal.dto.request.DraftApproval;
@@ -17,6 +18,7 @@ import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalReviewPageResponse;
+import com.reverse.approval.internal.dto.response.ApprovalVacationPageResponse;
 import com.reverse.approval.internal.dto.response.DownloadedApprovalFile;
 import com.reverse.approval.internal.exception.ApprovalNotFoundException;
 import com.reverse.approval.internal.exception.AttachmentNotFoundException;
@@ -53,6 +55,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressRow;
 import com.reverse.approval.internal.persistence.row.ApprovalReviewRow;
+import com.reverse.approval.internal.persistence.row.ApprovalVacationRow;
 import com.reverse.approval.internal.persistence.row.BusinessTripDetailRow;
 import com.reverse.approval.internal.persistence.row.FlexibleWorkDetailRow;
 import com.reverse.approval.internal.persistence.row.LeaveDetailRow;
@@ -73,7 +76,9 @@ import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.service.NumberingService;
 import com.reverse.hr.HrFacade;
 import com.reverse.hr.dto.EmployeeProfileDTO;
+import com.reverse.hr.dto.OrganizationMemberInfo;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -358,6 +363,39 @@ public class ApprovalService implements ApprovalFacade {
 
         boolean hasNext = page + 1 < totalPages;
         return new ApprovalReviewPageResponse(
+                content, page, size, totalElements, totalPages, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalVacationPageResponse getAdminVacationList(Long employeeId, int page, int size) {
+        if (page < 0) {
+            throw new BadRequestException("page는 0 이상이어야 합니다.");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("size는 1 이상이어야 합니다.");
+        }
+
+        List<Long> employeeIds =
+                hrFacade.getMyOrganizationMembers(employeeId).stream()
+                        .map(OrganizationMemberInfo::employeeId)
+                        .distinct()
+                        .toList();
+
+        if (employeeIds.isEmpty()) {
+            return new ApprovalVacationPageResponse(List.of(), page, size, 0, 0, false);
+        }
+
+        int totalElements = nvl(approvalMapper.countAdminVacationApprovals(employeeIds));
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        int offset = page * size;
+
+        List<ApprovalVacationPageResponse.ApprovalVacationItem> content =
+                approvalMapper.findAdminVacationApprovals(employeeIds, offset, size).stream()
+                        .map(this::toApprovalVacationItem)
+                        .toList();
+
+        boolean hasNext = page + 1 < totalPages;
+        return new ApprovalVacationPageResponse(
                 content, page, size, totalElements, totalPages, hasNext);
     }
 
@@ -904,6 +942,36 @@ public class ApprovalService implements ApprovalFacade {
                 row.drafterName(),
                 row.departmentName(),
                 row.draftDate());
+    }
+
+    private ApprovalVacationPageResponse.ApprovalVacationItem toApprovalVacationItem(
+            ApprovalVacationRow row) {
+        return new ApprovalVacationPageResponse.ApprovalVacationItem(
+                row.approvalId(),
+                row.docId(),
+                row.docType(),
+                row.approvalStatus(),
+                row.drafterId(),
+                row.drafterName(),
+                row.departmentName(),
+                row.vacationType(),
+                row.startDate(),
+                row.endDate(),
+                calculateVacationDays(row.vacationType(), row.startDate(), row.endDate()),
+                row.reason(),
+                row.draftDate());
+    }
+
+    private double calculateVacationDays(
+            String vacationType, LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate == null || endDate == null) {
+            return 0;
+        }
+        if (VacationType.HALF.name().equalsIgnoreCase(vacationType)) {
+            return 0.5;
+        }
+        long days = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1;
+        return Math.max(0, days);
     }
 
     private ApprovalDashboardResponse.PendingReviewItem toDashboardPendingReviewItem(
