@@ -30,6 +30,7 @@ ext {
 
 dependencies {
     implementation project(':core')
+    implementation project(':approval')
     implementation project(':hr')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reverse.attendance.internal.persistence.ApprovalFlexibleQueryMapper">
+
+    <sql id="teamFlexibleApprovalWhere">
+        ea.doc_type = 'FLEXIBLE'
+        AND ea.approval_status &lt;&gt; 'TEMP'
+        AND al.approver_id = #{actorEmployeeId}
+        AND al.approval_status &lt;&gt; 'TEMP'
+        <if test="status != null">
+            <choose>
+                <when test="status == 'PENDING'">
+                    AND ea.approval_status IN ('PENDING', 'HOLD')
+                </when>
+                <when test="status == 'APPROVED'">
+                    AND ea.approval_status = 'COMPLETE'
+                </when>
+                <when test="status == 'REJECTED'">
+                    AND ea.approval_status = 'REJECTED'
+                </when>
+                <when test="status == 'CANCELED'">
+                    AND 1 = 0
+                </when>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="findTeamFlexibleApprovalSchedules"
+            resultType="com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse">
+        SELECT DISTINCT
+            ea.approval_id AS weeklyId,
+            ea.drafter_id AS employeeId,
+            fd.start_dt AS startDate,
+            fd.end_dt AS endDate,
+            CASE
+                WHEN ea.approval_status = 'COMPLETE' THEN 'APPROVED'
+                WHEN ea.approval_status = 'REJECTED' THEN 'REJECTED'
+                ELSE 'PENDING'
+            END AS approvalStatus,
+            DATE(fd.start_dt) AS planDate,
+            '유연근무' AS workForm,
+            ea.title AS scheduleTitle,
+            fd.reason AS memo,
+            (
+                SELECT al2.reason
+                FROM approval_line al2
+                WHERE al2.approval_id = ea.approval_id
+                  AND al2.approval_status IN ('REJECTED', 'HOLD')
+                  AND al2.reason IS NOT NULL
+                  AND al2.reason &lt;&gt; ''
+                ORDER BY al2.approved_dt DESC, al2.approval_seq DESC
+                LIMIT 1
+            ) AS rejectReason,
+            ea.drafter_name AS employeeName,
+            ea.department_name AS departmentName,
+            '직원' AS positionName,
+            ea.draft_dt AS createdAt,
+            ea.approve_dt AS updatedAt
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        JOIN flexible_work_detail fd
+          ON fd.approval_id = ea.approval_id
+        WHERE
+        <include refid="teamFlexibleApprovalWhere"/>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countTeamFlexibleApprovalSchedules" resultType="long">
+        SELECT CAST(COUNT(DISTINCT ea.approval_id) AS SIGNED)
+        FROM electronic_approval ea
+        JOIN approval_line al
+          ON al.approval_id = ea.approval_id
+        JOIN flexible_work_detail fd
+          ON fd.approval_id = ea.approval_id
+        WHERE
+        <include refid="teamFlexibleApprovalWhere"/>
+    </select>
+
+</mapper>

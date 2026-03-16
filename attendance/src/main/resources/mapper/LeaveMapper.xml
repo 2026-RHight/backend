@@ -43,6 +43,15 @@
           AND YEAR(start_date) = #{year}
     </select>
 
+    <select id="sumLegacyUsedDaysByStatus" resultType="java.lang.Double">
+        SELECT IFNULL(SUM(used_days), 0)
+        FROM leave_request
+        WHERE employee_id = #{employeeId}
+          AND approval_id IS NULL
+          AND leave_status = #{status}
+          AND YEAR(start_date) = #{year}
+    </select>
+
     <insert id="insertLeaveRequest" useGeneratedKeys="true" keyProperty="leaveRequestId">
         INSERT INTO leave_request (
             approval_id, employee_id, start_date, end_date, leave_type, leave_status, used_days, reason

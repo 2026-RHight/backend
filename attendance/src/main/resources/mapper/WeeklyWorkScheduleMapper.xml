@@ -45,6 +45,27 @@
         WHERE weekly_id = #{weeklyId}
     </select>
 
+    <select id="findByApprovalId" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
+        SELECT
+            weekly_id as weeklyId,
+            approval_id as approvalId,
+            employee_id as employeeId,
+            start_date as startDate,
+            end_date as endDate,
+            approval_status as approvalStatus,
+            plan_date as planDate,
+            work_form as workForm,
+            schedule_title as scheduleTitle,
+            memo as memo,
+            reject_reason as rejectReason,
+            created_at as createdAt,
+            updated_at as updatedAt
+        FROM weekly_work_schedule
+        WHERE approval_id = #{approvalId}
+        ORDER BY weekly_id DESC
+        LIMIT 1
+    </select>
+
     <select id="findByEmployeeId" resultType="com.reverse.attendance.internal.domain.WeeklyWorkSchedule">
         SELECT
             weekly_id as weeklyId,
