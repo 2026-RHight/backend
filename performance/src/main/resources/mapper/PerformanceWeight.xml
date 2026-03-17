@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.reverse.performance.internal.persistence.PerformanceWeightMapper">
+
+    <select id="findAllTeamWeights"
+            resultType="com.reverse.performance.internal.persistence.PerformanceWeightMapper$PerformanceWeightRow">
+        SELECT pw.org_id AS orgId,
+               pw.personal_weight_rate AS personalWeightRate,
+               pw.team_weight_rate AS teamWeightRate,
+               COALESCE(pw.updated_at, pw.created_at) AS updatedAt
+        FROM performance_weight pw
+        JOIN organization o
+          ON o.org_id = pw.org_id
+        WHERE o.org_type = 'TEAM'
+          AND o.is_active = TRUE
+        ORDER BY pw.org_id
+    </select>
+
+    <select id="countTeamOrganizations" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM organization
+        WHERE is_active = TRUE
+          AND org_type = 'TEAM'
+        <choose>
+            <when test="orgIds != null and orgIds.size() > 0">
+                AND org_id IN
+                <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                    #{orgId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <update id="updateWeight" parameterType="map">
+        UPDATE performance_weight
+        SET personal_weight_rate = #{personalWeightRate},
+            team_weight_rate = #{teamWeightRate},
+            updated_at = NOW()
+        WHERE org_id = #{orgId}
+    </update>
+
+    <insert id="insertWeight" parameterType="map">
+        INSERT INTO performance_weight (
+            org_id,
+            personal_weight_rate,
+            team_weight_rate,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{orgId},
+            #{personalWeightRate},
+            #{teamWeightRate},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <select id="findEmployeeIdsByOrgIds" parameterType="map" resultType="long">
+        SELECT DISTINCT employee_id
+        FROM employee_hr_info
+        <choose>
+            <when test="orgIds != null and orgIds.size() > 0">
+                WHERE org_id IN
+                <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                    #{orgId}
+                </foreach>
+            </when>
+            <otherwise>
+                WHERE 1 = 0
+            </otherwise>
+        </choose>
+        ORDER BY employee_id
+    </select>
+
+    <select id="findLatestUpdatedAtByOrgId" parameterType="long" resultType="java.time.LocalDateTime">
+        SELECT COALESCE(updated_at, created_at)
+        FROM performance_weight
+        WHERE org_id = #{orgId}
+    </select>
+</mapper>
