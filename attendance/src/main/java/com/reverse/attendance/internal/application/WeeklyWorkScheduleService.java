@@ -1,11 +1,8 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.approval.internal.application.ApprovalService;
-import com.reverse.approval.internal.dto.request.ApprovalProcessRequest;
 import com.reverse.attendance.internal.domain.WeeklyWorkSchedule;
 import com.reverse.attendance.internal.domain.enums.ApprovalStatus;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
-import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleDayResponse;
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleEntryResponse;
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleOverviewResponse;
@@ -31,7 +28,6 @@ public class WeeklyWorkScheduleService {
 
     private final WeeklyWorkScheduleMapper scheduleMapper;
     private final ApprovalFlexibleQueryMapper approvalFlexibleQueryMapper;
-    private final ApprovalService approvalService;
     private final AttendanceSyncService attendanceSyncService;
 
     @Transactional
@@ -233,20 +229,6 @@ public class WeeklyWorkScheduleService {
                 approvalFlexibleQueryMapper.countTeamFlexibleApprovalSchedules(
                         actorEmployeeId, status);
         return PageResponse.of(contentResponses, page, size, totalElements);
-    }
-
-    @Transactional
-    public void processSchedule(WeeklyWorkScheduleProcessRequest request, Long actorEmployeeId) {
-        String reason =
-                request.isApprove()
-                        ? null
-                        : request.getRejectReason() == null
-                                ? null
-                                : request.getRejectReason().trim();
-        approvalService.processApproval(
-                request.getApprovalId(),
-                new ApprovalProcessRequest(request.isApprove(), reason),
-                actorEmployeeId);
     }
 
     @Transactional(readOnly = true)
