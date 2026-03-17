@@ -390,7 +390,11 @@ public class ApprovalService implements ApprovalFacade {
 
         int totalElements = nvl(approvalMapper.countAdminVacationApprovals(employeeIds));
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-        int offset = page * size;
+        long offsetLong = (long) page * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
 
         List<ApprovalVacationPageResponse.ApprovalVacationItem> content =
                 approvalMapper.findAdminVacationApprovals(employeeIds, offset, size).stream()
@@ -423,7 +427,11 @@ public class ApprovalService implements ApprovalFacade {
 
         int totalElements = nvl(approvalMapper.countAdminFlexibleApprovals(employeeIds));
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-        int offset = page * size;
+        long offsetLong = (long) page * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
 
         List<ApprovalFlexiblePageResponse.ApprovalFlexibleItem> content =
                 approvalMapper.findAdminFlexibleApprovals(employeeIds, offset, size).stream()
