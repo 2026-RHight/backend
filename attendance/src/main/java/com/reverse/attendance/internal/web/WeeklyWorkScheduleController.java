@@ -2,7 +2,6 @@ package com.reverse.attendance.internal.web;
 
 import com.reverse.attendance.internal.application.WeeklyWorkScheduleService;
 import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleApplyRequest;
-import com.reverse.attendance.internal.dto.request.WeeklyWorkScheduleProcessRequest;
 import com.reverse.attendance.internal.dto.response.TeamWeeklyScheduleOverviewResponse;
 import com.reverse.attendance.internal.dto.response.WeeklyWorkScheduleResponse;
 import com.reverse.core.response.PageResponse;
@@ -92,17 +91,5 @@ public class WeeklyWorkScheduleController {
             @AuthenticationPrincipal CustomUser user,
             @RequestParam(required = false) LocalDate date) {
         return ResponseEntity.ok(scheduleService.getTeamWeeklyOverview(user.getEmployeeId(), date));
-    }
-
-    // 결재 처리 (승인/반려 - 팀장/관리자용)
-    @Operation(summary = "유연근무 결재 (관리자)", description = "관리자가 직원의 유연근무 신청을 승인하거나 반려합니다.")
-    @PreAuthorize(WEEKLY_SCHEDULE_APPROVER_AUTH)
-    @PutMapping("/process")
-    public ResponseEntity<String> processSchedule(
-            @RequestBody WeeklyWorkScheduleProcessRequest request,
-            @AuthenticationPrincipal CustomUser user) {
-        scheduleService.processSchedule(request, user.getEmployeeId());
-        String result = request.isApprove() ? "승인" : "반려";
-        return ResponseEntity.ok("유연근무 신청이 " + result + " 처리되었습니다.");
     }
 }

@@ -84,4 +84,15 @@
         <include refid="teamFlexibleApprovalWhere"/>
     </select>
 
+    <select id="findFlexibleApprovalHeaderByApprovalId"
+            resultType="com.reverse.attendance.internal.persistence.row.FlexibleApprovalHeaderRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.drafter_id AS employeeId,
+            ea.title AS scheduleTitle
+        FROM electronic_approval ea
+        WHERE ea.approval_id = #{approvalId}
+          AND ea.doc_type = 'FLEXIBLE'
+    </select>
+
 </mapper>

@@ -1,7 +1,7 @@
 package com.reverse.attendance.internal.application;
 
-import com.reverse.approval.internal.persistence.ApprovalMapper;
-import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
+import com.reverse.attendance.internal.persistence.ApprovalFlexibleQueryMapper;
+import com.reverse.attendance.internal.persistence.row.FlexibleApprovalHeaderRow;
 import com.reverse.core.event.ApprovalFlexibleEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +14,14 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class AttendanceApprovalEventListener {
 
-    private final ApprovalMapper approvalMapper;
+    private final ApprovalFlexibleQueryMapper approvalFlexibleQueryMapper;
     private final WeeklyWorkScheduleService weeklyWorkScheduleService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onFlexibleApproved(ApprovalFlexibleEvent event) {
-        ApprovalHeaderRow header =
-                approvalMapper
-                        .findApprovalHeaderByApprovalId(event.approvalId())
+        FlexibleApprovalHeaderRow header =
+                approvalFlexibleQueryMapper
+                        .findFlexibleApprovalHeaderByApprovalId(event.approvalId())
                         .orElseThrow(
                                 () ->
                                         new com.reverse.core.exception.NotFoundException(
@@ -29,11 +29,11 @@ public class AttendanceApprovalEventListener {
 
         weeklyWorkScheduleService.syncApprovedScheduleFromApproval(
                 event.approvalId(),
-                header.drafterId(),
+                header.employeeId(),
                 event.startDate(),
                 event.endDate(),
                 event.reason(),
-                header.title());
+                header.scheduleTitle());
 
         log.info("유연근무 승인 이벤트를 attendance 스케줄로 반영했습니다. approvalId={}", event.approvalId());
     }
