@@ -10,6 +10,32 @@
     <!-- difficulty_score: 난이도 기반 (1~10) -->
     <!-- team_bonus: 팀 업무일 경우 가중치 보너스 -->
 
+    <sql id="taskBaseScoreExpr">
+        ROUND((
+            CASE
+                WHEN p.achievement_rate >= 95 THEN 10
+                WHEN p.achievement_rate >= 85 THEN 9
+                WHEN p.achievement_rate >= 75 THEN 8
+                WHEN p.achievement_rate >= 65 THEN 7
+                ELSE 5
+            END
+            +
+            CASE
+                WHEN p.expected_end_date IS NULL                             THEN 7
+                WHEN p.end_date &lt;= p.expected_end_date                    THEN 10
+                WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 3       THEN 8
+                WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 7       THEN 6
+                ELSE 5
+            END
+            +
+            LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
+        ) / 3.0)
+    </sql>
+
+    <sql id="teamBonusExpr">
+        ROUND(LEAST(GREATEST(COALESCE(pt.weight, 0), 0), 100) / 20.0)
+    </sql>
+
     <select id="findMonthlyPerformance"
             parameterType="map"
             resultType="com.reverse.performance.internal.dto.response.MonthlyResponse">
@@ -77,35 +103,36 @@
     <select id="calculateMonthlyScore"
             parameterType="map"
             resultType="int">
-        SELECT COALESCE(SUM(
-            ROUND((
-                CASE
-                    WHEN p.achievement_rate >= 95 THEN 10
-                    WHEN p.achievement_rate >= 85 THEN 9
-                    WHEN p.achievement_rate >= 75 THEN 8
-                    WHEN p.achievement_rate >= 65 THEN 7
-                    ELSE 5
-                END
-                +
-                CASE
-                    WHEN p.expected_end_date IS NULL                             THEN 7
-                    WHEN p.end_date &lt;= p.expected_end_date                    THEN 10
-                    WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 3       THEN 8
-                    WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 7       THEN 6
-                    ELSE 5
-                END
-                +
-                LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
-            ) / 3.0)
-            +
-            CASE
-                WHEN p.work_item = 'TEAM'
-                    THEN ROUND(LEAST(GREATEST(COALESCE(pt.weight, 0), 0), 100) / 20.0)
-                ELSE 0
-            END
-        ), 0)
+        SELECT COALESCE(
+                   ROUND(
+                       COALESCE(
+                           SUM(
+                               CASE
+                                   WHEN p.work_item = 'PERSONAL'
+                                       THEN <include refid="taskBaseScoreExpr"/>
+                                   ELSE 0
+                               END
+                           ),
+                           0
+                       ) * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
+                       +
+                       COALESCE(
+                           SUM(
+                               CASE
+                                   WHEN p.work_item = 'TEAM'
+                                       THEN <include refid="taskBaseScoreExpr"/> + <include refid="teamBonusExpr"/>
+                                   ELSE 0
+                               END
+                           ),
+                           0
+                       ) * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
+                   ),
+                   0
+               )
         FROM performance p
         LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
+        LEFT JOIN employee_hr_info hr ON hr.employee_id = p.employee_id
+        LEFT JOIN performance_weight weight_config ON weight_config.org_id = hr.org_id
         WHERE p.employee_id    = #{employeeId}
           AND p.end_date IS NOT NULL
           AND p.status = 'ENDED'
