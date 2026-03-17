@@ -14,6 +14,7 @@ import com.reverse.approval.internal.dto.response.ApprovalBoxPageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalCreatedResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDashboardResponse;
 import com.reverse.approval.internal.dto.response.ApprovalDetailResponse;
+import com.reverse.approval.internal.dto.response.ApprovalFlexiblePageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalMainSummaryResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressOverviewResponse;
 import com.reverse.approval.internal.dto.response.ApprovalProgressPageResponse;
@@ -49,6 +50,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalAttachmentRow;
 import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow;
+import com.reverse.approval.internal.persistence.row.ApprovalFlexibleRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineDetailRow;
 import com.reverse.approval.internal.persistence.row.ApprovalLineRow;
@@ -388,7 +390,11 @@ public class ApprovalService implements ApprovalFacade {
 
         int totalElements = nvl(approvalMapper.countAdminVacationApprovals(employeeIds));
         int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
-        int offset = page * size;
+        long offsetLong = (long) page * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
 
         List<ApprovalVacationPageResponse.ApprovalVacationItem> content =
                 approvalMapper.findAdminVacationApprovals(employeeIds, offset, size).stream()
@@ -397,6 +403,43 @@ public class ApprovalService implements ApprovalFacade {
 
         boolean hasNext = page + 1 < totalPages;
         return new ApprovalVacationPageResponse(
+                content, page, size, totalElements, totalPages, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public ApprovalFlexiblePageResponse getAdminFlexibleList(Long employeeId, int page, int size) {
+        if (page < 0) {
+            throw new BadRequestException("page는 0 이상이어야 합니다.");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("size는 1 이상이어야 합니다.");
+        }
+
+        List<Long> employeeIds =
+                hrFacade.getMyOrganizationMembers(employeeId).stream()
+                        .map(OrganizationMemberInfo::employeeId)
+                        .distinct()
+                        .toList();
+
+        if (employeeIds.isEmpty()) {
+            return new ApprovalFlexiblePageResponse(List.of(), page, size, 0, 0, false);
+        }
+
+        int totalElements = nvl(approvalMapper.countAdminFlexibleApprovals(employeeIds));
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / size);
+        long offsetLong = (long) page * size;
+        if (offsetLong > Integer.MAX_VALUE) {
+            throw new BadRequestException("조회 가능한 페이지 범위를 초과했습니다.");
+        }
+        int offset = (int) offsetLong;
+
+        List<ApprovalFlexiblePageResponse.ApprovalFlexibleItem> content =
+                approvalMapper.findAdminFlexibleApprovals(employeeIds, offset, size).stream()
+                        .map(this::toApprovalFlexibleItem)
+                        .toList();
+
+        boolean hasNext = page + 1 < totalPages;
+        return new ApprovalFlexiblePageResponse(
                 content, page, size, totalElements, totalPages, hasNext);
     }
 
@@ -959,6 +1002,22 @@ public class ApprovalService implements ApprovalFacade {
                 row.startDate(),
                 row.endDate(),
                 calculateVacationDays(row.vacationType(), row.startDate(), row.endDate()),
+                row.reason(),
+                row.draftDate());
+    }
+
+    private ApprovalFlexiblePageResponse.ApprovalFlexibleItem toApprovalFlexibleItem(
+            ApprovalFlexibleRow row) {
+        return new ApprovalFlexiblePageResponse.ApprovalFlexibleItem(
+                row.approvalId(),
+                row.docId(),
+                row.docType(),
+                row.approvalStatus(),
+                row.drafterId(),
+                row.drafterName(),
+                row.departmentName(),
+                row.startDate(),
+                row.endDate(),
                 row.reason(),
                 row.draftDate());
     }

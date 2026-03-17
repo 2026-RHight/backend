@@ -630,6 +630,44 @@
         LIMIT #{size} OFFSET #{offset}
     </select>
 
+    <select id="countAdminFlexibleApprovals" resultType="int">
+        SELECT COUNT(*)
+        FROM electronic_approval ea
+        JOIN flexible_work_detail fd
+          ON fd.approval_id = ea.approval_id
+        WHERE ea.doc_type = 'FLEXIBLE'
+          AND ea.drafter_id IN
+        <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
+            #{employeeId}
+        </foreach>
+    </select>
+
+    <select id="findAdminFlexibleApprovals"
+            resultType="com.reverse.approval.internal.persistence.row.ApprovalFlexibleRow">
+        SELECT
+            ea.approval_id AS approvalId,
+            ea.doc_id AS docId,
+            ea.doc_type AS docType,
+            ea.approval_status AS approvalStatus,
+            ea.drafter_id AS drafterId,
+            ea.drafter_name AS drafterName,
+            ea.department_name AS departmentName,
+            fd.start_dt AS startDate,
+            fd.end_dt AS endDate,
+            fd.reason AS reason,
+            ea.draft_dt AS draftDate
+        FROM electronic_approval ea
+        JOIN flexible_work_detail fd
+          ON fd.approval_id = ea.approval_id
+        WHERE ea.doc_type = 'FLEXIBLE'
+          AND ea.drafter_id IN
+        <foreach collection="employeeIds" item="employeeId" open="(" separator="," close=")">
+            #{employeeId}
+        </foreach>
+        ORDER BY ea.draft_dt DESC, ea.approval_id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
     <select id="findApprovalHeaderByApprovalId"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalHeaderRow">
         SELECT
