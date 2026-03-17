@@ -68,8 +68,10 @@ public class AuthController {
     @Operation(summary = "로그아웃")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(
-            @RequestHeader("Authorization") String authorization, HttpServletResponse response) {
-        authService.logout(authorization);
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
+            HttpServletResponse response) {
+        authService.logout(authorization, refreshToken);
         clearRefreshTokenCookie(response);
         return ApiResponse.success();
     }
@@ -96,7 +98,10 @@ public class AuthController {
     }
 
     private void writeRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) return;
+        if (refreshToken == null || refreshToken.isBlank()) {
+            clearRefreshTokenCookie(response);
+            return;
+        }
         ResponseCookie cookie =
                 ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
                         .httpOnly(true)

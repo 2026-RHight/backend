@@ -248,10 +248,21 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(String authorization) {
+    public void logout(String authorization, String refreshToken) {
+        Long refreshTokenEmployeeId = extractEmployeeIdFromRefreshToken(refreshToken);
+        if (refreshTokenEmployeeId != null) {
+            refreshTokenStore.deleteByEmployeeId(refreshTokenEmployeeId);
+        }
+
         String token = extractToken(authorization);
+        if (token == null) return;
+
         tokenBlacklistStore.blacklist(token);
-        refreshTokenStore.deleteByEmployeeId(jwtTokenProvider.getEmployeeId(token));
+        Long accessTokenEmployeeId = extractEmployeeIdFromAccessToken(token);
+        if (accessTokenEmployeeId != null
+                && !accessTokenEmployeeId.equals(refreshTokenEmployeeId)) {
+            refreshTokenStore.deleteByEmployeeId(accessTokenEmployeeId);
+        }
     }
 
     @Transactional
@@ -266,21 +277,25 @@ public class AuthService {
         }
 
         Long employeeId = jwtTokenProvider.getEmployeeId(refreshToken);
-        if (!refreshTokenStore.matches(employeeId, refreshToken)) {
-            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
-        }
-
         LoginUserRow user =
                 authMapper
                         .findUserByEmployeeId(employeeId)
                         .orElseThrow(() -> new UnauthorizedException("유효하지 않은 토큰입니다."));
+
+        if (Boolean.TRUE.equals(user.initialState())
+                || (user.hireDate() != null && user.hireDate().isAfter(LocalDate.now()))) {
+            refreshTokenStore.deleteByEmployeeId(employeeId);
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
+        }
 
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
         String newAccessToken =
                 jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
         String newRefreshToken =
                 jwtTokenProvider.createRefreshToken(user.employeeId(), user.employeeNum(), roles);
-        refreshTokenStore.save(user.employeeId(), newRefreshToken);
+        if (!refreshTokenStore.rotateIfMatches(employeeId, refreshToken, newRefreshToken)) {
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
+        }
 
         return new AuthRefreshResult(new RefreshTokenResponseDTO(newAccessToken), newRefreshToken);
     }
@@ -288,9 +303,27 @@ public class AuthService {
     // accessToken 헤더 제거
     private String extractToken(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new UnauthorizedException("만료된 토큰입니다.");
+            return null;
         }
-        return authorization.substring(7);
+        String token = authorization.substring(7).trim();
+        return token.isEmpty() ? null : token;
+    }
+
+    private Long extractEmployeeIdFromAccessToken(String token) {
+        try {
+            return jwtTokenProvider.getEmployeeIdAllowExpired(token);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private Long extractEmployeeIdFromRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) return null;
+        try {
+            return jwtTokenProvider.getEmployeeIdAllowExpired(refreshToken);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private List<LoginViewDTO> findViewsByRoleIds(List<Long> roleIds) {
