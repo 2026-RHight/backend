@@ -3,6 +3,7 @@ package com.reverse.hr.internal.application;
 import com.reverse.core.event.EmailSendEvent;
 import com.reverse.core.exception.UnauthorizedException;
 import com.reverse.core.security.JwtTokenProvider;
+import com.reverse.core.security.RefreshTokenStore;
 import com.reverse.core.security.TokenBlacklistStore;
 import com.reverse.hr.internal.dto.request.ChangePasswordRequestDTO;
 import com.reverse.hr.internal.dto.request.InitializeRequestDTO;
@@ -10,6 +11,7 @@ import com.reverse.hr.internal.dto.request.LoginRequestDTO;
 import com.reverse.hr.internal.dto.response.LoginResponseDTO;
 import com.reverse.hr.internal.dto.response.LoginUserProfileDTO;
 import com.reverse.hr.internal.dto.response.LoginViewDTO;
+import com.reverse.hr.internal.dto.response.RefreshTokenResponseDTO;
 import com.reverse.hr.internal.exception.AuthErrorCode;
 import com.reverse.hr.internal.persistence.AuthMapper;
 import com.reverse.hr.internal.persistence.EmployeeMapper;
@@ -38,6 +40,7 @@ public class AuthService {
     private final ResidentHashService residentHashService;
     private final ApplicationEventPublisher eventPublisher;
     private final TokenBlacklistStore tokenBlacklistStore;
+    private final RefreshTokenStore refreshTokenStore;
     private final EmployeeMapper employeeMapper;
     private static final java.security.SecureRandom SECURE_RANDOM =
             new java.security.SecureRandom();
@@ -55,7 +58,7 @@ public class AuthService {
      * @return 로그인 결과
      */
     @Transactional
-    public LoginResponseDTO login(LoginRequestDTO request) {
+    public AuthLoginResult login(LoginRequestDTO request) {
 
         LoginUserRow user =
                 authMapper
@@ -79,7 +82,7 @@ public class AuthService {
             String ticket =
                     jwtTokenProvider.createPasswordChangeTicket(
                             user.employeeId(), user.employeeNum());
-            return new LoginResponseDTO(true, null, ticket, null, null);
+            return new AuthLoginResult(new LoginResponseDTO(true, null, ticket, null, null), null);
         }
         List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
         List<Long> roleIds = authMapper.findRoleIdsByEmployeeId(user.employeeId());
@@ -87,6 +90,9 @@ public class AuthService {
 
         String accessToken =
                 jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
+        String refreshToken =
+                jwtTokenProvider.createRefreshToken(user.employeeId(), user.employeeNum(), roles);
+        refreshTokenStore.save(user.employeeId(), refreshToken);
 
         LoginProfileRow profileRow =
                 authMapper
@@ -103,7 +109,8 @@ public class AuthService {
                         profileRow.rankName(),
                         profileRow.jobName());
 
-        return new LoginResponseDTO(false, accessToken, null, profile, views);
+        return new AuthLoginResult(
+                new LoginResponseDTO(false, accessToken, null, profile, views), refreshToken);
     }
 
     /**
@@ -173,7 +180,7 @@ public class AuthService {
      * @return 변경 완료 후 로그인 응답
      */
     @Transactional
-    public LoginResponseDTO changeInitialPassword(String ticket, ChangePasswordRequestDTO request) {
+    public AuthLoginResult changeInitialPassword(String ticket, ChangePasswordRequestDTO request) {
         Long employeeId = jwtTokenProvider.getEmployeeIdFromPasswordChangeTicket(ticket);
 
         LoginUserRow user =
@@ -217,6 +224,9 @@ public class AuthService {
         List<LoginViewDTO> views = findViewsByRoleIds(roleIds);
         String accessToken =
                 jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
+        String refreshToken =
+                jwtTokenProvider.createRefreshToken(user.employeeId(), user.employeeNum(), roles);
+        refreshTokenStore.save(user.employeeId(), refreshToken);
 
         LoginProfileRow profileRow =
                 authMapper
@@ -233,21 +243,87 @@ public class AuthService {
                         profileRow.rankName(),
                         profileRow.jobName());
 
-        return new LoginResponseDTO(false, accessToken, null, profile, views);
+        return new AuthLoginResult(
+                new LoginResponseDTO(false, accessToken, null, profile, views), refreshToken);
     }
 
     @Transactional
-    public void logout(String authorization) {
+    public void logout(String authorization, String refreshToken) {
+        Long refreshTokenEmployeeId = extractEmployeeIdFromRefreshToken(refreshToken);
+        if (refreshTokenEmployeeId != null) {
+            refreshTokenStore.deleteByEmployeeId(refreshTokenEmployeeId);
+        }
+
         String token = extractToken(authorization);
+        if (token == null) return;
+
         tokenBlacklistStore.blacklist(token);
+        Long accessTokenEmployeeId = extractEmployeeIdFromAccessToken(token);
+        if (accessTokenEmployeeId != null
+                && !accessTokenEmployeeId.equals(refreshTokenEmployeeId)) {
+            refreshTokenStore.deleteByEmployeeId(accessTokenEmployeeId);
+        }
+    }
+
+    @Transactional
+    public AuthRefreshResult refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new UnauthorizedException("만료된 토큰입니다.");
+        }
+
+        jwtTokenProvider.validateToken(refreshToken);
+        if (!"REFRESH".equals(jwtTokenProvider.getTokenType(refreshToken))) {
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
+        }
+
+        Long employeeId = jwtTokenProvider.getEmployeeId(refreshToken);
+        LoginUserRow user =
+                authMapper
+                        .findUserByEmployeeId(employeeId)
+                        .orElseThrow(() -> new UnauthorizedException("유효하지 않은 토큰입니다."));
+
+        if (Boolean.TRUE.equals(user.initialState())
+                || (user.hireDate() != null && user.hireDate().isAfter(LocalDate.now()))) {
+            refreshTokenStore.deleteByEmployeeId(employeeId);
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
+        }
+
+        List<String> roles = authMapper.findRoleCodesByEmployeeId(user.employeeId());
+        String newAccessToken =
+                jwtTokenProvider.createToken(user.employeeId(), user.employeeNum(), roles);
+        String newRefreshToken =
+                jwtTokenProvider.createRefreshToken(user.employeeId(), user.employeeNum(), roles);
+        if (!refreshTokenStore.rotateIfMatches(employeeId, refreshToken, newRefreshToken)) {
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
+        }
+
+        return new AuthRefreshResult(new RefreshTokenResponseDTO(newAccessToken), newRefreshToken);
     }
 
     // accessToken 헤더 제거
     private String extractToken(String authorization) {
         if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new UnauthorizedException("만료된 토큰입니다.");
+            return null;
         }
-        return authorization.substring(7);
+        String token = authorization.substring(7).trim();
+        return token.isEmpty() ? null : token;
+    }
+
+    private Long extractEmployeeIdFromAccessToken(String token) {
+        try {
+            return jwtTokenProvider.getEmployeeIdAllowExpired(token);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private Long extractEmployeeIdFromRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) return null;
+        try {
+            return jwtTokenProvider.getEmployeeIdAllowExpired(refreshToken);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     private List<LoginViewDTO> findViewsByRoleIds(List<Long> roleIds) {

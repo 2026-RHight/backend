@@ -173,6 +173,10 @@ public class JwtTokenProvider {
         return Long.valueOf(parseClaims(token).getSubject());
     }
 
+    public Long getEmployeeIdAllowExpired(String token) {
+        return Long.valueOf(parseClaimsAllowExpired(token).getSubject());
+    }
+
     /**
      * 토큰에서 사원번호 추출
      *
@@ -249,6 +253,14 @@ public class JwtTokenProvider {
      */
     private Claims parseClaims(String token) {
         return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
+    }
+
+    private Claims parseClaimsAllowExpired(String token) {
+        try {
+            return parseClaims(token);
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
+        }
     }
 
     public long getRemainingMillis(String token) {
