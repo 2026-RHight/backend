@@ -1,6 +1,7 @@
 package com.reverse.approval.internal.web;
 
 import com.reverse.approval.internal.application.ApprovalService;
+import com.reverse.approval.internal.dto.response.ApprovalFlexiblePageResponse;
 import com.reverse.approval.internal.dto.response.ApprovalVacationPageResponse;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
@@ -32,6 +33,19 @@ public class ApprovalAdminController {
             @AuthenticationPrincipal CustomUser user) {
         ApprovalVacationPageResponse response =
                 approvalService.getAdminVacationList(user.getEmployeeId(), page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "유연근무 신청 목록 조회 (관리자)")
+    @GetMapping("/flexible-list")
+    @SecurityRequirement(name = "JWT")
+    @PreAuthorize("hasAnyRole('EVALUATOR','HR_ADMIN_MASTER','HR_ADMIN_BASIC','SYSTEM_ADMIN')")
+    public ResponseEntity<ApiResponse<ApprovalFlexiblePageResponse>> getFlexibleList(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUser user) {
+        ApprovalFlexiblePageResponse response =
+                approvalService.getAdminFlexibleList(user.getEmployeeId(), page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

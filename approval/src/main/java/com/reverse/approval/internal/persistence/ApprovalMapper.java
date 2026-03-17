@@ -5,6 +5,7 @@ import com.reverse.approval.internal.persistence.row.ApprovalBoxRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardCountsRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardMyDraftRow;
 import com.reverse.approval.internal.persistence.row.ApprovalDashboardPendingReviewRow;
+import com.reverse.approval.internal.persistence.row.ApprovalFlexibleRow;
 import com.reverse.approval.internal.persistence.row.ApprovalHeaderRow;
 import com.reverse.approval.internal.persistence.row.ApprovalMainItemRow;
 import com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow;
@@ -100,6 +101,13 @@ public interface ApprovalMapper {
     Integer countAdminVacationApprovals(@Param("employeeIds") List<Long> employeeIds);
 
     List<ApprovalVacationRow> findAdminVacationApprovals(
+            @Param("employeeIds") List<Long> employeeIds,
+            @Param("offset") int offset,
+            @Param("size") int size);
+
+    Integer countAdminFlexibleApprovals(@Param("employeeIds") List<Long> employeeIds);
+
+    List<ApprovalFlexibleRow> findAdminFlexibleApprovals(
             @Param("employeeIds") List<Long> employeeIds,
             @Param("offset") int offset,
             @Param("size") int size);
