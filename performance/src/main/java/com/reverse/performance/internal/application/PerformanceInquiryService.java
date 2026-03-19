@@ -12,8 +12,10 @@ import com.reverse.performance.internal.persistence.AttachmentMapper;
 import com.reverse.performance.internal.persistence.PerformanceViewMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,13 +83,25 @@ public class PerformanceInquiryService {
             return performanceViewMapper.findInquiryItems(viewerEmployeeId, null, true);
         }
 
-        List<Long> targetIds =
-                performanceViewMapper.findInquiryAccessibleTargetIds(viewerEmployeeId);
-        if (targetIds == null || targetIds.isEmpty()) {
+        // evaluation 테이블 기반 접근 가능한 팀원
+        Set<Long> targetIds =
+                new LinkedHashSet<>(
+                        performanceViewMapper.findInquiryAccessibleTargetIds(viewerEmployeeId));
+
+        // 조직 구조 기반 팀원도 추가 (evaluation 레코드 없어도 팀장이면 팀원 조회 가능)
+        performanceHrMemberResolver.getMyOrganizationMembers(viewerEmployeeId).stream()
+                .filter(m -> !viewerEmployeeId.equals(m.employeeId()))
+                .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
+                .forEach(targetIds::add);
+
+        // 자기 자신도 항상 포함
+        targetIds.add(viewerEmployeeId);
+
+        if (targetIds.size() == 1) {
             return performanceViewMapper.findInquiryItems(
                     viewerEmployeeId, viewerEmployeeId, false);
         }
-        return performanceViewMapper.findInquiryItemsByEmployeeIds(targetIds);
+        return performanceViewMapper.findInquiryItemsByEmployeeIds(new ArrayList<>(targetIds));
     }
 
     @Transactional
@@ -146,7 +160,10 @@ public class PerformanceInquiryService {
         Integer accessible =
                 performanceViewMapper.countInquiryAccessibleTarget(
                         viewerEmployeeId, targetEmployeeId);
-        return accessible != null && accessible > 0;
+        if (accessible != null && accessible > 0) return true;
+        // evaluation 레코드 없어도 같은 조직 팀원이면 접근 허용
+        return performanceHrMemberResolver.getMyOrganizationMembers(viewerEmployeeId).stream()
+                .anyMatch(m -> targetEmployeeId.equals(m.employeeId()));
     }
 
     private void saveAttachments(Long performanceId, List<MultipartFile> files) {

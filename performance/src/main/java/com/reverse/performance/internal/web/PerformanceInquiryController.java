@@ -1,7 +1,6 @@
 package com.reverse.performance.internal.web;
 
 import com.reverse.core.exception.BadRequestException;
-import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
 import com.reverse.performance.internal.application.PerformanceInquiryService;
@@ -144,14 +143,13 @@ public class PerformanceInquiryController {
 
     private Long resolveTargetEmployeeId(CustomUser user, Long targetEmployeeId) {
         if (targetEmployeeId == null) {
-            return isAdmin(user) || isEvaluator(user) ? null : user.getEmployeeId();
+            // null을 반환하면 서비스에서 조직 구조 기반으로 접근 가능한 팀원을 결정함
+            return null;
         }
         if (targetEmployeeId.equals(user.getEmployeeId())) {
             return targetEmployeeId;
         }
-        if (!isAdmin(user) && !isEvaluator(user)) {
-            throw new ForbiddenException("FORBIDDEN", "다른 직원의 성과를 조회할 권한이 없습니다.");
-        }
+        // 서비스 레이어에서 조직 구조 또는 evaluation 테이블 기반으로 접근 권한 검증
         return targetEmployeeId;
     }
 

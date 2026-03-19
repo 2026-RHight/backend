@@ -371,6 +371,8 @@
                    ELSE 'plan'
                END AS phase
         FROM performance p
+        LEFT JOIN performance_personal pp ON pp.performance_id = p.performance_id
+        LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
         INNER JOIN evaluation ev
             ON ev.employee_id = p.employee_id
            AND ev.evaluator_id = #{employeeId}
@@ -403,25 +405,67 @@
         WHERE performance_id = #{performanceId}
     </update>
 
+    <select id="findApprovalItemsByMemberIds"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$ApprovalItemRow">
+        SELECT p.performance_id AS id,
+               p.employee_id AS targetEmployeeId,
+               p.title,
+               DATE_FORMAT(p.created_at, '%Y.%m.%d') AS date,
+               '대기' AS status,
+               CASE WHEN p.work_item = 'TEAM' THEN '팀 성과' ELSE '개인 성과' END AS type,
+               CASE WHEN COALESCE(p.achievement_rate, 0) > 0 THEN CONCAT(p.achievement_rate, '%') ELSE NULL END AS achievement,
+               COALESCE(p.achievement_rate, 0) AS progress,
+               CASE
+                   WHEN p.end_date IS NOT NULL THEN 'result'
+                   ELSE 'plan'
+               END AS phase
+        FROM performance p
+        WHERE p.status = 'WAITING'
+        <choose>
+            <when test="memberIds != null and memberIds.size() > 0">
+                AND p.employee_id IN
+                <foreach collection="memberIds" item="memberId" open="(" separator="," close=")">
+                    #{memberId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+        ORDER BY p.created_at DESC
+    </select>
+
     <update id="approvePerformance" parameterType="map">
-        UPDATE performance
-        SET status = CASE
-                         WHEN end_date IS NULL THEN 'ACTIVE'
-                         ELSE 'ENDED'
-                     END,
-            end_date = CASE
-                           WHEN end_date IS NULL THEN NULL
-                           ELSE COALESCE(end_date, CURDATE())
+        UPDATE performance p
+        SET p.status = CASE
+                           WHEN EXISTS (
+                               SELECT 1 FROM performance_personal pp
+                               WHERE pp.performance_id = p.performance_id
+                                 AND NULLIF(pp.result_summary, '') IS NOT NULL
+                           ) OR EXISTS (
+                               SELECT 1 FROM performance_team pt
+                               WHERE pt.performance_id = p.performance_id
+                                 AND NULLIF(pt.team_result_summary, '') IS NOT NULL
+                           ) THEN 'ENDED'
+                           ELSE 'ACTIVE'
                        END,
-            feedback = COALESCE(#{comment}, feedback)
-        WHERE performance_id = #{performanceId}
-          AND status = 'WAITING'
-          AND EXISTS (
-              SELECT 1
-              FROM evaluation ev
-              WHERE ev.employee_id = performance.employee_id
-                AND ev.evaluator_id = #{employeeId}
-          )
+            p.end_date = CASE
+                             WHEN p.end_date IS NULL
+                                  AND (EXISTS (
+                                      SELECT 1 FROM performance_personal pp
+                                      WHERE pp.performance_id = p.performance_id
+                                        AND NULLIF(pp.result_summary, '') IS NOT NULL
+                                  ) OR EXISTS (
+                                      SELECT 1 FROM performance_team pt
+                                      WHERE pt.performance_id = p.performance_id
+                                        AND NULLIF(pt.team_result_summary, '') IS NOT NULL
+                                  )) THEN CURDATE()
+                             ELSE p.end_date
+                         END,
+            p.feedback = COALESCE(#{comment}, p.feedback)
+        WHERE p.performance_id = #{performanceId}
+          AND p.status = 'WAITING'
     </update>
 
     <update id="rejectPerformance" parameterType="map">
@@ -430,12 +474,6 @@
             feedback = COALESCE(#{comment}, feedback)
         WHERE performance_id = #{performanceId}
           AND status = 'WAITING'
-          AND EXISTS (
-              SELECT 1
-              FROM evaluation ev
-              WHERE ev.employee_id = performance.employee_id
-                AND ev.evaluator_id = #{employeeId}
-          )
     </update>
 
     <select id="findPerformanceOwnerId"

@@ -3,8 +3,10 @@ package com.reverse.performance.internal.web;
 import com.reverse.core.exception.ForbiddenException;
 import com.reverse.core.response.ApiResponse;
 import com.reverse.core.security.CustomUser;
+import com.reverse.performance.internal.application.PerformanceEvaluationService;
 import com.reverse.performance.internal.application.PerformanceWeightService;
 import com.reverse.performance.internal.dto.request.PerformanceWeightUpsertRequest;
+import com.reverse.performance.internal.dto.response.PerformanceTeamEvaluationTargetResponse;
 import com.reverse.performance.internal.dto.response.PerformanceWeightResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,6 +37,16 @@ public class PerformanceAdminController {
                     "ADMIN");
 
     private final PerformanceWeightService performanceWeightService;
+    private final PerformanceEvaluationService performanceEvaluationService;
+
+    @Operation(summary = "관리자 팀 평가 대상 조회")
+    @GetMapping("/evaluation/teams")
+    public ApiResponse<List<PerformanceTeamEvaluationTargetResponse>> getEvaluationTeams(
+            @AuthenticationPrincipal CustomUser user) {
+        validateAdmin(user);
+        return ApiResponse.success(
+                performanceEvaluationService.getTeamEvaluationTargets(user.getEmployeeId()));
+    }
 
     @Operation(summary = "관리자 성과 반영 비율 조회")
     @GetMapping("/weights")

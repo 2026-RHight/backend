@@ -43,6 +43,8 @@ public interface PerformanceViewMapper {
 
     List<ApprovalItemRow> findApprovalItems(@Param("employeeId") Long employeeId);
 
+    List<ApprovalItemRow> findApprovalItemsByMemberIds(@Param("memberIds") List<Long> memberIds);
+
     int updatePerformanceResult(
             @Param("performanceId") Long performanceId,
             @Param("progress") Integer progress,
