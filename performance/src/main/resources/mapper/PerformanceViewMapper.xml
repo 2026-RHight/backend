@@ -246,10 +246,7 @@
               AND DATE(p.end_date) &lt; #{windowEndExclusive}
             GROUP BY p.employee_id,
                      YEAR(p.end_date),
-                     MONTH(p.end_date),
-                     hr.org_id,
-                     weight_config.personal_weight_rate,
-                     weight_config.team_weight_rate
+                     MONTH(p.end_date)
         ) base
         GROUP BY base.scoreYear, base.scoreMonth
         ORDER BY base.scoreYear, base.scoreMonth
