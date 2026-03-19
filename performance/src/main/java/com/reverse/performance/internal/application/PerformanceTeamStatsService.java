@@ -44,12 +44,18 @@ public class PerformanceTeamStatsService {
             return new PerformanceTeamStatsResponse(teamOptions, List.of());
         }
 
+        Long orgId =
+                members.stream()
+                        .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::orgId)
+                        .filter(id -> id != null)
+                        .findFirst()
+                        .orElse(null);
         List<Long> employeeIds =
                 members.stream()
                         .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
                         .toList();
         Map<Long, PerformanceViewMapper.TeamStatsMetricRow> metricMap =
-                performanceViewMapper.findTeamStatsMetrics(employeeIds).stream()
+                performanceViewMapper.findTeamStatsMetrics(employeeIds, orgId).stream()
                         .collect(
                                 Collectors.toMap(
                                         PerformanceViewMapper.TeamStatsMetricRow::employeeId,

@@ -74,7 +74,7 @@
                        +
                        COALESCE(team_scores.total_score, 0)
                        * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
-                   ),
+                   ) * 3,
                    0
                ) AS compositeScore
         FROM (SELECT #{employeeId} AS employee_id) base
@@ -83,16 +83,20 @@
         LEFT JOIN (
             SELECT p.employee_id,
                    SUM(
-                       LEAST(GREATEST(COALESCE(p.difficulty_score, 0), 0), 10)
-                       *
-                       CASE
-                           WHEN p.expected_end_date IS NULL THEN 1.0
-                           WHEN p.end_date &lt; p.expected_end_date THEN 1.1
-                           WHEN p.end_date = p.expected_end_date THEN 1.0
-                           ELSE GREATEST(0, 1.0 - (DATEDIFF(p.end_date, p.expected_end_date) * 0.05))
-                       END
-                       *
-                       (COALESCE(p.achievement_rate, 0) / 25.0)
+                       LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
+                       * CASE
+                           WHEN p.expected_end_date IS NULL                              THEN 1.0
+                           WHEN DATEDIFF(p.expected_end_date, p.end_date) &gt;= 2       THEN 1.2
+                           WHEN p.end_date &lt;= p.expected_end_date                     THEN 1.0
+                           ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
+                         END
+                       * CASE
+                           WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
+                           WHEN p.achievement_rate &gt;= 90               THEN 1.1
+                           WHEN p.achievement_rate &gt;= 80               THEN 1.0
+                           WHEN p.achievement_rate &gt;= 60               THEN 0.8
+                           ELSE 0
+                         END
                    ) AS total_score
             FROM performance p
             WHERE p.employee_id = #{employeeId}
@@ -107,16 +111,20 @@
         LEFT JOIN (
             SELECT p.employee_id,
                    SUM(
-                       LEAST(GREATEST(COALESCE(p.difficulty_score, 0), 0), 10)
-                       *
-                       CASE
-                           WHEN p.expected_end_date IS NULL THEN 1.0
-                           WHEN p.end_date &lt; p.expected_end_date THEN 1.1
-                           WHEN p.end_date = p.expected_end_date THEN 1.0
-                           ELSE GREATEST(0, 1.0 - (DATEDIFF(p.end_date, p.expected_end_date) * 0.05))
-                       END
-                       *
-                       (COALESCE(p.achievement_rate, 0) / 25.0)
+                       LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
+                       * CASE
+                           WHEN p.expected_end_date IS NULL                              THEN 1.0
+                           WHEN DATEDIFF(p.expected_end_date, p.end_date) &gt;= 2       THEN 1.2
+                           WHEN p.end_date &lt;= p.expected_end_date                     THEN 1.0
+                           ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
+                         END
+                       * CASE
+                           WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
+                           WHEN p.achievement_rate &gt;= 90               THEN 1.1
+                           WHEN p.achievement_rate &gt;= 80               THEN 1.0
+                           WHEN p.achievement_rate &gt;= 60               THEN 0.8
+                           ELSE 0
+                         END
                    ) AS total_score
             FROM performance p
             WHERE p.employee_id = #{employeeId}

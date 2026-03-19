@@ -16,13 +16,15 @@ public class PerformanceDashboardService {
 
     private final PerformanceDashboardSummaryService performanceDashboardSummaryService;
     private final PerformanceViewMapper performanceViewMapper;
+    private final PerformanceHrMemberResolver performanceHrMemberResolver;
 
     public PerformanceDashboardResponse getDashboard(Long employeeId) {
+        Long orgId = performanceHrMemberResolver.resolveOrgId(employeeId);
         PerformanceDashboardSummaryResponse summary =
                 performanceDashboardSummaryService.getCurrentMonthSummary(employeeId);
         Integer pending = nvl(performanceViewMapper.countPendingApprovalItems(employeeId));
         List<PerformanceViewMapper.PerformanceTrendPoint> trendPoints =
-                performanceViewMapper.findTrendPoints(employeeId);
+                performanceViewMapper.findTrendPoints(employeeId, orgId);
         List<String> trendLabels =
                 trendPoints.stream()
                         .map(PerformanceViewMapper.PerformanceTrendPoint::monthLabel)
