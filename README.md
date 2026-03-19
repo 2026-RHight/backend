@@ -1,6 +1,7 @@
 # 한화시스템 Beyond SW 21기 최종 프로젝트 - Rhight
 
 # 😄 팀소개 Re:verse
+
 |[김세현](https://github.com/sekong11)|[양승재](https://github.com/DMXZC)|[이상준](https://github.com/Ongsaem0)|[정규원](https://github.com/Gyuwon-Jung)|
 |:-:|:-:|:-:|:-:|
 | CoreHR | 성과 관리 시스템 | 근태·급여 | 전자결재 |
