@@ -1,6 +1,5 @@
 # 한화시스템 Beyond SW 21기 최종 프로젝트 - Rhight
 
----
 # 😄 팀소개 Re:verse
 |[김세현](https://github.com/sekong11)|[양승재](https://github.com/DMXZC)|[이상준](https://github.com/Ongsaem0)|[정규원](https://github.com/Gyuwon-Jung)|
 |:-:|:-:|:-:|:-:|
@@ -127,6 +126,8 @@
 
 ---
 
+# 시스템 아키텍처
+![ci_cd (1)](https://github.com/user-attachments/assets/439feeb3-7c3b-41af-9b48-91755196ddaf)
 
 ---
 # 파이프 라인 구조도
