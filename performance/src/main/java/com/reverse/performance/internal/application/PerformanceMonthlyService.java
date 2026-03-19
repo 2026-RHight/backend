@@ -28,20 +28,35 @@ public class PerformanceMonthlyService {
                 YearMonth.now().plusMonths(monthOffset == null ? 0L : monthOffset.longValue());
         LocalDate windowStart = targetMonth.minusMonths(5).atDay(1);
         LocalDate windowEndExclusive = targetMonth.plusMonths(1).atDay(1);
+        Long baseEmployeeId =
+                isAdmin && targetEmployeeId != null ? targetEmployeeId : viewerEmployeeId;
+        List<PerformanceHrMemberResolver.OrganizationMemberSnapshot> orgMembers =
+                performanceHrMemberResolver.getMyOrganizationMembers(baseEmployeeId);
+        Long orgId =
+                orgMembers.stream()
+                        .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::orgId)
+                        .filter(id -> id != null)
+                        .findFirst()
+                        .orElse(null);
         List<PerformanceViewMapper.PerformanceMonthlyPoint> myPoints =
                 performanceViewMapper.findMonthlyMyScores(
                         viewerEmployeeId,
                         targetEmployeeId,
                         isAdmin,
                         windowStart,
-                        windowEndExclusive);
+                        windowEndExclusive,
+                        orgId);
         List<Long> teamEmployeeIds =
-                resolveTeamEmployeeIds(viewerEmployeeId, targetEmployeeId, isAdmin);
+                orgMembers.stream()
+                        .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
+                        .filter(id -> id != null)
+                        .distinct()
+                        .toList();
         List<PerformanceViewMapper.PerformanceMonthlyPoint> teamPoints =
-                teamEmployeeIds == null || teamEmployeeIds.isEmpty()
+                teamEmployeeIds.isEmpty()
                         ? Collections.emptyList()
                         : performanceViewMapper.findMonthlyTeamScores(
-                                teamEmployeeIds, windowStart, windowEndExclusive);
+                                teamEmployeeIds, windowStart, windowEndExclusive, orgId);
 
         List<String> chartLabels = buildRecentMonthLabels(targetMonth);
         List<Integer> myScores = mapScores(chartLabels, myPoints);
@@ -144,19 +159,5 @@ public class PerformanceMonthlyService {
 
     private int nvl(Integer value) {
         return value == null ? 0 : value;
-    }
-
-    private List<Long> resolveTeamEmployeeIds(
-            Long viewerEmployeeId, Long targetEmployeeId, boolean isAdmin) {
-        Long baseEmployeeId =
-                isAdmin && targetEmployeeId != null ? targetEmployeeId : viewerEmployeeId;
-        if (baseEmployeeId == null) {
-            return Collections.emptyList();
-        }
-        return performanceHrMemberResolver.getMyOrganizationMembers(baseEmployeeId).stream()
-                .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::employeeId)
-                .filter(id -> id != null)
-                .distinct()
-                .toList();
     }
 }

@@ -60,7 +60,11 @@ public class PerformanceAdminEvalService {
 
     @Transactional
     public void saveAdminFinalScore(Long employeeId, Long evaluatorId, String grade) {
-        int score = gradeToScore(grade);
+        if (grade == null || grade.isBlank()) {
+            throw new IllegalArgumentException(
+                    "등급 값이 필요합니다. employeeId=" + employeeId + ", evaluatorId=" + evaluatorId);
+        }
+        int score = gradeToScore(grade, employeeId, evaluatorId);
         int year = Year.now().getValue();
         performanceViewMapper.upsertAdminFinalScore(employeeId, evaluatorId, year, score);
     }
@@ -73,14 +77,21 @@ public class PerformanceAdminEvalService {
         return "D";
     }
 
-    private int gradeToScore(String grade) {
-        if (grade == null) return 50;
+    private int gradeToScore(String grade, Long employeeId, Long evaluatorId) {
         return switch (grade.toUpperCase()) {
             case "S" -> 95;
             case "A" -> 85;
             case "B" -> 75;
             case "C" -> 65;
-            default -> 50;
+            case "D" -> 55;
+            default ->
+                    throw new IllegalArgumentException(
+                            "유효하지 않은 등급입니다: grade="
+                                    + grade
+                                    + ", employeeId="
+                                    + employeeId
+                                    + ", evaluatorId="
+                                    + evaluatorId);
         };
     }
 }

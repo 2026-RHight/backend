@@ -152,9 +152,4 @@ public class PerformanceInquiryController {
         // 서비스 레이어에서 조직 구조 또는 evaluation 테이블 기반으로 접근 권한 검증
         return targetEmployeeId;
     }
-
-    private boolean isEvaluator(CustomUser user) {
-        return user.getAuthorities().stream()
-                .anyMatch(auth -> "ROLE_EVALUATOR".equals(auth.getAuthority()));
-    }
 }

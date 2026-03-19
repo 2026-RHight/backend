@@ -33,6 +33,12 @@ public class PerformanceEvaluationService {
             return List.of();
         }
 
+        Long orgId =
+                members.stream()
+                        .map(PerformanceHrMemberResolver.OrganizationMemberSnapshot::orgId)
+                        .filter(id -> id != null)
+                        .findFirst()
+                        .orElse(null);
         Map<Long, PerformanceViewMapper.TeamEvaluationMetricRow> metricMap =
                 performanceViewMapper
                         .findTeamEvaluationMetrics(
@@ -42,7 +48,8 @@ public class PerformanceEvaluationService {
                                                 PerformanceHrMemberResolver
                                                                 .OrganizationMemberSnapshot
                                                         ::employeeId)
-                                        .toList())
+                                        .toList(),
+                                orgId)
                         .stream()
                         .collect(
                                 Collectors.toMap(

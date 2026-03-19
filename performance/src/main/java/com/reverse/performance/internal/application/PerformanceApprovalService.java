@@ -98,7 +98,7 @@ public class PerformanceApprovalService {
         validateManagerAccess(employeeId, targetEmployeeId);
         int updated =
                 performanceViewMapper.approvePerformance(
-                        employeeId, performanceId, blankToNull(request.comment()));
+                        performanceId, blankToNull(request.comment()));
         if (updated == 0) {
             throw new PerformanceNotFoundException("승인할 성과를 찾을 수 없습니다.");
         }
@@ -115,7 +115,7 @@ public class PerformanceApprovalService {
         validateManagerAccess(employeeId, targetEmployeeId);
         int updated =
                 performanceViewMapper.rejectPerformance(
-                        employeeId, performanceId, blankToNull(request.comment()));
+                        performanceId, blankToNull(request.comment()));
         if (updated == 0) {
             throw new PerformanceNotFoundException("반려할 성과를 찾을 수 없습니다.");
         }

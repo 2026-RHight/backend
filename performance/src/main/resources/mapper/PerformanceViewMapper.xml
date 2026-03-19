@@ -17,30 +17,22 @@
         </choose>
     </sql>
 
-    <sql id="taskBaseScoreExpr">
-        ROUND((
-            CASE
-                WHEN p.achievement_rate >= 95 THEN 10
-                WHEN p.achievement_rate >= 85 THEN 9
-                WHEN p.achievement_rate >= 75 THEN 8
-                WHEN p.achievement_rate >= 65 THEN 7
-                ELSE 5
-            END
-            +
-            CASE
-                WHEN p.expected_end_date IS NULL                             THEN 7
-                WHEN p.end_date &lt;= p.expected_end_date                    THEN 10
-                WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 3       THEN 8
-                WHEN DATEDIFF(p.end_date, p.expected_end_date) &lt;= 7       THEN 6
-                ELSE 5
-            END
-            +
-            LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
-        ) / 3.0)
-    </sql>
-
-    <sql id="teamBonusExpr">
-        ROUND(LEAST(GREATEST(COALESCE(pt.weight, 0), 0), 100) / 20.0)
+    <!-- 난이도 × 종료예상일 비율 × 달성률 비율 -->
+    <sql id="taskScoreExpr">
+        LEAST(GREATEST(COALESCE(p.difficulty_score, 5), 1), 10)
+        * CASE
+            WHEN p.expected_end_date IS NULL                              THEN 1.0
+            WHEN DATEDIFF(p.expected_end_date, p.end_date) &gt;= 2       THEN 1.2
+            WHEN p.end_date &lt;= p.expected_end_date                     THEN 1.0
+            ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
+          END
+        * CASE
+            WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
+            WHEN p.achievement_rate &gt;= 90               THEN 1.1
+            WHEN p.achievement_rate &gt;= 80               THEN 1.0
+            WHEN p.achievement_rate &gt;= 60               THEN 0.8
+            ELSE 0
+          END
     </sql>
 
     <select id="countPendingApprovalItems" parameterType="long" resultType="int">
@@ -62,42 +54,23 @@
                    YEAR(p.end_date) AS scoreYear,
                    MONTH(p.end_date) AS scoreMonth,
                    ROUND(
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'PERSONAL'
-                                       THEN <include refid="taskBaseScoreExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
+                       COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
                        +
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'TEAM'
-                                       THEN <include refid="taskBaseScoreExpr"/> + <include refid="teamBonusExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
-                   ) AS score
+                       COALESCE(SUM(CASE WHEN p.work_item = 'TEAM'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
+                   ) * 3 AS score
             FROM performance p
-            LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
-            LEFT JOIN employee_hr_info hr ON hr.employee_id = p.employee_id
-            LEFT JOIN performance_weight weight_config ON weight_config.org_id = hr.org_id
+            LEFT JOIN performance_weight weight_config ON weight_config.org_id = #{orgId}
             WHERE p.employee_id = #{employeeId}
               AND p.end_date IS NOT NULL
               AND p.status = 'ENDED'
               AND p.end_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
             GROUP BY p.employee_id,
                      YEAR(p.end_date),
-                     MONTH(p.end_date),
-                     hr.org_id,
-                     weight_config.personal_weight_rate,
-                     weight_config.team_weight_rate
+                     MONTH(p.end_date)
         ) base
         ORDER BY base.scoreYear, base.scoreMonth
     </select>
@@ -212,32 +185,16 @@
                    YEAR(p.end_date) AS scoreYear,
                    MONTH(p.end_date) AS scoreMonth,
                    ROUND(
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'PERSONAL'
-                                       THEN <include refid="taskBaseScoreExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
+                       COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
                        +
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'TEAM'
-                                       THEN <include refid="taskBaseScoreExpr"/> + <include refid="teamBonusExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
-                   ) AS score
+                       COALESCE(SUM(CASE WHEN p.work_item = 'TEAM'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
+                   ) * 3 AS score
             FROM performance p
-            LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
-            LEFT JOIN employee_hr_info hr ON hr.employee_id = p.employee_id
-            LEFT JOIN performance_weight weight_config ON weight_config.org_id = hr.org_id
+            LEFT JOIN performance_weight weight_config ON weight_config.org_id = #{orgId}
             WHERE <include refid="targetEmployeeCondition"/>
               AND p.end_date IS NOT NULL
               AND p.status = 'ENDED'
@@ -245,10 +202,7 @@
               AND DATE(p.end_date) &lt; #{windowEndExclusive}
             GROUP BY p.employee_id,
                      YEAR(p.end_date),
-                     MONTH(p.end_date),
-                     hr.org_id,
-                     weight_config.personal_weight_rate,
-                     weight_config.team_weight_rate
+                     MONTH(p.end_date)
         ) base
         ORDER BY base.scoreYear, base.scoreMonth
     </select>
@@ -264,32 +218,16 @@
                    YEAR(p.end_date) AS scoreYear,
                    MONTH(p.end_date) AS scoreMonth,
                    ROUND(
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'PERSONAL'
-                                       THEN <include refid="taskBaseScoreExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
+                       COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.personal_weight_rate, 50) / 100.0)
                        +
-                       COALESCE(
-                           SUM(
-                               CASE
-                                   WHEN p.work_item = 'TEAM'
-                                       THEN <include refid="taskBaseScoreExpr"/> + <include refid="teamBonusExpr"/>
-                                   ELSE 0
-                               END
-                           ),
-                           0
-                       ) * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
-                   ) AS score
+                       COALESCE(SUM(CASE WHEN p.work_item = 'TEAM'
+                           THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                       * (COALESCE(weight_config.team_weight_rate, 50) / 100.0)
+                   ) * 3 AS score
             FROM performance p
-            LEFT JOIN performance_team pt ON pt.performance_id = p.performance_id
-            LEFT JOIN employee_hr_info hr ON hr.employee_id = p.employee_id
-            LEFT JOIN performance_weight weight_config ON weight_config.org_id = hr.org_id
+            LEFT JOIN performance_weight weight_config ON weight_config.org_id = #{orgId}
             WHERE 1 = 1
             <choose>
                 <when test="employeeIds != null and employeeIds.size() > 0">
@@ -333,12 +271,7 @@
                COALESCE(p.achievement_rate, 0) AS progress,
                CASE
                    WHEN p.status = 'ENDED'
-                       THEN <include refid="taskBaseScoreExpr"/>
-                            + CASE
-                                  WHEN p.work_item = 'TEAM'
-                                      THEN <include refid="teamBonusExpr"/>
-                                  ELSE 0
-                              END
+                       THEN <include refid="taskScoreExpr"/>
                    ELSE COALESCE(p.achievement_rate, 0)
                END AS score,
                COALESCE(NULLIF(p.work_detail, ''), p.title) AS description,
@@ -436,6 +369,11 @@
         ORDER BY p.created_at DESC
     </select>
 
+    <!--
+        승인 상태 전이 규칙:
+        - result_summary 또는 team_result_summary가 존재하면 결과 승인 → status = 'ENDED', end_date 보정
+        - 해당 필드가 없으면 계획 승인 → status = 'ACTIVE' (진행중 복귀)
+    -->
     <update id="approvePerformance" parameterType="map">
         UPDATE performance p
         SET p.status = CASE
@@ -531,7 +469,15 @@
                    ) THEN '진행 중'
                    ELSE '평가 대기'
                END AS status,
-               ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
+               ROUND(
+                   COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL' AND p.status = 'ENDED' AND p.end_date IS NOT NULL
+                       THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                   * (COALESCE(MAX(pw.personal_weight_rate), 50) / 100.0)
+                   +
+                   COALESCE(SUM(CASE WHEN p.work_item = 'TEAM' AND p.status = 'ENDED' AND p.end_date IS NOT NULL
+                       THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                   * (COALESCE(MAX(pw.team_weight_rate), 50) / 100.0)
+               ) * 3 AS systemScore,
                ROUND(AVG((COALESCE(pr.communication_score, 0) + COALESCE(pr.solving_score, 0) + COALESCE(pr.responsibility_score, 0) + COALESCE(pr.team_contribution, 0)) / 4), 1) AS peerReviewScore,
                ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
                ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
@@ -541,6 +487,7 @@
             <include refid="employeeIdsDerivedTable"/>
         ) base
         LEFT JOIN performance p ON p.employee_id = base.employee_id
+        LEFT JOIN performance_weight pw ON pw.org_id = #{orgId}
         LEFT JOIN evaluation ev
           ON ev.employee_id = base.employee_id
          AND ev.confirmed_at IS NULL
@@ -588,7 +535,15 @@
             parameterType="map"
             resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$TeamStatsMetricRow">
         SELECT base.employee_id AS employeeId,
-               ROUND(AVG(COALESCE(p.achievement_rate, 0))) AS systemScore,
+               ROUND(
+                   COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL' AND p.status = 'ENDED' AND p.end_date IS NOT NULL
+                       THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                   * (COALESCE(MAX(pw.personal_weight_rate), 50) / 100.0)
+                   +
+                   COALESCE(SUM(CASE WHEN p.work_item = 'TEAM' AND p.status = 'ENDED' AND p.end_date IS NOT NULL
+                       THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                   * (COALESCE(MAX(pw.team_weight_rate), 50) / 100.0)
+               ) * 3 AS systemScore,
                ROUND(AVG(COALESCE(pr.communication_score, 0)), 1) AS performanceAvg,
                ROUND(AVG(COALESCE(pr.responsibility_score, 0)), 1) AS attitudeAvg,
                ROUND(AVG(COALESCE(pr.team_contribution, 0)), 1) AS collaborationAvg,
@@ -597,6 +552,7 @@
             <include refid="employeeIdsDerivedTable"/>
         ) base
         LEFT JOIN performance p ON p.employee_id = base.employee_id
+        LEFT JOIN performance_weight pw ON pw.org_id = #{orgId}
         LEFT JOIN evaluation ev
           ON ev.employee_id = base.employee_id
          AND ev.confirmed_at IS NULL
@@ -605,6 +561,82 @@
         GROUP BY base.employee_id
         ORDER BY base.employee_id
     </select>
+
+    <select id="findAdminEvalTeams"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$AdminEvalTeamRow">
+        SELECT o.org_id AS orgId,
+               o.org_name AS name,
+               COUNT(e.employee_id) AS memberCount
+        FROM organization o
+        LEFT JOIN employee_hr_info h ON h.org_id = o.org_id
+        LEFT JOIN employee e ON e.employee_id = h.employee_id AND e.employ_state = 'WORK'
+        WHERE o.org_type = 'TEAM'
+          AND o.is_active = TRUE
+        GROUP BY o.org_id, o.org_name
+        ORDER BY o.sort_order, o.org_name
+    </select>
+
+    <select id="findAdminEvalMembersByOrgId"
+            parameterType="long"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$AdminEvalMemberRow">
+        SELECT e.employee_id AS employeeId,
+               e.employee_name AS name,
+               p.position_name AS position,
+               (SELECT ev.evaluation_score
+                FROM evaluation ev
+                WHERE ev.employee_id = e.employee_id
+                  AND ev.performance_year = YEAR(CURDATE())
+                  AND ev.evaluation_score IS NOT NULL
+                ORDER BY ev.updated_at DESC
+                LIMIT 1) AS finalScore
+        FROM employee_hr_info h
+        INNER JOIN employee e ON e.employee_id = h.employee_id AND e.employ_state = 'WORK'
+        LEFT JOIN hr_position p ON p.position_id = h.position_id
+        WHERE h.org_id = #{orgId}
+        ORDER BY e.employee_name
+    </select>
+
+    <select id="findAdminEvalData"
+            parameterType="map"
+            resultType="com.reverse.performance.internal.persistence.PerformanceViewMapper$AdminEvalDataRow">
+        SELECT
+            (SELECT ROUND(AVG((te.performance_score + te.attitude_score + te.collaboration_score + te.creativity_score) / 4.0), 1)
+             FROM team_evaluation te
+             WHERE te.appraisee_id = #{employeeId}
+               AND te.performance_year = YEAR(CURDATE())) AS teamEvalScore,
+            (SELECT ROUND(AVG((pr.communication_score + pr.solving_score + pr.responsibility_score + pr.team_contribution) / 4.0), 1)
+             FROM peer_review pr
+             INNER JOIN evaluation ev ON ev.eval_id = pr.eval_id
+             WHERE ev.employee_id = #{employeeId}
+               AND ev.performance_year = YEAR(CURDATE())) AS peerReviewScore,
+            (SELECT ROUND(
+                COALESCE(SUM(CASE WHEN p.work_item = 'PERSONAL' AND p.end_date IS NOT NULL
+                    THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                * (COALESCE((SELECT pw.personal_weight_rate FROM performance_weight pw
+                             WHERE pw.org_id = #{orgId} LIMIT 1), 50) / 100.0)
+                +
+                COALESCE(SUM(CASE WHEN p.work_item = 'TEAM' AND p.end_date IS NOT NULL
+                    THEN <include refid="taskScoreExpr"/> ELSE 0 END), 0)
+                * (COALESCE((SELECT pw.team_weight_rate FROM performance_weight pw
+                             WHERE pw.org_id = #{orgId} LIMIT 1), 50) / 100.0)
+             ) * 3
+             FROM performance p
+             WHERE p.employee_id = #{employeeId}
+               AND p.status = 'ENDED') AS systemScore,
+            (SELECT ev.evaluation_score
+             FROM evaluation ev
+             WHERE ev.employee_id = #{employeeId}
+               AND ev.performance_year = YEAR(CURDATE())
+               AND ev.evaluation_score IS NOT NULL
+             ORDER BY ev.updated_at DESC
+             LIMIT 1) AS finalScore
+    </select>
+
+    <insert id="upsertAdminFinalScore" parameterType="map">
+        INSERT INTO evaluation (employee_id, evaluator_id, performance_year, evaluation_score, confirmed_at, created_at, updated_at)
+        VALUES (#{employeeId}, #{evaluatorId}, #{year}, #{score}, NOW(), NOW(), NOW())
+        ON DUPLICATE KEY UPDATE evaluation_score = #{score}, confirmed_at = NOW(), updated_at = NOW()
+    </insert>
 
     <select id="findTeamStatsTasksByEmployeeIds"
             parameterType="map"
