@@ -250,7 +250,7 @@
     <select id="findApprovalProgressCounts"
             resultType="com.reverse.approval.internal.persistence.row.ApprovalProgressCountsRow">
         SELECT
-            CAST(COALESCE(SUM(CASE WHEN ea.approval_status &lt;&gt; 'COMPLETE' THEN 1 ELSE 0 END), 0) AS SIGNED) AS allCount,
+            CAST(COALESCE(SUM(CASE WHEN ea.approval_status NOT IN ('COMPLETE', 'WITHDRAWN') THEN 1 ELSE 0 END), 0) AS SIGNED) AS allCount,
             CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'TEMP' THEN 1 ELSE 0 END), 0) AS SIGNED) AS draftCount,
             CAST(COALESCE(SUM(CASE WHEN ea.approval_status IN ('PENDING', 'HOLD') THEN 1 ELSE 0 END), 0) AS SIGNED) AS inProgressCount,
             CAST(COALESCE(SUM(CASE WHEN ea.approval_status = 'REJECTED' THEN 1 ELSE 0 END), 0) AS SIGNED) AS rejectedCount
@@ -260,7 +260,7 @@
 
     <sql id="approvalProgressWhere">
         ea.drafter_id = #{employeeId}
-        AND ea.approval_status &lt;&gt; 'COMPLETE'
+        AND ea.approval_status NOT IN ('COMPLETE', 'WITHDRAWN')
         <choose>
             <when test="tabType == 'DRAFT'">
                 AND ea.approval_status = 'TEMP'
