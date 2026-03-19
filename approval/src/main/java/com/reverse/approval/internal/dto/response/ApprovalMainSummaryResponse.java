@@ -9,5 +9,9 @@ public record ApprovalMainSummaryResponse(
         List<MainItem> pendingDocuments,
         List<MainItem> inProgressDocuments) {
     public record MainItem(
-            Long approvalId, String title, String drafterName, LocalDateTime draftDate) {}
+            Long approvalId,
+            String title,
+            String drafterName,
+            LocalDateTime draftDate,
+            LocalDateTime readDate) {}
 }

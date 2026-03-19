@@ -567,7 +567,8 @@
             ea.approval_id AS approvalId,
             ea.title AS title,
             ea.drafter_name AS drafterName,
-            ea.draft_dt AS draftDate
+            ea.draft_dt AS draftDate,
+            al.read_dt AS readDate
         FROM electronic_approval ea
         JOIN approval_line al ON al.approval_id = ea.approval_id
         WHERE
@@ -582,7 +583,8 @@
             ea.approval_id AS approvalId,
             ea.title AS title,
             ea.drafter_name AS drafterName,
-            ea.draft_dt AS draftDate
+            ea.draft_dt AS draftDate,
+            al.read_dt AS readDate
         FROM electronic_approval ea
         JOIN approval_line al ON al.approval_id = ea.approval_id
         WHERE
