@@ -32,7 +32,7 @@ public class OpenApiConfig {
                         new Info()
                                 .title("Rhight API")
                                 .description("Rhight backend API documentation")
-                                .version("v1")
+                                .version("v1.1")
                                 .contact(
                                         new Contact().name("Rhight Team").email("dev@rhight.local"))
                                 .license(new License().name("Proprietary")))
