@@ -556,10 +556,6 @@ public class ApprovalService implements ApprovalFacade {
         if (approvalMapper.countByApprovalIdAndDrafterId(approvalId, employeeId) == 0) {
             throw new ForbiddenException("본인이 기안한 문서만 재상신할 수 있습니다.");
         }
-        String status = approvalMapper.findApprovalStatusByApprovalId(approvalId);
-        if (!ApprovalStatus.TEMP.name().equals(status)) {
-            throw new BadRequestException("임시 저장 상태(TEMP) 문서만 재상신할 수 있습니다.");
-        }
 
         List<String> oldAttachmentKeys =
                 approvalAttachmentMapper.findAttachmentsByApprovalId(approvalId).stream()
