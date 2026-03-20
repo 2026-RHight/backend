@@ -135,14 +135,34 @@
 
 
 ---
-# 요구사항 명세서
+# 📝 산출물
+## 프로젝트 기획서
+[프로젝트 기획서](https://drive.google.com/file/d/19EGbsyx301zxg4gjAOl7XgPZ8-WL0Zx6/view?usp=sharing)
+## 요구사항 명세서
+[요구사항 명세서](https://docs.google.com/spreadsheets/d/1h8Aw45Q69Dfy8JcQiAsa9sURjLYDvG3V/edit?usp=sharing&ouid=111093886283028399495&rtpof=true&sd=true)
 <details>
 <summary>요구사항 명세서  </summary>
 <div markdown="1">
-
-
-
+<img width="924" height="782" alt="스크린샷 2026-03-20 오후 12 40 02" src="https://github.com/user-attachments/assets/127b437c-b028-48ce-a5cf-21def5ca42e5" />
+<img width="924" height="818" alt="스크린샷 2026-03-20 오후 12 40 24" src="https://github.com/user-attachments/assets/05a13328-2583-4b8c-9ace-f81ad2f9350e" />
+<img width="924" height="818" alt="스크린샷 2026-03-20 오후 12 40 37" src="https://github.com/user-attachments/assets/4bc56b14-bbfe-4806-ac6d-6f4261db8c8e" />
+<img width="924" height="833" alt="스크린샷 2026-03-20 오후 12 41 13" src="https://github.com/user-attachments/assets/1b736444-6cc7-4e98-b7ea-5b30695fddc8" />
+<img width="924" height="828" alt="스크린샷 2026-03-20 오후 12 41 26" src="https://github.com/user-attachments/assets/533bd462-53a7-4998-a95f-ec44f400df6a" />
+<img width="924" height="409" alt="스크린샷 2026-03-20 오후 12 41 38" src="https://github.com/user-attachments/assets/373f1b45-8e5f-44a3-bd21-efd4ecee34f3" />
 </div>
 </details>
+
+## ERD
+<details>
+  <summary>ERD</summary>
+  <div markdowm="1">
+    <img width="2340" height="1482" alt="image" src="https://github.com/user-attachments/assets/67560fdb-7341-4907-9e99-c74268965186" />
+
+  </div>
+</details>
+  
+## 화면 설계서
+[화면 설계서](https://www.figma.com/design/CZgl5GXOcmfREuVlTnzebQ/-%EA%B8%B0%ED%9A%8D-%ED%99%94%EB%A9%B4%EC%84%A4%EA%B3%84%EC%84%9C-%ED%85%9C%ED%94%8C%EB%A6%BF-UX-UI-Wireframe-Template-KOR--UX-UI--Community-?node-id=1-9&t=ZzfXP4EzQqovAnEs-1)
+
 
 ---
