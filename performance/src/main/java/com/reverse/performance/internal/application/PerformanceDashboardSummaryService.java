@@ -50,10 +50,14 @@ public class PerformanceDashboardSummaryService {
                             performanceDashboardSummaryMapper.findCompositeScore(
                                     orgId, employeeId, targetYear, targetMonth));
 
+            YearMonth previousMonth = YearMonth.of(targetYear, targetMonth).minusMonths(1);
             int previousCompositeScore =
                     nvl(
                             performanceDashboardSummaryMapper.findCompositeScore(
-                                    orgId, employeeId, targetYear - 1, targetMonth));
+                                    orgId,
+                                    employeeId,
+                                    previousMonth.getYear(),
+                                    previousMonth.getMonthValue()));
             BigDecimal scoreChangeRate =
                     calculateScoreChangeRate(compositeScore, previousCompositeScore);
 

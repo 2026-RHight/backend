@@ -89,7 +89,8 @@ public interface PerformanceViewMapper {
     List<PeerReviewTargetStateRow> findPeerReviewTargetStates(
             @Param("employeeId") Long employeeId, @Param("employeeIds") List<Long> employeeIds);
 
-    Long findPeerReviewableEvaluationId(@Param("appraiseeId") Long appraiseeId);
+    Long findPeerReviewableEvaluationId(
+            @Param("appraiseeId") Long appraiseeId, @Param("year") int year);
 
     void ensureEvaluation(@Param("employeeId") Long employeeId, @Param("year") int year);
 

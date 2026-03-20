@@ -519,12 +519,13 @@
         ORDER BY base.employee_id
     </select>
 
-    <select id="findPeerReviewableEvaluationId" parameterType="long" resultType="long">
+    <select id="findPeerReviewableEvaluationId" parameterType="map" resultType="long">
         SELECT ev.eval_id
         FROM evaluation ev
         WHERE ev.employee_id = #{appraiseeId}
           AND ev.confirmed_at IS NULL
-        ORDER BY ev.performance_year DESC, ev.created_at DESC
+          AND ev.performance_year = #{year}
+        ORDER BY ev.created_at DESC
         LIMIT 1
     </select>
 
