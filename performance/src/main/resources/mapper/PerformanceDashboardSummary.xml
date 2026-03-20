@@ -34,7 +34,7 @@
         FROM performance p
         WHERE p.employee_id = #{employeeId}
           AND p.work_item = 'PERSONAL'
-          AND <include refid="performanceMonthOverlapCondition"/>
+          AND YEAR(COALESCE(p.start_date, p.created_at)) = #{targetYear}
     </select>
 
     <select id="findTeamKpiAchievementRate" parameterType="map" resultType="int">
@@ -48,7 +48,7 @@
         FROM performance p
         WHERE p.employee_id = #{employeeId}
           AND p.work_item = 'TEAM'
-          AND <include refid="performanceMonthOverlapCondition"/>
+          AND YEAR(COALESCE(p.start_date, p.created_at)) = #{targetYear}
     </select>
 
     <select id="findMonthlyCoreGoalProgressRate" parameterType="map" resultType="int">
@@ -62,8 +62,7 @@
         FROM performance p
         WHERE p.employee_id = #{employeeId}
           AND p.expected_end_date IS NOT NULL
-          AND p.expected_end_date &gt;= <include refid="monthStart"/>
-          AND p.expected_end_date &lt;= LAST_DAY(<include refid="monthStart"/>)
+          AND YEAR(p.expected_end_date) = #{targetYear}
     </select>
 
     <select id="findCompositeScore" parameterType="map" resultType="int">
@@ -91,10 +90,10 @@
                            ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
                          END
                        * CASE
-                           WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
-                           WHEN p.achievement_rate &gt;= 90               THEN 1.1
-                           WHEN p.achievement_rate &gt;= 80               THEN 1.0
-                           WHEN p.achievement_rate &gt;= 60               THEN 0.8
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 100 THEN 1.2
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 90  THEN 1.1
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 80  THEN 1.0
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 60  THEN 0.8
                            ELSE 0
                          END
                    ) AS total_score
@@ -103,8 +102,7 @@
               AND p.work_item = 'PERSONAL'
               AND p.status = 'ENDED'
               AND p.end_date IS NOT NULL
-              AND p.end_date &gt;= <include refid="monthStart"/>
-              AND p.end_date &lt; <include refid="nextMonthStart"/>
+              AND YEAR(p.end_date) = #{targetYear}
             GROUP BY p.employee_id
         ) personal_scores
                ON personal_scores.employee_id = base.employee_id
@@ -119,10 +117,10 @@
                            ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
                          END
                        * CASE
-                           WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
-                           WHEN p.achievement_rate &gt;= 90               THEN 1.1
-                           WHEN p.achievement_rate &gt;= 80               THEN 1.0
-                           WHEN p.achievement_rate &gt;= 60               THEN 0.8
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 100 THEN 1.2
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 90  THEN 1.1
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 80  THEN 1.0
+                           WHEN COALESCE(p.achievement_rate, 80) &gt;= 60  THEN 0.8
                            ELSE 0
                          END
                    ) AS total_score
@@ -131,8 +129,7 @@
               AND p.work_item = 'TEAM'
               AND p.status = 'ENDED'
               AND p.end_date IS NOT NULL
-              AND p.end_date &gt;= <include refid="monthStart"/>
-              AND p.end_date &lt; <include refid="nextMonthStart"/>
+              AND YEAR(p.end_date) = #{targetYear}
             GROUP BY p.employee_id
         ) team_scores
                ON team_scores.employee_id = base.employee_id

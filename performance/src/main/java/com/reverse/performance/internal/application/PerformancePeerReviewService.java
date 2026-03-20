@@ -26,6 +26,11 @@ public class PerformancePeerReviewService {
 
         Long evalId = performanceViewMapper.findPeerReviewableEvaluationId(request.appraiseeId());
         if (evalId == null) {
+            performanceViewMapper.ensureEvaluation(
+                    request.appraiseeId(), LocalDate.now().getYear());
+            evalId = performanceViewMapper.findPeerReviewableEvaluationId(request.appraiseeId());
+        }
+        if (evalId == null) {
             throw new PerformanceNotFoundException("평가 대상자의 평가 정보를 찾을 수 없습니다.");
         }
         LocalDate now = LocalDate.now();

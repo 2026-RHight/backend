@@ -91,6 +91,8 @@ public interface PerformanceViewMapper {
 
     Long findPeerReviewableEvaluationId(@Param("appraiseeId") Long appraiseeId);
 
+    void ensureEvaluation(@Param("employeeId") Long employeeId, @Param("year") int year);
+
     List<TeamStatsMetricRow> findTeamStatsMetrics(
             @Param("employeeIds") List<Long> employeeIds, @Param("orgId") Long orgId);
 

@@ -8,11 +8,11 @@
         INSERT INTO peer_review(
             eval_id, reviewer_id, communication_Score,
             solving_score, responsibility_score, team_contribution, culture_contribution,
-            comment, eval_year, created_at
+            comment, created_at
         )VALUES (
             #{evalId}, #{reviewerId}, #{communicationScore},
             #{solvingScore}, #{responsibilityScore}, #{teamContribution}, #{cultureContribution},
-            #{comment}, #{evalYear}, NOW()
+            #{comment}, NOW()
             )
     </insert>
 

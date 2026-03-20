@@ -2,11 +2,9 @@ package com.reverse.performance.internal.application;
 
 import com.reverse.performance.internal.dto.response.PerformanceDashboardSummaryResponse;
 import com.reverse.performance.internal.persistence.PerformanceDashboardSummaryMapper;
-import com.reverse.performance.internal.persistence.PerformanceWeightMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DateTimeException;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ public class PerformanceDashboardSummaryService {
 
     private final PerformanceHrMemberResolver performanceHrMemberResolver;
     private final PerformanceDashboardSummaryMapper performanceDashboardSummaryMapper;
-    private final PerformanceWeightMapper performanceWeightMapper;
 
     @Transactional
     public PerformanceDashboardSummaryResponse recalculateCurrentMonth(Long employeeId) {
@@ -53,13 +50,10 @@ public class PerformanceDashboardSummaryService {
                             performanceDashboardSummaryMapper.findCompositeScore(
                                     orgId, employeeId, targetYear, targetMonth));
 
-            PerformanceDashboardSummaryMapper.DashboardSummaryRow previousSummary =
-                    performanceDashboardSummaryMapper.findDashboardSummary(
-                            employeeId,
-                            YearMonth.of(targetYear, targetMonth).minusMonths(1).getYear(),
-                            YearMonth.of(targetYear, targetMonth).minusMonths(1).getMonthValue());
             int previousCompositeScore =
-                    previousSummary == null ? 0 : nvl(previousSummary.compositeScore());
+                    nvl(
+                            performanceDashboardSummaryMapper.findCompositeScore(
+                                    orgId, employeeId, targetYear - 1, targetMonth));
             BigDecimal scoreChangeRate =
                     calculateScoreChangeRate(compositeScore, previousCompositeScore);
 
@@ -93,18 +87,6 @@ public class PerformanceDashboardSummaryService {
     public PerformanceDashboardSummaryResponse getCurrentMonthSummary(Long employeeId) {
         YearMonth currentMonth = YearMonth.now();
         try {
-            Long orgId = performanceHrMemberResolver.resolveOrgId(employeeId);
-            PerformanceDashboardSummaryMapper.DashboardSummaryRow currentSummary =
-                    performanceDashboardSummaryMapper.findDashboardSummary(
-                            employeeId, currentMonth.getYear(), currentMonth.getMonthValue());
-            LocalDateTime latestWeightUpdatedAt =
-                    orgId == null
-                            ? null
-                            : performanceWeightMapper.findLatestUpdatedAtByOrgId(orgId);
-            if (currentSummary != null
-                    && !isSummaryStale(currentSummary.calculatedAt(), latestWeightUpdatedAt)) {
-                return toResponse(currentSummary);
-            }
             return recalculate(employeeId, currentMonth.getYear(), currentMonth.getMonthValue());
         } catch (BadSqlGrammarException ex) {
             log.warn(
@@ -121,14 +103,6 @@ public class PerformanceDashboardSummaryService {
                 null,
                 null,
                 null);
-    }
-
-    private boolean isSummaryStale(
-            LocalDateTime calculatedAt, LocalDateTime latestWeightUpdatedAt) {
-        if (calculatedAt == null) {
-            return true;
-        }
-        return latestWeightUpdatedAt != null && calculatedAt.isBefore(latestWeightUpdatedAt);
     }
 
     private void validateTargetMonth(Integer targetYear, Integer targetMonth) {
