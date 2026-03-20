@@ -312,6 +312,22 @@
         LIMIT 1
     </select>
 
+    <select id="findCertificateRequestDetailByIdAndEmployeeId"
+            resultType="com.reverse.hr.internal.persistence.row.CertificateRequestDetailRow">
+        SELECT cr.request_id        AS requestId,
+               cr.certificate_type AS certificateType,
+               cr.purpose          AS purpose,
+               cr.submit_to        AS submitTo,
+               cr.status           AS status,
+               cr.requested_at     AS requestedAt,
+               cr.issued_at        AS issuedAt
+        FROM certificate_request cr
+        WHERE cr.employee_id = #{employeeId}
+          AND cr.request_id = #{requestId}
+          AND cr.status = 'ISSUED'
+        LIMIT 1
+    </select>
+
     <delete id="deleteCareerByIdAndEmployeeId">
         DELETE
         FROM employee_career_details

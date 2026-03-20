@@ -64,6 +64,9 @@ public interface MyPageMapper {
     Optional<HrFileRow> findCertificateFileByRequestIdAndEmployeeId(
             @Param("employeeId") Long employeeId, @Param("requestId") Long requestId);
 
+    Optional<CertificateRequestDetailRow> findCertificateRequestDetailByIdAndEmployeeId(
+            @Param("employeeId") Long employeeId, @Param("requestId") Long requestId);
+
     int deleteCareerByIdAndEmployeeId(
             @Param("employeeId") Long employeeId, @Param("careerId") Long careerId);
 

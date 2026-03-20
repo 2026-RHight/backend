@@ -21,10 +21,11 @@ import com.reverse.hr.internal.dto.response.TeamBirthdayResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -162,9 +163,21 @@ public class MyPageController {
 
     @GetMapping("/certificates/{requestId}/download")
     @Operation(summary = "증명서 파일 다운로드")
-    public ResponseEntity<Void> downloadCertificate(
+    public ResponseEntity<byte[]> downloadCertificate(
             @AuthenticationPrincipal CustomUser user, @PathVariable Long requestId) {
-        String fileUrl = myPageService.getCertificateDownloadUrl(user.getEmployeeId(), requestId);
-        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(fileUrl)).build();
+        MyPageService.DownloadedCertificate file =
+                myPageService.downloadCertificate(user.getEmployeeId(), requestId);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(file.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, private")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .body(file.content());
     }
 }
