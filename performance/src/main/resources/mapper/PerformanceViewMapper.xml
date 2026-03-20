@@ -27,10 +27,10 @@
             ELSE GREATEST(0.0, 1.0 - DATEDIFF(p.end_date, p.expected_end_date) * 0.1)
           END
         * CASE
-            WHEN COALESCE(p.achievement_rate, 0) &gt;= 100 THEN 1.2
-            WHEN p.achievement_rate &gt;= 90               THEN 1.1
-            WHEN p.achievement_rate &gt;= 80               THEN 1.0
-            WHEN p.achievement_rate &gt;= 60               THEN 0.8
+            WHEN COALESCE(p.achievement_rate, 80) &gt;= 100 THEN 1.2
+            WHEN COALESCE(p.achievement_rate, 80) &gt;= 90  THEN 1.1
+            WHEN COALESCE(p.achievement_rate, 80) &gt;= 80  THEN 1.0
+            WHEN COALESCE(p.achievement_rate, 80) &gt;= 60  THEN 0.8
             ELSE 0
           END
     </sql>
@@ -519,14 +519,21 @@
         ORDER BY base.employee_id
     </select>
 
-    <select id="findPeerReviewableEvaluationId" parameterType="long" resultType="long">
+    <select id="findPeerReviewableEvaluationId" parameterType="map" resultType="long">
         SELECT ev.eval_id
         FROM evaluation ev
         WHERE ev.employee_id = #{appraiseeId}
           AND ev.confirmed_at IS NULL
-        ORDER BY ev.performance_year DESC, ev.created_at DESC
+          AND ev.performance_year = #{year}
+        ORDER BY ev.created_at DESC
         LIMIT 1
     </select>
+
+    <insert id="ensureEvaluation" parameterType="map">
+        INSERT INTO evaluation (employee_id, evaluator_id, performance_year, confirmed_at, created_at, updated_at)
+        VALUES (#{employeeId}, #{employeeId}, #{year}, NULL, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE eval_id = eval_id
+    </insert>
 
     <select id="findTeamStatsMetrics"
             parameterType="map"
