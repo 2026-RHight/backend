@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
@@ -73,7 +74,6 @@ public class MyPageService {
     private static final Set<String> ALLOWED_PROFILE_EXT = Set.of("jpg", "jpeg", "png", "webp");
     private static final Set<String> ALLOWED_PROFILE_CONTENT_TYPE =
             Set.of("image/jpeg", "image/png", "image/webp");
-    private static final long CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS = 300L;
 
     public MyPageHeaderResponseDTO getMyPageHeader(Long employeeId) {
         MyPageHeaderRow row =
@@ -500,16 +500,46 @@ public class MyPageService {
                 fileRow.getHrFileId(), fileRow.getFileTitle(), fileRow.getFileUrl());
     }
 
-    public String getCertificateDownloadUrl(Long employeeId, Long requestId) {
-        HrFileRow fileRow =
+    public DownloadedCertificate downloadCertificate(Long employeeId, Long requestId) {
+        CertificateRequestDetailRow requestRow =
                 myPageMapper
-                        .findCertificateFileByRequestIdAndEmployeeId(employeeId, requestId)
-                        .orElseThrow(() -> new NotFoundException("증명서 파일을 찾을 수 없습니다."));
-        if (fileRow.getFileKey() == null || fileRow.getFileKey().isBlank()) {
-            throw new NotFoundException("증명서 파일을 찾을 수 없습니다.");
+                        .findCertificateRequestDetailByIdAndEmployeeId(employeeId, requestId)
+                        .orElseThrow(() -> new NotFoundException("증명서 발급 이력을 찾을 수 없습니다."));
+
+        BasicInfoRow basicInfoRow =
+                myPageMapper
+                        .findBasicInfoByEmployeeId(employeeId)
+                        .orElseThrow(() -> new NotFoundException("기본 정보를 찾을 수 없습니다."));
+
+        HrInfoRow hrInfoRow =
+                myPageMapper
+                        .findHrInfoByEmployeeId(employeeId)
+                        .orElseThrow(() -> new NotFoundException("인사 정보를 찾을 수 없습니다."));
+
+        LocalDateTime issuedAt =
+                requestRow.issuedAt() != null ? requestRow.issuedAt() : requestRow.requestedAt();
+        String html = buildCertificateHtml(basicInfoRow, hrInfoRow, requestRow, issuedAt);
+        byte[] content = buildPdfBytes(html);
+
+        String fileName =
+                "certificate_"
+                        + requestRow.certificateType().toLowerCase(Locale.ROOT)
+                        + "_"
+                        + employeeId
+                        + "_"
+                        + issuedAt.format(FILE_DATE_TIME_FORMATTER)
+                        + ".pdf";
+
+        return new DownloadedCertificate(content, normalizeCertificateFilename(fileName));
+    }
+
+    private String normalizeCertificateFilename(String fileTitle) {
+        String safeFileName =
+                (fileTitle == null || fileTitle.isBlank()) ? "certificate.pdf" : fileTitle.trim();
+        if (!safeFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            safeFileName = safeFileName + ".pdf";
         }
-        return s3StorageService.generatePresignedUrl(
-                fileRow.getFileKey(), CERTIFICATE_DOWNLOAD_URL_EXPIRE_SECONDS);
+        return safeFileName;
     }
 
     private EvidenceUploadResult uploadEvidenceFile(
@@ -557,6 +587,8 @@ public class MyPageService {
             throw new IllegalArgumentException("취득일은 오늘 이후 날짜로 입력할 수 없습니다.");
         }
     }
+
+    public record DownloadedCertificate(byte[] content, String fileName) {}
 
     private void validateCareerRequest(CreateCareerRequestDTO request) {
         if (request.companyName() != null && request.companyName().length() > 255) {
@@ -779,6 +811,25 @@ public class MyPageService {
             HrInfoRow hrInfoRow,
             CreateCertificateRequestDTO request,
             LocalDateTime issuedAt) {
+        return buildCertificateHtml(
+                basicInfoRow, hrInfoRow, request.submitTo(), request.purpose(), issuedAt);
+    }
+
+    private String buildCertificateHtml(
+            BasicInfoRow basicInfoRow,
+            HrInfoRow hrInfoRow,
+            CertificateRequestDetailRow request,
+            LocalDateTime issuedAt) {
+        return buildCertificateHtml(
+                basicInfoRow, hrInfoRow, request.submitTo(), request.purpose(), issuedAt);
+    }
+
+    private String buildCertificateHtml(
+            BasicInfoRow basicInfoRow,
+            HrInfoRow hrInfoRow,
+            String submitTo,
+            String purpose,
+            LocalDateTime issuedAt) {
         String templatePath = "templates/certificate/employment-ko.html";
 
         String residentMasked = null;
@@ -805,8 +856,8 @@ public class MyPageService {
                 .replace(
                         "${issuedDateKo}",
                         htmlText(issuedAt.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일"))))
-                .replace("${submitTo}", htmlText(request.submitTo()))
-                .replace("${purpose}", htmlText(request.purpose()))
+                .replace("${submitTo}", htmlText(submitTo))
+                .replace("${purpose}", htmlText(purpose))
                 .replace(
                         "${employmentPeriodKo}",
                         htmlText(formatEmploymentPeriodKo(hrInfoRow.hireDate(), LocalDate.now())));
